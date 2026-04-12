@@ -2220,7 +2220,7 @@ openRouteModal(apCode) {
   G._selectedDeparture = apCode;
   document.getElementById('route-dep').textContent = apCode;
   openModal('modal-route');
-}
+},
   drawRouteLines() {
     if (!G.leafletMap) return;
     Object.values(G.mapRouteLines).forEach(l => l.remove());
