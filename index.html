@@ -194,28 +194,6 @@
   .btn-primary:hover::before { opacity: 1; }
   .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
 
-  /* 우측 하단 버전 표시 */
-  #menu-version {
-    position: absolute;
-    bottom: 24px;
-    right: 28px;
-    z-index: 3;
-    font-size: 11px;
-    color: rgba(255,255,255,0.3);
-    letter-spacing: 1px;
-  }
-
-  /* 좌측 하단 크레딧 */
-  #menu-credit {
-    position: absolute;
-    bottom: 24px;
-    left: 52px;
-    z-index: 3;
-    font-size: 11px;
-    color: rgba(255,255,255,0.25);
-    letter-spacing: 0.5px;
-  }
-
   .btn-primary {
     background: var(--sky);
     color: white;
@@ -1108,8 +1086,7 @@
     </div>
   </div>
 
-  <div id="menu-version">v2.0</div>
-  <div id="menu-credit">© SkyEmpire</div>
+
 </div>
 
 <!-- ===== SETUP ===== -->
@@ -1125,20 +1102,6 @@
     <div class="form-group">
       <label class="form-label">슬로건</label>
       <input class="form-input" id="setup-slogan" placeholder="하늘을 연결합니다" value="하늘을 연결합니다">
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">허브 공항</label>
-      <select class="form-input" id="setup-hub">
-        <option value="ICN">인천국제공항 (ICN)</option>
-        <option value="JFK">존 F. 케네디 (JFK)</option>
-        <option value="LHR">히드로 (LHR)</option>
-        <option value="CDG">샤를 드골 (CDG)</option>
-        <option value="DXB">두바이 국제 (DXB)</option>
-        <option value="HND">하네다 (HND)</option>
-        <option value="SIN">창이 (SIN)</option>
-        <option value="LAX">로스앤젤레스 (LAX)</option>
-      </select>
     </div>
 
     <div class="form-group">
@@ -2064,7 +2027,6 @@ const G = {
     return {
       airlineName: 'SkyEmpire Airlines',
       slogan: '하늘을 연결합니다',
-      hubCode: 'ICN',
       brandColor: '#1565C0',
       logoData: null,
       balance: 50000000,
@@ -2130,11 +2092,9 @@ const G = {
   startNewGame() {
     const name = document.getElementById('setup-name').value.trim() || 'SkyEmpire Airlines';
     const slogan = document.getElementById('setup-slogan').value.trim() || '하늘을 연결합니다';
-    const hub = document.getElementById('setup-hub').value;
     G.game = G.defaultGame();
     G.game.airlineName = name;
     G.game.slogan = slogan;
-    G.game.hubCode = hub;
     G.game.brandColor = selectedColor;
     if (G._setupLogoData) G.game.logoData = G._setupLogoData;
     G.oilPriceMultiplier = 1;
@@ -2426,7 +2386,6 @@ const G = {
   showAirportPopup(ap, marker) {
     const typeLabel = ap.type === 'hub' ? '허브 공항' : ap.type === 'oil' ? '산유국 공항' : '일반 공항';
     const typeClass = ap.type === 'hub' ? 'hub' : ap.type === 'oil' ? '' : 'regular';
-    const d = dist(AIRPORTS.find(a=>a.code===G.game.hubCode)||{lat:0,lng:0}, ap);
     const hasRoute = G.game.routes.some(r => (r.dep===ap.code||r.arr===ap.code));
     const html = `
       <div class="airport-popup">
@@ -2434,7 +2393,6 @@ const G = {
         <span class="ap-type ${typeClass}">${typeLabel}</span>
         <div class="ap-info">${ap.city}, ${ap.country}</div>
         <div class="ap-demand">수요 지수: ${ap.demand}</div>
-        <div style="font-size:11px;color:var(--sky);font-weight:600;margin-bottom:6px">${ap.code === G.game.hubCode ? '현재 허브 공항' : ''}</div>
         <button class="ap-route-btn" onclick="G.openRouteModal('${ap.code}')">${hasRoute?'추가 노선 개설':'노선 개설'}</button>
       </div>`;
     marker.bindPopup(html, {maxWidth: 260}).openPopup();
@@ -2491,7 +2449,6 @@ const G = {
       const optDep = document.createElement('option');
       optDep.value = a.code;
       optDep.textContent = `${a.code} - ${a.name} (${a.city})`;
-      if (a.code === G.game.hubCode) optDep.selected = true;
       depSel.appendChild(optDep);
 
       const optArr = document.createElement('option');
@@ -3232,4 +3189,4 @@ window.addEventListener('load', () => {
 });
 </script>
 </body>
-  </html>
+        </html>
