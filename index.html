@@ -1280,6 +1280,14 @@
         <div class="section-header">
           <div class="section-title">노선 관리</div>
         </div>
+        <div class="card" style="margin-bottom:12px;padding:12px 14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="font-size:12px;color:var(--text2)">티켓 가격 정책</div>
+            <div id="ticket-policy-label" style="font-size:12px;font-weight:700;color:var(--sky)">표준 (x1.00)</div>
+          </div>
+          <input type="range" id="ticket-price-slider" min="70" max="140" step="5" value="100" style="width:100%;margin-top:8px" oninput="G.setTicketPricing(this.value)">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:2px"><span>할인</span><span>프리미엄</span></div>
+        </div>
         <div class="fuel-warn" id="fuel-warn-routes">연료가 부족하여 일부 노선이 중단되었습니다.</div>
         <div id="routes-list" class="routes-grid">
           <div class="no-route-msg">아직 개설된 노선이 없습니다.<br>세계 지도에서 공항을 클릭하여 노선을 개설하세요.</div>
@@ -1829,16 +1837,16 @@ const UPGRADES_DATA = [
 ];
 
 const NEWS_POOL = [
-  {title:'국제 유가 급등',body:'중동 지역 분쟁으로 국제 유가가 급등하였습니다. 연료비가 증가합니다.',type:'negative',effect:(g)=>{g.oilPriceMultiplier=1.3; g.notify('유가 급등! 연료비 +30%','warning');}},
-  {title:'항공 수요 증가',body:'여름 성수기로 항공 수요가 크게 증가하였습니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.2; g.notify('수요 증가! 탑승률 +20%','success');}},
-  {title:'태풍 주의보',body:'동아시아 지역에 태풍이 접근하고 있습니다. 일부 노선이 영향을 받을 수 있습니다.',type:'negative',effect:(g)=>{g.notify('태풍 주의보 발령','warning');}},
-  {title:'새 국제 협약',body:'한국이 10개국과 새로운 항공 협약을 체결하였습니다. 노선 수요가 증가합니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.15;}},
-  {title:'경쟁 항공사 파산',body:'경쟁 항공사 중 한 곳이 파산하였습니다. 수요가 일부 이전될 것으로 보입니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.1; g.reputation=Math.min(5,g.reputation+0.1);}},
-  {title:'공항 혼잡',body:'인천공항이 혼잡으로 인해 지연이 발생하고 있습니다.',type:'event',effect:(g)=>{}},
-  {title:'환경 규제 강화',body:'국제 환경 규제로 탄소 비용이 추가됩니다.',type:'negative',effect:(g)=>{g.costMultiplier=1.05;}},
-  {title:'관광 붐',body:'한국 관광 붐으로 인바운드 수요가 급증하였습니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.25;}},
-  {title:'기술 혁신',body:'새로운 항공기 기술이 연료 효율을 높입니다.',type:'positive',effect:(g)=>{g.fuelEfficiency=Math.min(1.4,g.fuelEfficiency+0.05);}},
-  {title:'파업 경고',body:'공항 노동자들이 파업을 예고했습니다. 운영에 영향을 줄 수 있습니다.',type:'negative',effect:(g)=>{g.costMultiplier=1.03;}},
+  {title:'국제 유가 급등',body:'중동 지역 분쟁으로 국제 유가가 급등했습니다. 4주 동안 비용이 크게 증가합니다.',type:'negative',effect:(g)=>{g.costMultiplier*=1.08; g.oilPriceMultiplier=1.3; g.game.activeEffects.push({name:'유가 급등',endWeek:g.game.week+4}); g.notify('유가 급등! 연료비 증가', 'warning');}},
+  {title:'항공 수요 증가',body:'성수기 진입으로 3주간 탑승 수요가 증가합니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.22; g.game.activeEffects.push({name:'성수기',endWeek:g.game.week+3}); g.notify('성수기 호재! 수요 +22%','success');}},
+  {title:'태풍 주의보',body:'태풍 영향으로 2주간 일부 노선 탑승률이 하락합니다.',type:'negative',effect:(g)=>{g.demandMultiplier*=0.9; g.game.activeEffects.push({name:'태풍',endWeek:g.game.week+2}); g.notify('태풍 주의보: 수요 감소','warning');}},
+  {title:'새 국제 협약',body:'양자 항공 협약 체결로 4주간 국제선 수요가 증가합니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.15; g.game.activeEffects.push({name:'항공 협약',endWeek:g.game.week+4});}},
+  {title:'경쟁 항공사 파산',body:'경쟁사가 시장에서 이탈해 5주간 수요가 유입됩니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.12; g.game.activeEffects.push({name:'경쟁사 이탈',endWeek:g.game.week+5});}},
+  {title:'공항 혼잡',body:'허브 공항 혼잡으로 2주간 운영비가 증가합니다.',type:'event',effect:(g)=>{g.costMultiplier*=1.06; g.game.activeEffects.push({name:'공항 혼잡',endWeek:g.game.week+2});}},
+  {title:'환경 규제 강화',body:'탄소 규제로 4주간 운항 비용이 상승합니다.',type:'negative',effect:(g)=>{g.costMultiplier*=1.07; g.game.activeEffects.push({name:'환경 규제',endWeek:g.game.week+4});}},
+  {title:'관광 붐',body:'관광 수요 폭증으로 3주간 여객 수요가 늘어납니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.25; g.game.activeEffects.push({name:'관광 붐',endWeek:g.game.week+3});}},
+  {title:'기술 혁신',body:'신형 운항 시스템 도입으로 6주간 연비가 개선됩니다.',type:'positive',effect:(g)=>{g.fuelEfficiency=Math.min(1.5,g.fuelEfficiency+0.08); g.game.activeEffects.push({name:'기술 혁신',endWeek:g.game.week+6});}},
+  {title:'파업 경고',body:'지상조업 파업 경고로 2주간 비용이 증가합니다.',type:'negative',effect:(g)=>{g.costMultiplier*=1.05; g.game.activeEffects.push({name:'파업 경고',endWeek:g.game.week+2});}},
 ];
 
 const SOCIAL_POSTS_POSITIVE = [
@@ -1994,18 +2002,20 @@ function acCategoryIcon(cat) {
 }
 
 function renderAircraftSVG(type, color = '#1565C0', w=80, h=50) {
-  const c = color;
-  if (type === 'small') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="28" ry="8" fill="${c}"/><polygon points="12,25 2,18 2,32" fill="${c}"/><polygon points="68,25 78,20 78,30" fill="${c}"/><polygon points="30,17 40,8 50,17" fill="${c}80"/><polygon points="15,33 22,25 29,33" fill="${c}60"/><circle cx="40" cy="25" r="4" fill="white" opacity="0.6"/></svg>`;
-  if (type === 'medium') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="30" ry="9" fill="${c}"/><polygon points="10,25 0,16 0,34" fill="${c}"/><polygon points="70,25 80,19 80,31" fill="${c}"/><polygon points="25,16 40,5 55,16" fill="${c}80"/><polygon points="12,36 20,27 28,36" fill="${c}60"/><ellipse cx="40" cy="22" rx="8" ry="3" fill="white" opacity="0.5"/></svg>`;
-  if (type === 'large') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="32" ry="10" fill="${c}"/><polygon points="8,25 -2,14 -2,36" fill="${c}"/><polygon points="72,25 82,17 82,33" fill="${c}"/><polygon points="22,15 40,3 58,15" fill="${c}80"/><polygon points="20,35 28,26 36,35" fill="${c}60"/><polygon points="44,35 52,26 60,35" fill="${c}60"/><ellipse cx="40" cy="21" rx="10" ry="4" fill="white" opacity="0.5"/></svg>`;
-  if (type === 'widebody') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="33" ry="13" fill="${c}"/><polygon points="7,25 -3,12 -3,38" fill="${c}"/><polygon points="73,25 83,16 83,34" fill="${c}"/><polygon points="20,12 40,1 60,12" fill="${c}80"/><polygon points="18,38 28,27 38,38" fill="${c}60"/><polygon points="42,38 52,27 62,38" fill="${c}60"/><ellipse cx="40" cy="20" rx="14" ry="6" fill="white" opacity="0.5"/><ellipse cx="40" cy="30" rx="14" ry="6" fill="white" opacity="0.2"/></svg>`;
-  if (type === 'cargo') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><rect x="8" y="18" width="58" height="18" rx="5" fill="${c}"/><polygon points="66,27 78,22 78,32" fill="${c}"/><polygon points="8,27 0,22 0,32" fill="${c}80"/><polygon points="20,18 38,6 56,18" fill="${c}70"/><rect x="15" y="21" width="12" height="10" rx="2" fill="white" opacity="0.4"/><rect x="32" y="21" width="12" height="10" rx="2" fill="white" opacity="0.4"/><rect x="49" y="21" width="12" height="10" rx="2" fill="white" opacity="0.4"/></svg>`;
-  return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="28" ry="8" fill="${c}"/></svg>`;
+  const icon = type === 'cargo' ? 'fa-box' : type === 'widebody' ? 'fa-plane-circle-check' : type === 'large' ? 'fa-plane-departure' : type === 'medium' ? 'fa-plane' : 'fa-plane-up';
+  const size = Math.max(14, Math.round(Math.min(w, h) * 0.75));
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${w}px;height:${h}px;color:${color};font-size:${size}px"><i class="fa-solid ${icon}"></i></span>`;
 }
 
 // ============================================================
 // GAME ENGINE
 // ============================================================
+const ALLIANCES = [
+  {id:'skybridge', name:'SkyBridge 연합', joinCost:12000000, loadBonus:0.06, revBonus:0.04, costBonus:0.00, desc:'공동 마케팅으로 수요를 확보합니다.'},
+  {id:'globalwing', name:'GlobalWing 얼라이언스', joinCost:20000000, loadBonus:0.04, revBonus:0.08, costBonus:0.03, desc:'환승 연계 강화로 수익을 높입니다.'},
+  {id:'fuelshare', name:'FuelShare 네트워크', joinCost:15000000, loadBonus:0.02, revBonus:0.03, costBonus:0.08, desc:'공동 급유 계약으로 운항 비용을 절감합니다.'},
+];
+
 const G = {
   game: null,
   gameInterval: null,
@@ -2045,6 +2055,9 @@ const G = {
       oilPrices: OIL_COUNTRIES.map(o => ({...o})),
       lastOilBought: {},
       weeklyProfit: 0,
+      ticketPriceFactor: 1,
+      alliance: null,
+      activeEffects: [],
     };
   },
 
@@ -2148,6 +2161,7 @@ const G = {
     G.paused = false;
     document.getElementById('speed-btn').textContent = '일시정지';
     G.gameInterval = setInterval(() => { if (!G.paused) G.tick(); }, 7000);
+    if (!G.game.news || G.game.news.length === 0) G.generateNews(true);
     G.notify(`${G.game.airlineName} 운항 시작!`, 'success');
   },
 
@@ -2166,7 +2180,10 @@ const G = {
     G.fluctuateOilPrices();
 
     // Random news
-    if (G.game.week % 4 === 0) G.generateNews();
+    if (G.game.week % 3 === 0 || Math.random() < 0.18) G.generateNews();
+
+    // Timed effects
+    G.applyActiveEffects();
 
     // Reputation changes
     G.checkReputation();
@@ -2229,7 +2246,8 @@ const G = {
       const upgrService = G.game.upgrades['service'] || 0;
       const upgrMileage = G.game.upgrades['mileage'] || 0;
       const upgrDigital = G.game.upgrades['digital'] || 0;
-      const loadBonus = 1 + upgrService*0.03 + upgrMileage*0.05 + upgrDigital*0.03;
+      const alliance = G.getAlliance();
+      const loadBonus = 1 + upgrService*0.03 + upgrMileage*0.05 + upgrDigital*0.03 + (alliance?.loadBonus || 0);
       r.loadFactor = Math.min(0.98, avgDemand * loadBonus);
 
       const weeklyFlights = 14;
@@ -2239,16 +2257,16 @@ const G = {
         r.weeklyPax = 0;
       } else {
         r.weeklyPax = Math.round(ac.seats * r.loadFactor * weeklyFlights);
-        const ticketPrice = 0.12 * d + 80;
+        const ticketPrice = (0.12 * d + 80) * (G.game.ticketPriceFactor || 1);
         const upgrLounge = G.game.upgrades['lounge'] || 0;
-        const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06;
+        const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + (alliance?.revBonus || 0);
         r.weeklyRevenue = r.weeklyPax * ticketPrice * revBonus;
         G.game.totalPax += r.weeklyPax;
       }
 
       const upgrMaint = G.game.upgrades['maintenance'] || 0;
       const upgrFuel = G.game.upgrades['fuel'] || 0;
-      const costMult = G.costMultiplier * (1 - upgrMaint*0.03) * (1 - upgrFuel*0.04);
+      const costMult = G.costMultiplier * (1 - upgrMaint*0.03) * (1 - upgrFuel*0.04) * (1 - (alliance?.costBonus || 0));
       const fuelEff = G.fuelEfficiency * (1 + upgrFuel*0.04);
       r.weeklyCost = (ac.opCostPerHour * flightHours + ac.fuelPerHour * flightHours * 0.001 * 1000) * weeklyFlights * costMult / fuelEff;
 
@@ -2281,8 +2299,9 @@ const G = {
     G.oilPriceMultiplier = 1 + (G.oilPriceMultiplier - 1) * 0.9;
   },
 
-  generateNews() {
-    const item = NEWS_POOL[Math.floor(Math.random() * NEWS_POOL.length)];
+  generateNews(force = false) {
+    const pool = force ? NEWS_POOL.filter(n => n.type !== 'negative') : NEWS_POOL;
+    const item = pool[Math.floor(Math.random() * pool.length)];
     const newsEntry = {title: item.title, body: item.body, type: item.type, week: G.game.week};
     G.game.news.unshift(newsEntry);
     if (G.game.news.length > 30) G.game.news.pop();
@@ -2402,7 +2421,7 @@ const G = {
     if (!G.leafletMap) return;
     Object.values(G.mapRouteLines).forEach(l => l.remove());
     G.mapRouteLines = {};
-    Object.values(G.mapPlanes).forEach(p => p.remove());
+    Object.values(G.mapPlanes).forEach(p => p.marker ? p.marker.remove() : p.remove());
     G.mapPlanes = {};
 
     G.game.routes.forEach((r, idx) => {
@@ -2417,13 +2436,15 @@ const G = {
       // Animated plane
       const midLat = (dep.lat + arr.lat) / 2;
       const midLng = (dep.lng + arr.lng) / 2;
+      const phase = Math.random();
+      const speed = 0.015 + Math.random() * 0.02;
       const planeIcon = L.divIcon({
         className: '',
         html: `<div style="width:16px;height:16px;transform:rotate(${Math.atan2(arr.lat-dep.lat,arr.lng-dep.lng)*180/Math.PI}deg)"><svg viewBox='0 0 24 24' fill='#1565C0' width='16' height='16'><path d='M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z'/></svg></div>`,
         iconSize: [16,16], iconAnchor: [8,8]
       });
       const plane = L.marker([midLat, midLng], {icon: planeIcon}).addTo(G.leafletMap);
-      G.mapPlanes[idx] = plane;
+      G.mapPlanes[idx] = { marker: plane, phase, speed, dep, arr };
     });
   },
 
@@ -2432,11 +2453,13 @@ const G = {
     G.game.routes.forEach((r, idx) => {
       const dep = AIRPORTS.find(a => a.code === r.dep);
       const arr = AIRPORTS.find(a => a.code === r.arr);
-      if (!dep || !arr || !G.mapPlanes[idx]) return;
-      const t = ((G.game.week * 0.3) % 1);
+      const entry = G.mapPlanes[idx];
+      if (!dep || !arr || !entry) return;
+      entry.phase = (entry.phase + entry.speed) % 1;
+      const t = (1 - Math.cos(entry.phase * Math.PI * 2)) / 2;
       const lat = dep.lat + (arr.lat - dep.lat) * t;
       const lng = dep.lng + (arr.lng - dep.lng) * t;
-      G.mapPlanes[idx].setLatLng([lat, lng]);
+      entry.marker.setLatLng([lat, lng]);
     });
   },
 
@@ -2500,7 +2523,7 @@ const G = {
     if (!ac) return;
     const d = dist(dep, arrAp);
     const hours = d / ac.speed;
-    const ticketPrice = 0.12 * d + 80;
+    const ticketPrice = (0.12 * d + 80) * (G.game.ticketPriceFactor || 1);
     const loadFactor = Math.min(0.95, (dep.demand + arrAp.demand) / 200 * G.demandMultiplier);
     const weeklyPax = Math.round(ac.seats * loadFactor * 14);
     const rev = weeklyPax * ticketPrice;
@@ -2558,13 +2581,17 @@ const G = {
     const g = G.game;
     document.getElementById('tb-balance').textContent = fmt(g.balance);
     document.getElementById('tb-rep').innerHTML = starsHTML(g.reputation);
-    document.getElementById('tb-pax').textContent = fmtN(g.totalPax);
-    document.getElementById('tb-routes').textContent = g.routes.length;
+    if ((!g.totalPax || g.totalPax < 0) && Array.isArray(g.routes)) g.totalPax = g.routes.reduce((acc, r) => acc + (r.weeklyPax || 0), 0);
+    document.getElementById('tb-pax').textContent = fmtN(g.totalPax || 0);
+    document.getElementById('tb-routes').textContent = Array.isArray(g.routes) ? g.routes.length : 0;
     document.getElementById('tb-fleet').textContent = g.fleet.length;
     document.getElementById('tb-week').textContent = g.week + '주차';
     document.getElementById('tb-fuel').textContent = Math.round(g.fuel) + '%';
     document.getElementById('tb-airline-name').textContent = g.airlineName;
     if (g.logoData) document.getElementById('tb-logo').src = g.logoData;
+    const slider = document.getElementById('ticket-price-slider');
+    if (slider) slider.value = Math.round((g.ticketPriceFactor || 1) * 100);
+    G.setTicketPricing((g.ticketPriceFactor || 1) * 100);
   },
 
   renderMarket(cat) {
@@ -2825,7 +2852,8 @@ const G = {
           <span class="oil-auto-label">주마다</span>
         </div>
         <button class="oil-buy-btn" onclick="G.buyOilManual(${idx})">즉시 구매</button>
-        <button style="width:100%;margin-top:6px;padding:7px;border:1.5px solid var(--sky);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--sky);background:none;cursor:pointer" onclick="G.setAutoOil(${idx})">자동 구매 설정</button>`;
+        <button style="width:100%;margin-top:6px;padding:7px;border:1.5px solid var(--sky);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--sky);background:none;cursor:pointer" onclick="G.setAutoOil(${idx})">자동 구매 설정</button>
+        <button style="width:100%;margin-top:6px;padding:7px;border:1.5px solid var(--red);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--red);background:none;cursor:pointer" onclick="G.cancelAutoOil('${op.airport}')">자동 구매 취소</button>`;
       grid.appendChild(div);
     });
   },
@@ -2853,6 +2881,46 @@ const G = {
     G.notify(`${op.country}: 매 ${days}주 ${amount}단위 자동 구매 설정`, 'success');
   },
 
+  cancelAutoOil(airport) {
+    if (!G.game.oilOrders || !G.game.oilOrders[airport]) {
+      G.notify('설정된 자동 구매가 없습니다', 'warning');
+      return;
+    }
+    delete G.game.oilOrders[airport];
+    G.renderOil();
+    G.notify(`${airport} 자동 구매를 취소했습니다`, 'warning');
+  },
+
+  setTicketPricing(raw) {
+    const factor = Math.max(0.7, Math.min(1.4, Number(raw) / 100));
+    G.game.ticketPriceFactor = factor;
+    const label = factor < 0.95 ? '할인' : factor > 1.1 ? '프리미엄' : '표준';
+    const el = document.getElementById('ticket-policy-label');
+    if (el) el.textContent = `${label} (x${factor.toFixed(2)})`;
+    G.renderRoutes();
+  },
+
+  getAlliance() {
+    return ALLIANCES.find(a => a.id === G.game.alliance) || null;
+  },
+
+  joinAlliance(id) {
+    const a = ALLIANCES.find(x => x.id === id);
+    if (!a) return;
+    if (G.game.alliance === id) return;
+    if (G.game.balance < a.joinCost) { G.notify('얼라이언스 가입 비용이 부족합니다', 'error'); return; }
+    G.game.balance -= a.joinCost;
+    G.game.alliance = id;
+    G.game.transactions.unshift({week:G.game.week,type:'동맹 가입',desc:a.name,amount:-a.joinCost});
+    G.updateTopbar();
+    G.notify(`${a.name} 가입 완료`, 'success');
+  },
+
+  applyActiveEffects() {
+    if (!Array.isArray(G.game.activeEffects)) G.game.activeEffects = [];
+    G.game.activeEffects = G.game.activeEffects.filter(e => (e.endWeek || 0) > G.game.week);
+  },
+
   renderNews() {
     const list = document.getElementById('news-list');
     if (!G.game.news || G.game.news.length === 0) {
@@ -2877,14 +2945,14 @@ const G = {
     const container = document.getElementById('panel-social');
     // 탭 UI + 피드 구조
     const USERS = [
-      {name:'김민준',handle:'minjun_flies',color:'#1565C0'},
-      {name:'이서연',handle:'seoyeon_travel',color:'#00897B'},
-      {name:'박지호',handle:'jiho_aviation',color:'#E53935'},
-      {name:'최하은',handle:'haeun_wing',color:'#6A1B9A'},
-      {name:'정우진',handle:'woojin_airport',color:'#F9A825'},
-      {name:'항공매니아',handle:'avgeek_kr',color:'#0288D1'},
-      {name:'여행블로거',handle:'travelblog_kr',color:'#00ACC1'},
-      {name:'항공분석가',handle:'skyanalyst',color:'#455A64'},
+      {name:'구름감자',handle:'cloud_potato77',color:'#1565C0'},
+      {name:'야간활주로요정',handle:'runway_fairy',color:'#00897B'},
+      {name:'비행기맛쿠키',handle:'cookie_on_wings',color:'#E53935'},
+      {name:'스카이슬라임',handle:'slime_above',color:'#6A1B9A'},
+      {name:'노선수집가',handle:'route_hoarder',color:'#F9A825'},
+      {name:'초음속고양이',handle:'supersonic_cat',color:'#0288D1'},
+      {name:'환승마스터',handle:'transfer_wizard',color:'#00ACC1'},
+      {name:'연착탐정',handle:'delay_detective',color:'#455A64'},
     ];
     const week = G.game.week;
     const rep = G.game.reputation;
@@ -3018,6 +3086,17 @@ const G = {
           <span>재정 상태</span>
           <span style="color:${G.game.balance>=0?'var(--green)':'var(--red)'}">${G.game.balance>=0?'정상':'위험 (평판 -1)'}</span>
         </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title" style="font-size:15px;margin-bottom:14px">항공 동맹</div>
+        ${ALLIANCES.map(a => {
+          const joined = G.game.alliance === a.id;
+          return `<div class="rep-factor" style="align-items:flex-start;gap:8px">
+            <span><b>${a.name}</b><br><span style="font-size:11px;color:var(--text3)">${a.desc} · 탑승률 +${Math.round(a.loadBonus*100)}% · 수익 +${Math.round(a.revBonus*100)}% · 비용 -${Math.round(a.costBonus*100)}%</span></span>
+            <button ${joined?'disabled':''} onclick="G.joinAlliance('${a.id}')" style="padding:6px 10px;border-radius:8px;border:1px solid var(--sky);background:${joined?'var(--sky-mid)':'white'};color:var(--sky);font-size:11px;cursor:pointer">${joined?'가입중':'가입 '+fmt(a.joinCost)}</button>
+          </div>`;
+        }).join('')}
       </div>
 
       <div class="card">
