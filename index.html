@@ -1,0 +1,2814 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkyEmpire — 항공사 경영</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<!-- Leaflet for OpenStreetMap -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --sky: #1565C0;
+    --sky-light: #1976D2;
+    --sky-pale: #E3F2FD;
+    --sky-mid: #BBDEFB;
+    --accent: #0288D1;
+    --accent2: #00ACC1;
+    --white: #FFFFFF;
+    --bg: #F8FBFF;
+    --card: #FFFFFF;
+    --border: #DCE8F8;
+    --text: #0D1B2A;
+    --text2: #4A6080;
+    --text3: #8BA3BF;
+    --green: #00897B;
+    --red: #E53935;
+    --gold: #F9A825;
+    --shadow: 0 2px 16px rgba(21,101,192,0.10);
+    --shadow-lg: 0 8px 40px rgba(21,101,192,0.16);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; width: 100vw; height: 100vh; overflow: hidden; }
+  .screen.active { display: flex; }
+
+  /* ===== MAIN MENU ===== */
+  #screen-menu {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #F0F7FF;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #screen-menu::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(180deg, transparent 0%, #E3F0FF 100%);
+  }
+
+  .menu-logo {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 900;
+    font-size: 64px;
+    color: var(--sky);
+    letter-spacing: -2px;
+    line-height: 1;
+    position: relative;
+    z-index: 1;
+  }
+
+  .menu-logo span { color: var(--accent); }
+
+  .menu-tagline {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--text2);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 8px;
+    margin-bottom: 48px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 300px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .btn-primary {
+    background: var(--sky);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px 32px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-primary:hover { background: var(--sky-light); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .btn-secondary {
+    background: white;
+    color: var(--sky);
+    border: 2px solid var(--sky);
+    border-radius: var(--radius);
+    padding: 14px 32px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover { background: var(--sky-pale); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text2);
+    border: none;
+    padding: 12px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* ===== SETUP SCREEN ===== */
+  #screen-setup {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+  }
+
+  .setup-card {
+    background: white;
+    border-radius: 20px;
+    padding: 48px;
+    width: 480px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .setup-title {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    color: var(--sky);
+    margin-bottom: 32px;
+  }
+
+  .form-group { margin-bottom: 20px; }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  .form-input:focus { border-color: var(--sky); }
+
+  .color-row { display: flex; gap: 12px; align-items: center; }
+  .color-swatch { width: 36px; height: 36px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: all 0.2s; }
+  .color-swatch.selected { border-color: var(--sky); transform: scale(1.15); }
+
+  .logo-upload { display: flex; gap: 12px; align-items: center; }
+  .logo-preview { width: 56px; height: 56px; border-radius: 12px; background: var(--sky-pale); border: 2px dashed var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
+  .logo-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* ===== LOAD SLOTS ===== */
+  .slot-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+
+  .save-slot {
+    background: var(--sky-pale);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .save-slot:hover { border-color: var(--sky); }
+  .save-slot.empty { opacity: 0.5; }
+
+  .slot-name { font-weight: 700; font-size: 14px; color: var(--text); }
+  .slot-info { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .slot-delete { color: var(--red); font-size: 12px; padding: 4px 8px; border: 1px solid var(--red); border-radius: 6px; cursor: pointer; background: none; }
+
+  /* ===== GAME LAYOUT ===== */
+  #screen-game {
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    background: white;
+    border-bottom: 2px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(21,101,192,0.07);
+  }
+
+  .topbar-logo {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 900;
+    font-size: 20px;
+    color: var(--sky);
+    letter-spacing: -0.5px;
+    margin-right: 8px;
+  }
+
+  .airline-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    background: var(--sky-pale);
+    border-radius: 20px;
+  }
+
+  .airline-logo-mini { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
+  .airline-name-mini { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 13px; color: var(--sky); }
+
+  .topbar-stats {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .stat-pill {
+    background: var(--sky-pale);
+    border: 1px solid var(--sky-mid);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--sky);
+    white-space: nowrap;
+  }
+
+  .stat-pill .label { font-weight: 400; color: var(--text2); margin-right: 4px; font-size: 11px; }
+
+  .reputation-stars { color: var(--gold); font-size: 13px; letter-spacing: 1px; }
+
+  .week-display {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text2);
+    padding: 5px 14px;
+    background: var(--border);
+    border-radius: 20px;
+  }
+
+  .speed-btn {
+    background: var(--sky);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  /* MAIN CONTENT */
+  .game-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 56px);
+  }
+
+  /* SIDEBAR NAV */
+  .sidebar {
+    width: 200px;
+    background: white;
+    border-right: 2px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+
+  .nav-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 8px 16px 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+  }
+
+  .nav-item:hover { background: var(--sky-pale); color: var(--sky); }
+  .nav-item.active { background: var(--sky-pale); color: var(--sky); border-left-color: var(--sky); font-weight: 600; }
+
+  .nav-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+  .nav-icon svg { width: 18px; height: 18px; }
+
+  /* CONTENT AREA */
+  .content-area {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .content-panel { display: none; flex: 1; overflow: auto; padding: 24px; flex-direction: column; gap: 20px; }
+  .content-panel.active { display: flex; }
+
+  /* MAP PANEL */
+  #panel-map {
+    padding: 0;
+    position: relative;
+  }
+
+  #map-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  #leaflet-map {
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  .map-overlay {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .map-btn {
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--sky);
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: all 0.2s;
+  }
+
+  .map-btn:hover { background: var(--sky-pale); }
+
+  /* Airport Popup */
+  .airport-popup {
+    min-width: 240px;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .airport-popup h3 { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 15px; color: var(--sky); margin-bottom: 4px; }
+  .airport-popup .ap-type { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; display: inline-block; margin-bottom: 8px; }
+  .ap-type.hub { background: #E3F2FD; color: var(--sky); }
+  .ap-type.regular { background: #F3F4F6; color: #6B7280; }
+  .ap-type.oil { background: #FFF8E1; color: #F57F17; }
+  .airport-popup .ap-info { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .airport-popup .ap-demand { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+  .ap-route-btn { background: var(--sky); color: white; border: none; border-radius: var(--radius-sm); padding: 8px 16px; font-size: 12px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Noto Sans KR', sans-serif; }
+  .ap-route-btn:hover { background: var(--sky-light); }
+
+  /* ===== CARDS ===== */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .section-title {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .card-sm { padding: 14px 18px; }
+
+  /* FINANCE CARDS */
+  .finance-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  .finance-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .fc-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .fc-value { font-family: 'Noto Sans KR', sans-serif; font-weight: 800; font-size: 22px; color: var(--text); }
+  .fc-value.positive { color: var(--green); }
+  .fc-value.negative { color: var(--red); }
+
+  /* AIRCRAFT GRID */
+  .aircraft-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+
+  .tab-btn {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 2px solid var(--border);
+    background: white;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text2);
+    transition: all 0.2s;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .tab-btn.active { background: var(--sky); color: white; border-color: var(--sky); }
+
+  .aircraft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+
+  .aircraft-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .aircraft-card:hover { border-color: var(--sky); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+  .ac-visual {
+    background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ac-svg { width: 80px; height: 50px; }
+
+  .ac-body { padding: 14px; }
+  .ac-name { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 2px; }
+  .ac-maker { font-size: 11px; color: var(--text3); margin-bottom: 10px; }
+  .ac-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+  .ac-spec { background: var(--sky-pale); border-radius: 6px; padding: 5px 8px; }
+  .ac-spec-label { font-size: 10px; color: var(--text3); font-weight: 500; }
+  .ac-spec-val { font-size: 12px; font-weight: 700; color: var(--text); }
+  .ac-price { font-family: 'Noto Sans KR', sans-serif; font-weight: 800; font-size: 16px; color: var(--sky); margin-bottom: 10px; }
+  .ac-buy-btn { background: var(--sky); color: white; border: none; border-radius: var(--radius-sm); padding: 9px; width: 100%; font-weight: 700; font-size: 13px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; transition: all 0.2s; }
+  .ac-buy-btn:hover { background: var(--sky-light); }
+  .ac-buy-btn:disabled { background: var(--text3); cursor: not-allowed; }
+
+  /* FLEET */
+  .fleet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+  .fleet-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .fleet-card-header {
+    background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .fleet-ac-icon { width: 48px; height: 30px; }
+  .fleet-ac-name { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 14px; color: var(--sky); }
+  .fleet-ac-reg { font-size: 11px; color: var(--text2); }
+  .fleet-card-body { padding: 14px; }
+
+  .fleet-status { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .status-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .status-active { background: #E8F5E9; color: var(--green); }
+  .status-idle { background: #FFF8E1; color: #E65100; }
+  .status-maintenance { background: #FCE4EC; color: var(--red); }
+
+  /* ROUTES */
+  .routes-grid { display: grid; gap: 14px; }
+
+  .route-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .route-airports { display: flex; align-items: center; gap: 12px; }
+  .route-ap { text-align: center; }
+  .route-ap-code { font-family: 'Noto Sans KR', sans-serif; font-weight: 800; font-size: 22px; color: var(--sky); }
+  .route-ap-name { font-size: 10px; color: var(--text3); white-space: nowrap; }
+
+  .route-line {
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, var(--sky), var(--accent));
+    position: relative;
+    margin: 0 8px;
+  }
+
+  .route-line::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  .route-stats { display: grid; grid-template-columns: repeat(4, auto); gap: 20px; }
+  .route-stat { text-align: center; }
+  .route-stat-val { font-weight: 700; font-size: 14px; color: var(--text); }
+  .route-stat-label { font-size: 10px; color: var(--text3); }
+  .profit-positive { color: var(--green); }
+  .profit-negative { color: var(--red); }
+
+  .route-actions { display: flex; flex-direction: column; gap: 6px; }
+  .route-close-btn { padding: 7px 14px; border: 1.5px solid var(--red); border-radius: var(--radius-sm); color: var(--red); background: none; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+  .route-close-btn:hover { background: #FCE4EC; }
+
+  /* UPGRADES */
+  .upgrades-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+
+  .upgrade-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .upgrade-card-header { margin-bottom: 12px; }
+  .upgrade-name { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 4px; }
+  .upgrade-desc { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 12px; }
+  .upgrade-level { display: flex; gap: 4px; margin-bottom: 12px; }
+  .level-dot { width: 20px; height: 6px; border-radius: 3px; background: var(--border); transition: background 0.3s; }
+  .level-dot.filled { background: var(--sky); }
+  .upgrade-cost { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 14px; color: var(--sky); margin-bottom: 10px; }
+  .upgrade-btn { width: 100%; padding: 9px; background: var(--sky); color: white; border: none; border-radius: var(--radius-sm); font-weight: 700; font-size: 13px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+  .upgrade-btn:disabled { background: var(--text3); cursor: not-allowed; }
+  .upgrade-maxed { color: var(--green); font-weight: 700; font-size: 13px; text-align: center; padding: 9px; }
+
+  /* OIL */
+  .oil-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+
+  .oil-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .oil-country { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 4px; }
+  .oil-airport { font-size: 11px; color: var(--text2); margin-bottom: 10px; }
+  .oil-price { font-family: 'Noto Sans KR', sans-serif; font-weight: 800; font-size: 20px; margin-bottom: 4px; }
+  .oil-trend { font-size: 11px; font-weight: 600; margin-bottom: 12px; }
+  .trend-up { color: var(--red); }
+  .trend-down { color: var(--green); }
+  .oil-settings { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .oil-input { width: 70px; padding: 6px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; text-align: center; }
+  .oil-buy-btn { flex: 1; padding: 8px; background: var(--gold); color: white; border: none; border-radius: var(--radius-sm); font-weight: 700; font-size: 12px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+  .oil-auto-label { font-size: 11px; color: var(--text2); }
+  .fuel-gauge { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 4px; }
+  .fuel-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent2), var(--sky)); transition: width 0.5s; }
+  .fuel-text { font-size: 11px; color: var(--text2); }
+
+  /* NEWS */
+  .news-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .news-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    padding: 16px 20px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--sky);
+  }
+
+  .news-card.event { border-left-color: var(--gold); }
+  .news-card.negative { border-left-color: var(--red); }
+
+  .news-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .news-title { font-weight: 700; font-size: 14px; color: var(--text); }
+  .news-week { font-size: 11px; color: var(--text3); }
+  .news-body { font-size: 13px; color: var(--text2); line-height: 1.5; }
+  .news-effect { font-size: 12px; font-weight: 600; color: var(--sky); margin-top: 6px; }
+
+  /* SKYSOCIAL */
+  .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .social-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .social-title { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 14px; }
+  .social-post { padding: 12px; background: var(--sky-pale); border-radius: var(--radius-sm); margin-bottom: 8px; }
+  .post-author { font-weight: 700; font-size: 12px; color: var(--sky); margin-bottom: 4px; }
+  .post-content { font-size: 13px; color: var(--text2); line-height: 1.4; }
+  .post-like { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* SETTINGS */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .settings-card { background: white; border-radius: var(--radius); border: 1.5px solid var(--border); padding: 20px; box-shadow: var(--shadow); }
+  .settings-section-title { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 16px; }
+
+  /* TRANSACTIONS TABLE */
+  .table-wrap { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--sky-pale); color: var(--sky); font-weight: 700; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  tr:hover td { background: var(--sky-pale); }
+
+  .tx-positive { color: var(--green); font-weight: 600; }
+  .tx-negative { color: var(--red); font-weight: 600; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(13,27,42,0.5);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.2s ease;
+  }
+
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+  .modal-title { font-family: 'Noto Sans KR', sans-serif; font-weight: 800; font-size: 20px; color: var(--sky); margin-bottom: 20px; }
+  .modal-close { float: right; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text3); line-height: 1; }
+
+  /* NOTIFICATION */
+  .notification-container {
+    position: fixed;
+    top: 72px;
+    right: 16px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .notification {
+    background: white;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    padding: 12px 18px;
+    box-shadow: var(--shadow-lg);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    max-width: 320px;
+    animation: notifIn 0.3s ease, notifOut 0.3s ease 3s forwards;
+    border-left: 4px solid var(--sky);
+    pointer-events: auto;
+  }
+
+  .notification.success { border-left-color: var(--green); }
+  .notification.error { border-left-color: var(--red); }
+  .notification.warning { border-left-color: var(--gold); }
+
+  @keyframes notifIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes notifOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(20px); pointer-events: none; } }
+
+  /* PRIVACY POLICY */
+  #screen-privacy {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding: 40px;
+    background: var(--bg);
+  }
+
+  .privacy-doc {
+    max-width: 700px;
+    width: 100%;
+    background: white;
+    border-radius: 20px;
+    padding: 48px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .privacy-doc h1 { font-family: 'Noto Sans KR', sans-serif; font-weight: 900; color: var(--sky); font-size: 28px; margin-bottom: 8px; }
+  .privacy-doc h2 { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 16px; color: var(--text); margin-top: 28px; margin-bottom: 10px; }
+  .privacy-doc p { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 10px; }
+  .privacy-doc ul { padding-left: 20px; font-size: 13px; color: var(--text2); line-height: 2; margin-bottom: 10px; }
+  .privacy-doc .date { font-size: 12px; color: var(--text3); margin-bottom: 24px; }
+
+  /* LOGIN SECTION */
+  .login-section {
+    text-align: center;
+    padding: 24px;
+    background: var(--sky-pale);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+  }
+
+  .google-btn {
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 24px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px auto 0;
+    transition: box-shadow 0.2s;
+    color: var(--text);
+  }
+
+  .google-btn:hover { box-shadow: var(--shadow-lg); }
+
+  .google-login-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 13px 20px;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  }
+
+  .google-login-btn:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+    border-color: #4285F4;
+    transform: translateY(-1px);
+  }
+
+  .user-info { display: flex; align-items: center; gap: 10px; justify-content: center; margin-top: 12px; }
+  .user-avatar { width: 36px; height: 36px; border-radius: 50%; }
+  .user-name { font-weight: 600; font-size: 14px; color: var(--text); }
+
+  /* AIRCRAFT CUSTOMIZE */
+  .customize-form { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* ROUTE MODAL */
+  .route-modal-airports { display: flex; gap: 12px; margin-bottom: 16px; }
+  .route-modal-ap { flex: 1; }
+  .select-ac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; }
+  .select-ac-item { padding: 8px; border: 2px solid var(--border); border-radius: var(--radius-sm); text-align: center; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text2); }
+  .select-ac-item:hover, .select-ac-item.selected { border-color: var(--sky); color: var(--sky); background: var(--sky-pale); }
+
+  /* CUSTOM LIVERY */
+  .livery-preview {
+    height: 120px;
+    border-radius: var(--radius);
+    border: 2px solid var(--border);
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--sky-mid); border-radius: 3px; }
+
+  /* LOAD SCREEN */
+  .load-overlay { position: fixed; inset: 0; background: white; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; z-index: 99999; }
+  .load-logo { font-family: 'Noto Sans KR', sans-serif; font-weight: 900; font-size: 48px; color: var(--sky); }
+  .load-spinner { width: 40px; height: 40px; border: 3px solid var(--sky-mid); border-top-color: var(--sky); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .no-route-msg { text-align: center; padding: 40px; color: var(--text3); font-size: 14px; }
+
+  /* FUEL WARN */
+  .fuel-warn { background: #FFF3E0; border: 1.5px solid #FFB74D; border-radius: var(--radius); padding: 14px 18px; font-size: 13px; font-weight: 600; color: #E65100; margin-bottom: 16px; display: none; }
+  .fuel-warn.visible { display: block; }
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="load-overlay" id="load-overlay">
+  <div class="load-logo">SKY<span style="color:var(--accent)">EMPIRE</span></div>
+  <div class="load-spinner"></div>
+</div>
+
+<!-- NOTIFICATION CONTAINER -->
+<div class="notification-container" id="notif-container"></div>
+
+<!-- ===== MAIN MENU ===== -->
+<div class="screen active" id="screen-menu">
+  <div style="text-align:center;position:relative;z-index:1;width:100%">
+    <div class="menu-logo">SKY<span>EMPIRE</span></div>
+    <div class="menu-tagline">항공사 경영 시뮬레이션</div>
+
+    <!-- 비로그인 상태: Google 로그인만 표시 -->
+    <div id="menu-guest-area" style="margin:0 auto;width:300px">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:20px">게임을 시작하려면 Google 계정으로 로그인하세요.</p>
+      <button class="google-login-btn" id="menu-login-btn" onclick="G.showPrivacyConsent()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Google로 로그인
+      </button>
+      <button class="btn-ghost" style="margin-top:12px;font-size:12px" onclick="showScreen('screen-privacy')">개인정보 처리방침</button>
+    </div>
+
+    <!-- 로그인 상태: 게임 버튼 표시 -->
+    <div id="menu-user-area" style="margin:0 auto;width:300px;display:none">
+      <div class="user-info" style="justify-content:center;margin-bottom:20px">
+        <img id="menu-avatar" class="user-avatar" src="" alt="">
+        <span id="menu-username" class="user-name"></span>
+        <button class="btn-ghost" style="font-size:12px" onclick="G.googleLogout()">로그아웃</button>
+      </div>
+      <div class="menu-buttons" style="margin:0 auto;width:100%">
+        <button class="btn-primary" onclick="G.showNewGame()">새 게임</button>
+        <button class="btn-primary" style="background:var(--accent)" onclick="G.showLoadGame()">불러오기</button>
+        <button class="btn-ghost" style="font-size:12px;margin-top:4px" onclick="showScreen('screen-privacy')">개인정보 처리방침</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SETUP ===== -->
+<div class="screen" id="screen-setup">
+  <div class="setup-card">
+    <div class="setup-title">항공사 설립</div>
+
+    <div class="form-group">
+      <label class="form-label">항공사 이름</label>
+      <input class="form-input" id="setup-name" placeholder="SkyEmpire Airlines" value="SkyEmpire Airlines">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">슬로건</label>
+      <input class="form-input" id="setup-slogan" placeholder="하늘을 연결합니다" value="하늘을 연결합니다">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">허브 공항</label>
+      <select class="form-input" id="setup-hub">
+        <option value="ICN">인천국제공항 (ICN)</option>
+        <option value="JFK">존 F. 케네디 (JFK)</option>
+        <option value="LHR">히드로 (LHR)</option>
+        <option value="CDG">샤를 드골 (CDG)</option>
+        <option value="DXB">두바이 국제 (DXB)</option>
+        <option value="HND">하네다 (HND)</option>
+        <option value="SIN">창이 (SIN)</option>
+        <option value="LAX">로스앤젤레스 (LAX)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">브랜드 색상</label>
+      <div class="color-row" id="color-row">
+        <div class="color-swatch selected" style="background:#1565C0" data-color="#1565C0" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#00897B" data-color="#00897B" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#E53935" data-color="#E53935" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#F9A825" data-color="#F9A825" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#6A1B9A" data-color="#6A1B9A" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#212121" data-color="#212121" onclick="selectColor(this)"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">로고</label>
+      <div class="logo-upload">
+        <div class="logo-preview" id="logo-preview-box" onclick="document.getElementById('logo-file').click()">
+          <span style="font-size:20px;color:var(--text3)">+</span>
+        </div>
+        <input type="file" id="logo-file" accept="image/*" style="display:none" onchange="loadLogo(this)">
+        <span style="font-size:12px;color:var(--text2)">클릭하여 로고 업로드</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:24px">
+      <button class="btn-secondary" style="flex:1" onclick="showScreen('screen-menu')">취소</button>
+      <button class="btn-primary" style="flex:2" onclick="G.startNewGame()">항공사 설립하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LOAD GAME ===== -->
+<div class="modal-overlay" id="modal-load">
+  <div class="modal-box" style="width:420px">
+    <button class="modal-close" onclick="closeModal('modal-load')">&times;</button>
+    <div class="modal-title">저장 슬롯 선택</div>
+    <div class="slot-grid" id="slot-grid"></div>
+  </div>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div class="screen" id="screen-game">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <span class="topbar-logo">SKY<span style="color:var(--accent)">EMPIRE</span></span>
+    <div class="airline-brand">
+      <img id="tb-logo" class="airline-logo-mini" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><rect width='28' height='28' rx='6' fill='%231565C0'/><path d='M6 14 L22 14 M14 6 L14 22' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>" alt="">
+      <span id="tb-airline-name" class="airline-name-mini">SkyEmpire Airlines</span>
+    </div>
+    <div class="topbar-stats">
+      <div class="stat-pill"><span class="label">잔고</span><span id="tb-balance">$50,000,000</span></div>
+      <div class="stat-pill"><span class="label">평판</span><span id="tb-rep" class="reputation-stars">★★☆☆☆</span></div>
+      <div class="stat-pill"><span class="label">탑승객</span><span id="tb-pax">0</span></div>
+      <div class="stat-pill"><span class="label">노선</span><span id="tb-routes">0</span></div>
+      <div class="stat-pill"><span class="label">기단</span><span id="tb-fleet">0</span></div>
+      <div class="stat-pill"><span class="label">연료</span><span id="tb-fuel">100%</span></div>
+    </div>
+    <div class="week-display" id="tb-week">1주차</div>
+    <button class="speed-btn" id="speed-btn" onclick="G.togglePause()">일시정지</button>
+    <button class="speed-btn" style="background:var(--text2)" onclick="G.saveGame()">저장</button>
+    <button class="speed-btn" style="background:var(--text3)" onclick="G.exitToMenu()">메뉴</button>
+  </div>
+
+  <!-- BODY -->
+  <div class="game-body">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="nav-section-title">운항</div>
+      <div class="nav-item active" onclick="setPanel('map')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+        세계 지도
+      </div>
+      <div class="nav-item" onclick="setPanel('routes')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></div>
+        노선 관리
+      </div>
+      <div class="nav-section-title">자산</div>
+      <div class="nav-item" onclick="setPanel('fleet')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.5a19.79 19.79 0 01-3-8.72A2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.72 6.72l1.28-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></div>
+        기단
+      </div>
+      <div class="nav-item" onclick="setPanel('market')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div>
+        항공기 구매
+      </div>
+      <div class="nav-section-title">경영</div>
+      <div class="nav-item" onclick="setPanel('finance')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        재무
+      </div>
+      <div class="nav-item" onclick="setPanel('upgrades')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        업그레이드
+      </div>
+      <div class="nav-item" onclick="setPanel('oil')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+        석유 구매
+      </div>
+      <div class="nav-section-title">정보</div>
+      <div class="nav-item" onclick="setPanel('news')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a4 4 0 01-4-4V6"/><path d="M8 6h8M8 10h8M8 14h4"/></svg></div>
+        뉴스
+      </div>
+      <div class="nav-item" onclick="setPanel('social')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+        SkySocial
+      </div>
+      <div class="nav-item" onclick="setPanel('settings')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg></div>
+        설정
+      </div>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div class="content-area">
+
+      <!-- MAP PANEL -->
+      <div class="content-panel active" id="panel-map" style="padding:0">
+        <div id="map-container">
+          <div id="leaflet-map"></div>
+          <div class="map-overlay">
+            <div class="fuel-warn" id="fuel-warn-map">연료 부족! 노선 일부 중단 중</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROUTES PANEL -->
+      <div class="content-panel" id="panel-routes">
+        <div class="section-header">
+          <div class="section-title">노선 관리</div>
+        </div>
+        <div class="fuel-warn" id="fuel-warn-routes">연료가 부족하여 일부 노선이 중단되었습니다.</div>
+        <div id="routes-list" class="routes-grid">
+          <div class="no-route-msg">아직 개설된 노선이 없습니다.<br>세계 지도에서 공항을 클릭하여 노선을 개설하세요.</div>
+        </div>
+      </div>
+
+      <!-- FLEET PANEL -->
+      <div class="content-panel" id="panel-fleet">
+        <div class="section-header">
+          <div class="section-title">내 기단</div>
+          <button class="btn-primary" style="padding:8px 20px;font-size:13px" onclick="setPanel('market')">항공기 구매</button>
+        </div>
+        <div id="fleet-grid" class="fleet-grid"></div>
+      </div>
+
+      <!-- MARKET PANEL -->
+      <div class="content-panel" id="panel-market">
+        <div class="section-header">
+          <div class="section-title">항공기 구매</div>
+        </div>
+        <div class="aircraft-tabs" id="ac-tabs">
+          <button class="tab-btn active" onclick="filterAC('all',this)">전체</button>
+          <button class="tab-btn" onclick="filterAC('small',this)">소형</button>
+          <button class="tab-btn" onclick="filterAC('medium',this)">중형</button>
+          <button class="tab-btn" onclick="filterAC('large',this)">대형</button>
+          <button class="tab-btn" onclick="filterAC('widebody',this)">초대형</button>
+          <button class="tab-btn" onclick="filterAC('cargo',this)">화물기</button>
+        </div>
+        <div id="aircraft-grid" class="aircraft-grid"></div>
+      </div>
+
+      <!-- FINANCE PANEL -->
+      <div class="content-panel" id="panel-finance">
+        <div class="section-title" style="margin-bottom:16px">재무 현황</div>
+        <div class="finance-grid">
+          <div class="finance-card">
+            <div class="fc-label">총 자산</div>
+            <div class="fc-value" id="fin-assets">$50,000,000</div>
+          </div>
+          <div class="finance-card">
+            <div class="fc-label">주간 순이익</div>
+            <div class="fc-value" id="fin-weekly">$0</div>
+          </div>
+          <div class="finance-card">
+            <div class="fc-label">누적 수익</div>
+            <div class="fc-value positive" id="fin-revenue">$0</div>
+          </div>
+          <div class="finance-card">
+            <div class="fc-label">누적 비용</div>
+            <div class="fc-value negative" id="fin-cost">$0</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:4px">
+          <div class="section-title" style="font-size:15px;margin-bottom:12px">거래 내역</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>주차</th><th>구분</th><th>내용</th><th>금액</th></tr></thead>
+              <tbody id="tx-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPGRADES PANEL -->
+      <div class="content-panel" id="panel-upgrades">
+        <div class="section-title" style="margin-bottom:16px">업그레이드</div>
+        <div id="upgrades-grid" class="upgrades-grid"></div>
+      </div>
+
+      <!-- OIL PANEL -->
+      <div class="content-panel" id="panel-oil">
+        <div class="section-header">
+          <div class="section-title">석유 구매</div>
+        </div>
+        <div class="card card-sm" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:20px">
+            <div>
+              <div class="fc-label">현재 연료량</div>
+              <div class="fc-value" id="oil-level-text">100%</div>
+            </div>
+            <div style="flex:1">
+              <div class="fuel-gauge"><div class="fuel-fill" id="fuel-gauge-fill" style="width:100%"></div></div>
+            </div>
+          </div>
+        </div>
+        <div id="oil-grid" class="oil-grid"></div>
+      </div>
+
+      <!-- NEWS PANEL -->
+      <div class="content-panel" id="panel-news">
+        <div class="section-title" style="margin-bottom:16px">뉴스 & 이벤트</div>
+        <div id="news-list" class="news-list">
+          <div class="no-route-msg">아직 뉴스가 없습니다.</div>
+        </div>
+      </div>
+
+      <!-- SOCIAL PANEL -->
+      <div class="content-panel" id="panel-social">
+        <div class="section-title" style="margin-bottom:16px">SkySocial</div>
+        <div class="social-grid" id="social-grid"></div>
+      </div>
+
+      <!-- SETTINGS PANEL -->
+      <div class="content-panel" id="panel-settings">
+        <div class="section-title" style="margin-bottom:16px">항공사 설정</div>
+        <div class="settings-grid">
+          <div class="settings-card">
+            <div class="settings-section-title">항공사 정보</div>
+            <div class="form-group">
+              <label class="form-label">항공사 이름</label>
+              <input class="form-input" id="set-name" onchange="G.updateAirlineName()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">슬로건</label>
+              <input class="form-input" id="set-slogan" onchange="G.updateSlogan()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">브랜드 색상</label>
+              <div class="color-row" id="set-color-row">
+                <div class="color-swatch" style="background:#1565C0" data-color="#1565C0" onclick="selectColorSettings(this)"></div>
+                <div class="color-swatch" style="background:#00897B" data-color="#00897B" onclick="selectColorSettings(this)"></div>
+                <div class="color-swatch" style="background:#E53935" data-color="#E53935" onclick="selectColorSettings(this)"></div>
+                <div class="color-swatch" style="background:#F9A825" data-color="#F9A825" onclick="selectColorSettings(this)"></div>
+                <div class="color-swatch" style="background:#6A1B9A" data-color="#6A1B9A" onclick="selectColorSettings(this)"></div>
+                <div class="color-swatch" style="background:#212121" data-color="#212121" onclick="selectColorSettings(this)"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">로고</label>
+              <div class="logo-upload">
+                <div class="logo-preview" onclick="document.getElementById('set-logo-file').click()">
+                  <img id="set-logo-preview" src="" alt="" style="display:none">
+                  <span id="set-logo-plus" style="font-size:20px;color:var(--text3)">+</span>
+                </div>
+                <input type="file" id="set-logo-file" accept="image/*" style="display:none" onchange="loadLogoSettings(this)">
+              </div>
+            </div>
+          </div>
+          <div class="settings-card">
+            <div class="settings-section-title">계정</div>
+            <div class="login-section">
+              <div id="settings-user-area">
+                <p style="font-size:13px;color:var(--text2)">로그인하면 클라우드에 자동 저장됩니다.</p>
+                <button class="google-btn" onclick="G.googleLogin()">
+                  <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+                  Google로 로그인
+                </button>
+              </div>
+              <div id="settings-logged-in" style="display:none">
+                <div class="user-info">
+                  <img id="settings-avatar" class="user-avatar" src="" alt="">
+                  <span id="settings-username" class="user-name"></span>
+                </div>
+                <button class="btn-secondary" style="margin-top:12px;width:100%;padding:8px" onclick="G.googleLogout()">로그아웃</button>
+              </div>
+            </div>
+            <div style="margin-top:16px">
+              <div class="settings-section-title">저장 슬롯</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="tab-btn active" id="slot-0-btn" onclick="G.selectSaveSlot(0)">슬롯 1</button>
+                <button class="tab-btn" id="slot-1-btn" onclick="G.selectSaveSlot(1)">슬롯 2</button>
+                <button class="tab-btn" id="slot-2-btn" onclick="G.selectSaveSlot(2)">슬롯 3</button>
+                <button class="tab-btn" id="slot-3-btn" onclick="G.selectSaveSlot(3)">슬롯 4</button>
+                <button class="tab-btn" id="slot-4-btn" onclick="G.selectSaveSlot(4)">슬롯 5</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end content-area -->
+  </div><!-- end game-body -->
+</div><!-- end screen-game -->
+
+<!-- ===== PRIVACY POLICY ===== -->
+<div class="screen" id="screen-privacy" style="overflow-y:auto;display:none;flex-direction:column;padding:40px;align-items:center;background:var(--bg)">
+  <div class="privacy-doc">
+    <h1>개인정보 처리방침</h1>
+    <div class="date">최종 업데이트: 2025년 1월 1일</div>
+    <p>SkyEmpire (이하 "서비스")는 사용자의 개인정보를 소중히 여기며, 관련 법령에 따라 개인정보를 보호합니다.</p>
+    <h2>1. 수집하는 개인정보</h2>
+    <ul>
+      <li>Google 로그인 시: 이름, 이메일 주소, 프로필 사진</li>
+      <li>게임 데이터: 항공사 이름, 슬로건, 게임 진행 상황</li>
+    </ul>
+    <h2>2. 개인정보 이용 목적</h2>
+    <ul>
+      <li>게임 저장 및 불러오기</li>
+      <li>사용자 계정 식별</li>
+      <li>서비스 운영 및 개선</li>
+    </ul>
+    <h2>3. 개인정보 보관 기간</h2>
+    <p>사용자가 서비스를 탈퇴하거나 데이터 삭제를 요청할 때까지 보관합니다. Firebase Firestore에 암호화되어 저장됩니다.</p>
+    <h2>4. 제3자 제공</h2>
+    <p>수집된 개인정보는 원칙적으로 제3자에게 제공하지 않습니다. 단, 법령에 의한 경우 예외로 합니다.</p>
+    <h2>5. Google 서비스 이용</h2>
+    <p>본 서비스는 Google Firebase를 이용합니다. Google의 개인정보 처리방침은 <a href="https://policies.google.com/privacy" target="_blank">Google 정책 페이지</a>에서 확인하실 수 있습니다.</p>
+    <h2>6. 사용자의 권리</h2>
+    <ul>
+      <li>개인정보 열람, 수정, 삭제 요청 가능</li>
+      <li>Google 계정 연동 해제 가능</li>
+    </ul>
+    <h2>7. 문의</h2>
+    <p>개인정보 관련 문의사항은 서비스 이메일로 문의해 주세요.</p>
+    <div style="margin-top:32px">
+      <button class="btn-secondary" onclick="showScreen('screen-menu')">메인 메뉴로</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 개인정보 동의 모달 ===== -->
+<div class="modal-overlay" id="modal-privacy-consent">
+  <div class="modal-box" style="width:480px;max-height:85vh;overflow-y:auto">
+    <div class="modal-title">개인정보 처리방침 동의</div>
+    <div style="max-height:320px;overflow-y:auto;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:20px">
+      <p><strong>SkyEmpire</strong>은 다음과 같이 개인정보를 수집·이용합니다.</p>
+      <br>
+      <p><strong>1. 수집하는 개인정보</strong></p>
+      <ul style="padding-left:16px;margin:6px 0">
+        <li>Google 로그인 시: 이름, 이메일 주소, 프로필 사진</li>
+        <li>게임 데이터: 항공사 이름, 슬로건, 게임 진행 상황</li>
+      </ul>
+      <br>
+      <p><strong>2. 이용 목적</strong></p>
+      <ul style="padding-left:16px;margin:6px 0">
+        <li>게임 저장 및 불러오기 (Firebase Firestore)</li>
+        <li>사용자 계정 식별 및 서비스 운영</li>
+      </ul>
+      <br>
+      <p><strong>3. 보관 기간</strong></p>
+      <p>회원 탈퇴 또는 삭제 요청 시까지 보관합니다.</p>
+      <br>
+      <p><strong>4. 제3자 제공</strong></p>
+      <p>수집된 개인정보는 원칙적으로 제3자에게 제공하지 않습니다. 단, 법령에 의한 경우 예외입니다.</p>
+      <br>
+      <p><strong>5. Google 서비스</strong></p>
+      <p>본 서비스는 Google Firebase를 이용합니다. <a href="https://policies.google.com/privacy" target="_blank" style="color:var(--sky)">Google 개인정보처리방침</a></p>
+      <br>
+      <p><strong>6. 사용자 권리</strong></p>
+      <ul style="padding-left:16px;margin:6px 0">
+        <li>개인정보 열람, 수정, 삭제 요청 가능</li>
+        <li>Google 계정 연동 해제 가능</li>
+      </ul>
+    </div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:20px;font-size:14px;font-weight:600;color:var(--text)">
+      <input type="checkbox" id="privacy-agree-check" style="width:18px;height:18px;accent-color:var(--sky)">
+      위 개인정보 처리방침에 동의합니다 (필수)
+    </label>
+    <div style="display:flex;gap:12px">
+      <button class="btn-secondary" style="flex:1" onclick="closeModal('modal-privacy-consent')">취소</button>
+      <button class="btn-primary" style="flex:2;opacity:0.5;cursor:not-allowed;transition:opacity 0.2s" id="privacy-consent-confirm" onclick="G.confirmPrivacyAndLogin()" disabled>동의 후 Google 로그인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ROUTE MODAL ===== -->
+<div class="modal-overlay" id="modal-route">
+  <div class="modal-box" style="width:520px">
+    <button class="modal-close" onclick="closeModal('modal-route')">&times;</button>
+    <div class="modal-title">노선 개설</div>
+    <div class="route-modal-airports">
+      <div class="route-modal-ap">
+        <div class="form-label">출발 공항</div>
+        <div class="form-input" id="route-dep" style="background:var(--sky-pale);font-weight:700;color:var(--sky)">-</div>
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:8px;font-size:20px;color:var(--text3)">→</div>
+      <div class="route-modal-ap">
+        <div class="form-label">도착 공항</div>
+        <select class="form-input" id="route-arr" style="font-weight:600">
+          <option value="">공항 선택...</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="form-label">항공기 선택 (보유 기단)</div>
+      <div class="select-ac-grid" id="route-ac-grid">
+        <div style="color:var(--text3);font-size:13px">항공기가 없습니다</div>
+      </div>
+    </div>
+    <div id="route-preview" style="display:none;margin-top:16px;padding:14px;background:var(--sky-pale);border-radius:var(--radius)">
+      <div style="font-weight:700;font-size:14px;color:var(--sky);margin-bottom:8px">예상 수익</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:13px">
+        <div><div style="color:var(--text3);font-size:11px">주간 수익</div><div id="rp-revenue" style="font-weight:700">-</div></div>
+        <div><div style="color:var(--text3);font-size:11px">주간 비용</div><div id="rp-cost" style="font-weight:700">-</div></div>
+        <div><div style="color:var(--text3);font-size:11px">탑승률</div><div id="rp-load" style="font-weight:700">-</div></div>
+      </div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:12px">
+      <button class="btn-secondary" style="flex:1" onclick="closeModal('modal-route')">취소</button>
+      <button class="btn-primary" style="flex:2" onclick="G.openRoute()">노선 개설</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CUSTOMIZE AIRCRAFT MODAL ===== -->
+<div class="modal-overlay" id="modal-customize">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-customize')">&times;</button>
+    <div class="modal-title">항공기 커스텀</div>
+    <div class="form-group">
+      <label class="form-label">등록번호 (Tail Number)</label>
+      <input class="form-input" id="cust-reg" placeholder="HL1234">
+    </div>
+    <div class="form-group">
+      <label class="form-label">닉네임</label>
+      <input class="form-input" id="cust-nick" placeholder="Spirit of Seoul">
+    </div>
+    <div class="form-group">
+      <label class="form-label">도장 색상</label>
+      <div class="color-row" id="cust-color-row">
+        <div class="color-swatch selected" style="background:#1565C0" data-color="#1565C0" onclick="selectColorCust(this)"></div>
+        <div class="color-swatch" style="background:#00897B" data-color="#00897B" onclick="selectColorCust(this)"></div>
+        <div class="color-swatch" style="background:#E53935" data-color="#E53935" onclick="selectColorCust(this)"></div>
+        <div class="color-swatch" style="background:#F9A825" data-color="#F9A825" onclick="selectColorCust(this)"></div>
+        <div class="color-swatch" style="background:#212121" data-color="#212121" onclick="selectColorCust(this)"></div>
+      </div>
+    </div>
+    <div class="livery-preview" id="livery-preview"></div>
+    <input type="hidden" id="cust-aircraft-id">
+    <div style="margin-top:20px;display:flex;gap:12px">
+      <button class="btn-secondary" style="flex:1" onclick="closeModal('modal-customize')">취소</button>
+      <button class="btn-primary" style="flex:2" onclick="G.saveCustomize()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// FIREBASE CONFIG
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCBwRw53hj6JsM1ppoXVyp5V1y5Ueuuixo",
+  authDomain: "skyempireweb.firebaseapp.com",
+  projectId: "skyempireweb",
+  storageBucket: "skyempireweb.firebasestorage.app",
+  messagingSenderId: "155585025714",
+  appId: "1:155585025714:web:216866b37f1bda4bd8dbab"
+};
+
+let fbApp, fbAuth, fbDB;
+let currentUser = null;
+
+try {
+  fbApp = firebase.initializeApp(firebaseConfig);
+  fbAuth = firebase.auth();
+  fbDB = firebase.firestore();
+  fbAuth.onAuthStateChanged(user => {
+    currentUser = user;
+    updateAuthUI(user);
+  });
+} catch(e) {
+  console.warn('Firebase not configured. Using localStorage only.');
+}
+
+function updateAuthUI(user) {
+  const guestArea = document.getElementById('menu-guest-area');
+  const menuUserArea = document.getElementById('menu-user-area');
+  const settingsUser = document.getElementById('settings-user-area');
+  const settingsLoggedIn = document.getElementById('settings-logged-in');
+
+  if (user) {
+    if (guestArea) guestArea.style.display = 'none';
+    if (menuUserArea) {
+      menuUserArea.style.display = 'block';
+      document.getElementById('menu-avatar').src = user.photoURL || '';
+      document.getElementById('menu-username').textContent = user.displayName || user.email;
+    }
+    if (settingsUser) settingsUser.style.display = 'none';
+    if (settingsLoggedIn) {
+      settingsLoggedIn.style.display = 'block';
+      document.getElementById('settings-avatar').src = user.photoURL || '';
+      document.getElementById('settings-username').textContent = user.displayName || user.email;
+    }
+  } else {
+    if (guestArea) guestArea.style.display = 'block';
+    if (menuUserArea) menuUserArea.style.display = 'none';
+    if (settingsUser) settingsUser.style.display = 'block';
+    if (settingsLoggedIn) settingsLoggedIn.style.display = 'none';
+  }
+}
+
+// ============================================================
+// DATA
+// ============================================================
+const AIRPORTS = [
+  // Hub airports
+  {code:'ICN',name:'인천국제',city:'서울',country:'한국',lat:37.4602,lng:126.4407,type:'hub',demand:95},
+  {code:'JFK',name:'존F케네디',city:'뉴욕',country:'미국',lat:40.6413,lng:-73.7781,type:'hub',demand:90},
+  {code:'LHR',name:'히드로',city:'런던',country:'영국',lat:51.4700,lng:-0.4543,type:'hub',demand:92},
+  {code:'CDG',name:'샤를드골',city:'파리',country:'프랑스',lat:49.0097,lng:2.5479,type:'hub',demand:88},
+  {code:'DXB',name:'두바이',city:'두바이',country:'UAE',lat:25.2532,lng:55.3657,type:'hub',demand:93},
+  {code:'HND',name:'하네다',city:'도쿄',country:'일본',lat:35.5494,lng:139.7798,type:'hub',demand:91},
+  {code:'SIN',name:'창이',city:'싱가포르',country:'싱가포르',lat:1.3644,lng:103.9915,type:'hub',demand:89},
+  {code:'LAX',name:'로스앤젤레스',city:'LA',country:'미국',lat:33.9425,lng:-118.4081,type:'hub',demand:87},
+  {code:'FRA',name:'프랑크푸르트',city:'프랑크푸르트',country:'독일',lat:50.0379,lng:8.5622,type:'hub',demand:85},
+  {code:'AMS',name:'스히폴',city:'암스테르담',country:'네덜란드',lat:52.3105,lng:4.7683,type:'hub',demand:84},
+  {code:'PEK',name:'베이징',city:'베이징',country:'중국',lat:40.0799,lng:116.6031,type:'hub',demand:88},
+  {code:'PVG',name:'상하이푸둥',city:'상하이',country:'중국',lat:31.1443,lng:121.8083,type:'hub',demand:86},
+  {code:'HKG',name:'홍콩',city:'홍콩',country:'홍콩',lat:22.3080,lng:113.9185,type:'hub',demand:87},
+  {code:'BKK',name:'수완나폼',city:'방콕',country:'태국',lat:13.6900,lng:100.7501,type:'hub',demand:82},
+  {code:'SYD',name:'킹스포드스미스',city:'시드니',country:'호주',lat:-33.9399,lng:151.1753,type:'hub',demand:80},
+  {code:'YYZ',name:'피어슨',city:'토론토',country:'캐나다',lat:43.6777,lng:-79.6248,type:'hub',demand:79},
+  {code:'GRU',name:'과룰류스',city:'상파울루',country:'브라질',lat:-23.4356,lng:-46.4731,type:'hub',demand:75},
+  {code:'MEX',name:'베니토후아레스',city:'멕시코시티',country:'멕시코',lat:19.4363,lng:-99.0721,type:'hub',demand:74},
+  {code:'JNB',name:'OR탐보',city:'요하네스버그',country:'남아공',lat:-26.1367,lng:28.2411,type:'hub',demand:70},
+  {code:'NRT',name:'나리타',city:'도쿄',country:'일본',lat:35.7720,lng:140.3929,type:'hub',demand:86},
+  {code:'MUC',name:'뮌헨',city:'뮌헨',country:'독일',lat:48.3537,lng:11.7750,type:'hub',demand:82},
+  {code:'MAD',name:'바라하스',city:'마드리드',country:'스페인',lat:40.4719,lng:-3.5626,type:'hub',demand:80},
+  {code:'BCN',name:'엘프라트',city:'바르셀로나',country:'스페인',lat:41.2974,lng:2.0833,type:'hub',demand:78},
+  {code:'FCO',name:'레오나르도다빈치',city:'로마',country:'이탈리아',lat:41.8003,lng:12.2389,type:'hub',demand:79},
+  {code:'IST',name:'이스탄불',city:'이스탄불',country:'터키',lat:41.2607,lng:28.7425,type:'hub',demand:83},
+  {code:'DOH',name:'하마드',city:'도하',country:'카타르',lat:25.2731,lng:51.6081,type:'hub',demand:81},
+  {code:'KUL',name:'KLIA',city:'쿠알라룸푸르',country:'말레이시아',lat:2.7456,lng:101.7072,type:'hub',demand:78},
+  {code:'MNL',name:'니노이아키노',city:'마닐라',country:'필리핀',lat:14.5086,lng:121.0194,type:'hub',demand:72},
+  {code:'DEL',name:'인디라간디',city:'델리',country:'인도',lat:28.5665,lng:77.1031,type:'hub',demand:76},
+  {code:'BOM',name:'차트라파티',city:'뭄바이',country:'인도',lat:19.0896,lng:72.8656,type:'hub',demand:74},
+  // Regular airports
+  {code:'GMP',name:'김포',city:'서울',country:'한국',lat:37.5583,lng:126.7906,type:'regular',demand:65},
+  {code:'PUS',name:'김해',city:'부산',country:'한국',lat:35.1795,lng:128.9382,type:'regular',demand:55},
+  {code:'CJU',name:'제주',city:'제주',country:'한국',lat:33.5113,lng:126.4930,type:'regular',demand:60},
+  {code:'ORD',name:'오헤어',city:'시카고',country:'미국',lat:41.9742,lng:-87.9073,type:'regular',demand:72},
+  {code:'ATL',name:'하츠필드잭슨',city:'애틀랜타',country:'미국',lat:33.6407,lng:-84.4277,type:'regular',demand:70},
+  {code:'SFO',name:'샌프란시스코',city:'샌프란시스코',country:'미국',lat:37.6213,lng:-122.3790,type:'regular',demand:68},
+  {code:'SEA',name:'시애틀타코마',city:'시애틀',country:'미국',lat:47.4502,lng:-122.3088,type:'regular',demand:62},
+  {code:'MIA',name:'마이애미',city:'마이애미',country:'미국',lat:25.7959,lng:-80.2870,type:'regular',demand:65},
+  {code:'LGW',name:'개트윅',city:'런던',country:'영국',lat:51.1537,lng:-0.1821,type:'regular',demand:75},
+  {code:'MAN',name:'맨체스터',city:'맨체스터',country:'영국',lat:53.3650,lng:-2.2728,type:'regular',demand:68},
+  {code:'VIE',name:'비엔나',city:'비엔나',country:'오스트리아',lat:48.1102,lng:16.5697,type:'regular',demand:66},
+  {code:'ZRH',name:'취리히',city:'취리히',country:'스위스',lat:47.4647,lng:8.5492,type:'regular',demand:67},
+  {code:'BRU',name:'브뤼셀',city:'브뤼셀',country:'벨기에',lat:50.9014,lng:4.4844,type:'regular',demand:64},
+  {code:'CPH',name:'코펜하겐',city:'코펜하겐',country:'덴마크',lat:55.6180,lng:12.6508,type:'regular',demand:63},
+  {code:'OSL',name:'가르더모엔',city:'오슬로',country:'노르웨이',lat:60.1939,lng:11.1004,type:'regular',demand:58},
+  {code:'ARN',name:'알란다',city:'스톡홀름',country:'스웨덴',lat:59.6519,lng:17.9186,type:'regular',demand:59},
+  {code:'HEL',name:'반타',city:'헬싱키',country:'핀란드',lat:60.3172,lng:24.9633,type:'regular',demand:57},
+  {code:'WAW',name:'쇼팽',city:'바르샤바',country:'폴란드',lat:52.1657,lng:20.9671,type:'regular',demand:60},
+  {code:'BUD',name:'페렌츠리스트',city:'부다페스트',country:'헝가리',lat:47.4298,lng:19.2611,type:'regular',demand:56},
+  {code:'PRG',name:'바츨라프하벨',city:'프라하',country:'체코',lat:50.1008,lng:14.2600,type:'regular',demand:60},
+  {code:'ATH',name:'엘레프테리오스베니젤로스',city:'아테네',country:'그리스',lat:37.9364,lng:23.9445,type:'regular',demand:64},
+  {code:'LIS',name:'움베르토들가도',city:'리스본',country:'포르투갈',lat:38.7813,lng:-9.1359,type:'regular',demand:66},
+  {code:'DUB',name:'더블린',city:'더블린',country:'아일랜드',lat:53.4273,lng:-6.2436,type:'regular',demand:62},
+  {code:'MEL',name:'멜버른',city:'멜버른',country:'호주',lat:-37.6690,lng:144.8410,type:'regular',demand:65},
+  {code:'AKL',name:'오클랜드',city:'오클랜드',country:'뉴질랜드',lat:-37.0082,lng:174.7850,type:'regular',demand:55},
+  {code:'CGK',name:'수카르노하타',city:'자카르타',country:'인도네시아',lat:-6.1256,lng:106.6559,type:'regular',demand:68},
+  {code:'SGN',name:'탄손낫',city:'호치민',country:'베트남',lat:10.8188,lng:106.6520,type:'regular',demand:65},
+  {code:'HAN',name:'노이바이',city:'하노이',country:'베트남',lat:21.2212,lng:105.8072,type:'regular',demand:60},
+  {code:'CAN',name:'광저우바이윈',city:'광저우',country:'중국',lat:23.3924,lng:113.2988,type:'regular',demand:70},
+  {code:'SZX',name:'선전',city:'선전',country:'중국',lat:22.6393,lng:113.8107,type:'regular',demand:68},
+  {code:'CTU',name:'청두',city:'청두',country:'중국',lat:30.5785,lng:103.9471,type:'regular',demand:63},
+  {code:'XIY',name:'시안',city:'시안',country:'중국',lat:34.4471,lng:108.7516,type:'regular',demand:58},
+  {code:'NKG',name:'난징',city:'난징',country:'중국',lat:31.7421,lng:118.8620,type:'regular',demand:60},
+  {code:'TSN',name:'텐진',city:'텐진',country:'중국',lat:39.1244,lng:117.3460,type:'regular',demand:62},
+  {code:'CSX',name:'창사',city:'창사',country:'중국',lat:28.1892,lng:113.2196,type:'regular',demand:58},
+  {code:'HAK',name:'하이커우',city:'하이커우',country:'중국',lat:19.9349,lng:110.4590,type:'regular',demand:55},
+  {code:'CKG',name:'충칭',city:'충칭',country:'중국',lat:29.7192,lng:106.6419,type:'regular',demand:60},
+  {code:'ICN2',name:'인천T2',city:'인천',country:'한국',lat:37.4680,lng:126.4281,type:'regular',demand:70},
+  {code:'CAI',name:'카이로',city:'카이로',country:'이집트',lat:30.1219,lng:31.4056,type:'regular',demand:63},
+  {code:'ADD',name:'볼레',city:'아디스아바바',country:'에티오피아',lat:8.9779,lng:38.7993,type:'regular',demand:55},
+  {code:'LOS',name:'무르탈라',city:'라고스',country:'나이지리아',lat:6.5774,lng:3.3212,type:'regular',demand:60},
+  {code:'NBO',name:'조모케냐타',city:'나이로비',country:'케냐',lat:-1.3192,lng:36.9275,type:'regular',demand:52},
+  {code:'CMN',name:'모하메드5세',city:'카사블랑카',country:'모로코',lat:33.3675,lng:-7.5898,type:'regular',demand:57},
+  {code:'TUN',name:'카르타고',city:'튀니스',country:'튀니지',lat:36.8510,lng:10.2272,type:'regular',demand:50},
+  {code:'ALG',name:'후아리부메디엔',city:'알제',country:'알제리',lat:36.6910,lng:3.2154,type:'regular',demand:52},
+  {code:'MCT',name:'무스카트',city:'무스카트',country:'오만',lat:23.5932,lng:58.2844,type:'regular',demand:60},
+  {code:'BAH',name:'바레인',city:'마나마',country:'바레인',lat:26.2708,lng:50.6336,type:'regular',demand:58},
+  {code:'TLV',name:'벤구리온',city:'텔아비브',country:'이스라엘',lat:32.0114,lng:34.8867,type:'regular',demand:64},
+  {code:'AMM',name:'퀸알리아',city:'암만',country:'요르단',lat:31.7226,lng:35.9932,type:'regular',demand:58},
+  {code:'KHI',name:'진나',city:'카라치',country:'파키스탄',lat:24.9065,lng:67.1609,type:'regular',demand:60},
+  {code:'LHE',name:'알라마이크발',city:'라호르',country:'파키스탄',lat:31.5216,lng:74.4036,type:'regular',demand:55},
+  {code:'CCU',name:'넷타지스쿠마르',city:'콜카타',country:'인도',lat:22.6520,lng:88.4463,type:'regular',demand:58},
+  {code:'MAA',name:'첸나이',city:'첸나이',country:'인도',lat:12.9941,lng:80.1709,type:'regular',demand:60},
+  {code:'BLR',name:'케겔',city:'방갈로르',country:'인도',lat:13.1986,lng:77.7066,type:'regular',demand:62},
+  // Oil airports
+  {code:'RUH',name:'킹칼리드',city:'리야드',country:'사우디아라비아',lat:24.9578,lng:46.6989,type:'oil',demand:72},
+  {code:'AUH',name:'아부다비',city:'아부다비',country:'UAE',lat:24.4330,lng:54.6511,type:'oil',demand:70},
+  {code:'KWI',name:'쿠웨이트',city:'쿠웨이트시티',country:'쿠웨이트',lat:29.2267,lng:47.9689,type:'oil',demand:60},
+  {code:'TXK',name:'텍사스',city:'텍사르카나',country:'미국(유전)',lat:33.4539,lng:-93.9910,type:'oil',demand:50},
+  {code:'GYD',name:'헤이다르알리예프',city:'바쿠',country:'아제르바이잔',lat:40.4675,lng:50.0467,type:'oil',demand:55},
+  {code:'UFA',name:'우파',city:'우파',country:'러시아(유전)',lat:54.5575,lng:55.8744,type:'oil',demand:48},
+  {code:'KZN',name:'카잔',city:'카잔',country:'러시아(유전)',lat:55.6062,lng:49.2787,type:'oil',demand:48},
+  {code:'ABJ',name:'아비장',city:'아비장',country:'코트디부아르(유전)',lat:5.2613,lng:-3.9263,type:'oil',demand:45},
+];
+
+const AIRCRAFT_DATA = [
+  // Small
+  {id:'CRJ200',name:'CRJ-200',maker:'봄바디에',category:'small',seats:50,range:3150,speed:785,fuelPerHour:1800,price:15000000,opCostPerHour:3200,svg:'small'},
+  {id:'ERJ145',name:'ERJ-145',maker:'엠브라에르',category:'small',seats:50,range:2800,speed:780,fuelPerHour:1700,price:14000000,opCostPerHour:3000,svg:'small'},
+  {id:'ATR72',name:'ATR 72-600',maker:'ATR',category:'small',seats:70,range:1528,speed:510,fuelPerHour:1400,price:22000000,opCostPerHour:2800,svg:'small'},
+  {id:'E175',name:'ERJ-175',maker:'엠브라에르',category:'small',seats:76,range:3735,speed:870,fuelPerHour:2100,price:28000000,opCostPerHour:3500,svg:'small'},
+  {id:'Q400',name:'DHC-8 Q400',maker:'봄바디에',category:'small',seats:78,range:2040,speed:667,fuelPerHour:1500,price:26000000,opCostPerHour:2900,svg:'small'},
+  // Medium
+  {id:'B737MAX8',name:'737 MAX 8',maker:'보잉',category:'medium',seats:162,range:6570,speed:839,fuelPerHour:2800,price:99000000,opCostPerHour:5200,svg:'medium'},
+  {id:'A220300',name:'A220-300',maker:'에어버스',category:'medium',seats:130,range:6300,speed:870,fuelPerHour:2600,price:91000000,opCostPerHour:4800,svg:'medium'},
+  {id:'A319',name:'A319neo',maker:'에어버스',category:'medium',seats:120,range:6850,speed:833,fuelPerHour:2500,price:92000000,opCostPerHour:4900,svg:'medium'},
+  {id:'A320neo',name:'A320neo',maker:'에어버스',category:'medium',seats:150,range:6300,speed:833,fuelPerHour:2700,price:101000000,opCostPerHour:5000,svg:'medium'},
+  {id:'B737800',name:'737-800',maker:'보잉',category:'medium',seats:162,range:5765,speed:842,fuelPerHour:2900,price:82000000,opCostPerHour:5100,svg:'medium'},
+  {id:'YAK42',name:'Yak-42',maker:'야코블레프',category:'medium',seats:120,range:1900,speed:750,fuelPerHour:3500,price:8000000,opCostPerHour:4500,svg:'medium'},
+  {id:'TU204',name:'Tu-204',maker:'투폴레프',category:'medium',seats:164,range:6500,speed:850,fuelPerHour:3800,price:25000000,opCostPerHour:5500,svg:'medium'},
+  {id:'B757200',name:'757-200',maker:'보잉',category:'medium',seats:200,range:7222,speed:854,fuelPerHour:3100,price:85000000,opCostPerHour:5600,svg:'medium'},
+  {id:'A321neo',name:'A321neo',maker:'에어버스',category:'medium',seats:180,range:7400,speed:833,fuelPerHour:3000,price:112000000,opCostPerHour:5400,svg:'medium'},
+  // Large
+  {id:'B787900',name:'787-9 드림라이너',maker:'보잉',category:'large',seats:296,range:14140,speed:903,fuelPerHour:5500,price:264000000,opCostPerHour:9800,svg:'large'},
+  {id:'A330900',name:'A330-900neo',maker:'에어버스',category:'large',seats:287,range:13334,speed:912,fuelPerHour:6200,price:259000000,opCostPerHour:10200,svg:'large'},
+  {id:'B767300',name:'767-300ER',maker:'보잉',category:'large',seats:218,range:11093,speed:851,fuelPerHour:5800,price:185000000,opCostPerHour:9200,svg:'large'},
+  {id:'A350900',name:'A350-900',maker:'에어버스',category:'large',seats:315,range:15000,speed:910,fuelPerHour:5800,price:317000000,opCostPerHour:10500,svg:'large'},
+  {id:'B777300ER',name:'777-300ER',maker:'보잉',category:'large',seats:368,range:13649,speed:905,fuelPerHour:7200,price:346000000,opCostPerHour:11500,svg:'large'},
+  {id:'IL96',name:'Il-96-300',maker:'일루신',category:'large',seats:300,range:12000,speed:900,fuelPerHour:8000,price:60000000,opCostPerHour:14000,svg:'large'},
+  {id:'A300600',name:'A300-600',maker:'에어버스',category:'large',seats:266,range:7540,speed:833,fuelPerHour:6800,price:80000000,opCostPerHour:9800,svg:'large'},
+  {id:'B787800',name:'787-8 드림라이너',maker:'보잉',category:'large',seats:242,range:13530,speed:903,fuelPerHour:5200,price:228000000,opCostPerHour:9200,svg:'large'},
+  // Widebody
+  {id:'A380800',name:'A380-800',maker:'에어버스',category:'widebody',seats:555,range:15200,speed:903,fuelPerHour:11800,price:445000000,opCostPerHour:18000,svg:'widebody'},
+  {id:'B747800',name:'747-8',maker:'보잉',category:'widebody',seats:410,range:14310,speed:920,fuelPerHour:10200,price:402000000,opCostPerHour:16500,svg:'widebody'},
+  {id:'B747400',name:'747-400',maker:'보잉',category:'widebody',seats:416,range:13450,speed:910,fuelPerHour:10800,price:240000000,opCostPerHour:17000,svg:'widebody'},
+  {id:'A350ULR',name:'A350 ULR',maker:'에어버스',category:'widebody',seats:161,range:18000,speed:910,fuelPerHour:6000,price:366000000,opCostPerHour:11000,svg:'large'},
+  {id:'B777X',name:'777X',maker:'보잉',category:'widebody',seats:426,range:13500,speed:905,fuelPerHour:9500,price:442000000,opCostPerHour:16000,svg:'widebody'},
+  // Cargo
+  {id:'B747400F',name:'747-400F',maker:'보잉',category:'cargo',seats:0,range:8230,speed:913,fuelPerHour:9800,price:285000000,opCostPerHour:15000,cargo:110000,svg:'cargo'},
+  {id:'B777F',name:'777F',maker:'보잉',category:'cargo',seats:0,range:9200,speed:905,fuelPerHour:8900,price:352000000,opCostPerHour:14500,cargo:102000,svg:'cargo'},
+  {id:'A330200F',name:'A330-200F',maker:'에어버스',category:'cargo',seats:0,range:7400,speed:871,fuelPerHour:6500,price:235000000,opCostPerHour:11000,cargo:70000,svg:'cargo'},
+  {id:'B737800BCF',name:'737-800BCF',maker:'보잉',category:'cargo',seats:0,range:5765,speed:842,fuelPerHour:2900,price:85000000,opCostPerHour:5500,cargo:23900,svg:'cargo'},
+  {id:'AN124',name:'An-124',maker:'안토노프',category:'cargo',seats:0,range:5400,speed:865,fuelPerHour:15000,price:100000000,opCostPerHour:25000,cargo:150000,svg:'cargo'},
+];
+
+const OIL_COUNTRIES = [
+  {country:'사우디아라비아',airport:'RUH',basePrice:0.45,currentPrice:0.45,trend:0},
+  {country:'UAE',airport:'AUH',basePrice:0.48,currentPrice:0.48,trend:0},
+  {country:'쿠웨이트',airport:'KWI',basePrice:0.44,currentPrice:0.44,trend:0},
+  {country:'미국(텍사스)',airport:'TXK',basePrice:0.55,currentPrice:0.55,trend:0},
+  {country:'아제르바이잔',airport:'GYD',basePrice:0.50,currentPrice:0.50,trend:0},
+  {country:'러시아',airport:'UFA',basePrice:0.40,currentPrice:0.40,trend:0},
+];
+
+const UPGRADES_DATA = [
+  {id:'service',name:'기내 서비스',desc:'음료, 식사, 좌석 등 서비스 강화. 탑승률 및 수익 증가.',maxLevel:5,costs:[5000000,10000000,20000000,40000000,80000000],effects:['탑승률 +3%','탑승률 +6%','수익 +8%','수익 +12%','VIP 클래스 개방']},
+  {id:'maintenance',name:'정비 시스템',desc:'고급 정비 장비 도입으로 운항 비용 절감.',maxLevel:5,costs:[8000000,15000000,30000000,60000000,100000000],effects:['비용 -3%','비용 -6%','비용 -10%','비용 -15%','비용 -20%']},
+  {id:'mileage',name:'마일리지 프로그램',desc:'멤버십 포인트 시스템으로 충성 고객 유치.',maxLevel:4,costs:[10000000,25000000,50000000,100000000],effects:['탑승률 +5%','탑승객 +8%','수익 +10%','평판 +1']},
+  {id:'fuel',name:'연료 관리',desc:'효율적 연료 관리로 항공기 연비 개선.',maxLevel:4,costs:[12000000,25000000,50000000,80000000],effects:['연비 +5%','연비 +10%','연비 +15%','연비 +22%']},
+  {id:'slots',name:'공항 슬롯',desc:'주요 허브 공항 슬롯 확보로 운항 편의 증가.',maxLevel:3,costs:[20000000,50000000,100000000],effects:['허브 수요 +5%','허브 수요 +10%','프리미엄 슬롯']},
+  {id:'lounge',name:'VIP 라운지',desc:'공항 라운지 운영으로 프리미엄 승객 유치.',maxLevel:3,costs:[30000000,70000000,150000000],effects:['수익 +5%','수익 +12%','평판 +1']},
+  {id:'cargo',name:'화물 사업',desc:'여객 노선에서 화물도 함께 운반.',maxLevel:4,costs:[15000000,35000000,70000000,130000000],effects:['화물수익 +20%','화물수익 +40%','전용화물 노선','화물 허브']},
+  {id:'digital',name:'디지털 전환',desc:'모바일 앱 및 AI 예약 시스템 도입.',maxLevel:3,costs:[20000000,45000000,80000000],effects:['비용 -5%','수익 +8%','탑승률 +10%']},
+];
+
+const NEWS_POOL = [
+  {title:'국제 유가 급등',body:'중동 지역 분쟁으로 국제 유가가 급등하였습니다. 연료비가 증가합니다.',type:'negative',effect:(g)=>{g.oilPriceMultiplier=1.3; g.notify('유가 급등! 연료비 +30%','warning');}},
+  {title:'항공 수요 증가',body:'여름 성수기로 항공 수요가 크게 증가하였습니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.2; g.notify('수요 증가! 탑승률 +20%','success');}},
+  {title:'태풍 주의보',body:'동아시아 지역에 태풍이 접근하고 있습니다. 일부 노선이 영향을 받을 수 있습니다.',type:'negative',effect:(g)=>{g.notify('태풍 주의보 발령','warning');}},
+  {title:'새 국제 협약',body:'한국이 10개국과 새로운 항공 협약을 체결하였습니다. 노선 수요가 증가합니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.15;}},
+  {title:'경쟁 항공사 파산',body:'경쟁 항공사 중 한 곳이 파산하였습니다. 수요가 일부 이전될 것으로 보입니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.1; g.reputation=Math.min(5,g.reputation+0.1);}},
+  {title:'공항 혼잡',body:'인천공항이 혼잡으로 인해 지연이 발생하고 있습니다.',type:'event',effect:(g)=>{}},
+  {title:'환경 규제 강화',body:'국제 환경 규제로 탄소 비용이 추가됩니다.',type:'negative',effect:(g)=>{g.costMultiplier=1.05;}},
+  {title:'관광 붐',body:'한국 관광 붐으로 인바운드 수요가 급증하였습니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.25;}},
+  {title:'기술 혁신',body:'새로운 항공기 기술이 연료 효율을 높입니다.',type:'positive',effect:(g)=>{g.fuelEfficiency=Math.min(1.4,g.fuelEfficiency+0.05);}},
+  {title:'파업 경고',body:'공항 노동자들이 파업을 예고했습니다. 운영에 영향을 줄 수 있습니다.',type:'negative',effect:(g)=>{g.costMultiplier=1.03;}},
+];
+
+const SOCIAL_POSTS_POSITIVE = [
+  "항공사 서비스가 정말 훌륭해요! 직원들이 친절하고 기내식도 맛있었습니다.",
+  "지연 없이 정시 운항! 신뢰할 수 있는 항공사입니다.",
+  "좌석이 넓고 편안했어요. 다음에도 이용하겠습니다.",
+  "마일리지 적립이 빠르고 혜택이 좋습니다!",
+  "탑승 절차가 매우 신속하고 효율적이었어요.",
+];
+
+const SOCIAL_POSTS_NEGATIVE = [
+  "연착이 너무 잦습니다. 개선이 필요해 보여요.",
+  "기내식 품질이 아쉬웠습니다. 더 다양한 메뉴가 있으면 좋겠어요.",
+  "수하물 처리가 느렸습니다. 개선해 주세요.",
+  "노선이 너무 적어요. 더 많은 도시로 취항해 주세요!",
+  "좌석 간격이 조금 좁게 느껴졌어요.",
+];
+
+// ============================================================
+// UTILITY
+// ============================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('active'); el.style.display = 'flex'; }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+
+function setPanel(name) {
+  document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const panel = document.getElementById('panel-' + name);
+  if (panel) panel.classList.add('active');
+  event && event.currentTarget && event.currentTarget.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') === `setPanel('${name}')`) n.classList.add('active');
+  });
+  if (name === 'map' && G.leafletMap) {
+    setTimeout(() => G.leafletMap.invalidateSize(), 100);
+  }
+}
+
+function fmt(n) {
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
+  return '$' + Math.round(n).toLocaleString();
+}
+
+function fmtN(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0) + 'K';
+  return Math.round(n).toLocaleString();
+}
+
+function dist(a, b) {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const x = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+}
+
+function starsHTML(rep) {
+  let s = '';
+  for (let i = 1; i <= 5; i++) s += i <= Math.floor(rep) ? '★' : '☆';
+  return s;
+}
+
+let selectedColor = '#1565C0';
+function selectColor(el) {
+  document.querySelectorAll('#color-row .color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedColor = el.dataset.color;
+}
+
+let selectedColorSettings = '#1565C0';
+function selectColorSettings(el) {
+  document.querySelectorAll('#set-color-row .color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedColorSettings = el.dataset.color;
+  G.game.brandColor = selectedColorSettings;
+  G.updateTopbar();
+}
+
+let custColor = '#1565C0';
+function selectColorCust(el) {
+  document.querySelectorAll('#cust-color-row .color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  custColor = el.dataset.color;
+  updateLiveryPreview();
+}
+
+function updateLiveryPreview() {
+  document.getElementById('livery-preview').innerHTML = renderAircraftSVG('medium', custColor, 100, 60);
+}
+
+function loadLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const box = document.getElementById('logo-preview-box');
+    box.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+    G._setupLogoData = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadLogoSettings(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    G.game.logoData = e.target.result;
+    const prev = document.getElementById('set-logo-preview');
+    prev.src = e.target.result;
+    prev.style.display = 'block';
+    document.getElementById('set-logo-plus').style.display = 'none';
+    document.getElementById('tb-logo').src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function filterAC(cat, btn) {
+  document.querySelectorAll('#ac-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  G.renderMarket(cat);
+}
+
+function renderAircraftSVG(type, color = '#1565C0', w=80, h=50) {
+  const c = color;
+  if (type === 'small') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="28" ry="8" fill="${c}"/><polygon points="12,25 2,18 2,32" fill="${c}"/><polygon points="68,25 78,20 78,30" fill="${c}"/><polygon points="30,17 40,8 50,17" fill="${c}80"/><polygon points="15,33 22,25 29,33" fill="${c}60"/><circle cx="40" cy="25" r="4" fill="white" opacity="0.6"/></svg>`;
+  if (type === 'medium') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="30" ry="9" fill="${c}"/><polygon points="10,25 0,16 0,34" fill="${c}"/><polygon points="70,25 80,19 80,31" fill="${c}"/><polygon points="25,16 40,5 55,16" fill="${c}80"/><polygon points="12,36 20,27 28,36" fill="${c}60"/><ellipse cx="40" cy="22" rx="8" ry="3" fill="white" opacity="0.5"/></svg>`;
+  if (type === 'large') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="32" ry="10" fill="${c}"/><polygon points="8,25 -2,14 -2,36" fill="${c}"/><polygon points="72,25 82,17 82,33" fill="${c}"/><polygon points="22,15 40,3 58,15" fill="${c}80"/><polygon points="20,35 28,26 36,35" fill="${c}60"/><polygon points="44,35 52,26 60,35" fill="${c}60"/><ellipse cx="40" cy="21" rx="10" ry="4" fill="white" opacity="0.5"/></svg>`;
+  if (type === 'widebody') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="33" ry="13" fill="${c}"/><polygon points="7,25 -3,12 -3,38" fill="${c}"/><polygon points="73,25 83,16 83,34" fill="${c}"/><polygon points="20,12 40,1 60,12" fill="${c}80"/><polygon points="18,38 28,27 38,38" fill="${c}60"/><polygon points="42,38 52,27 62,38" fill="${c}60"/><ellipse cx="40" cy="20" rx="14" ry="6" fill="white" opacity="0.5"/><ellipse cx="40" cy="30" rx="14" ry="6" fill="white" opacity="0.2"/></svg>`;
+  if (type === 'cargo') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><rect x="8" y="18" width="58" height="18" rx="5" fill="${c}"/><polygon points="66,27 78,22 78,32" fill="${c}"/><polygon points="8,27 0,22 0,32" fill="${c}80"/><polygon points="20,18 38,6 56,18" fill="${c}70"/><rect x="15" y="21" width="12" height="10" rx="2" fill="white" opacity="0.4"/><rect x="32" y="21" width="12" height="10" rx="2" fill="white" opacity="0.4"/><rect x="49" y="21" width="12" height="10" rx="2" fill="white" opacity="0.4"/></svg>`;
+  return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="28" ry="8" fill="${c}"/></svg>`;
+}
+
+// ============================================================
+// GAME ENGINE
+// ============================================================
+const G = {
+  game: null,
+  gameInterval: null,
+  paused: false,
+  leafletMap: null,
+  mapMarkers: {},
+  mapRouteLines: {},
+  mapPlanes: {},
+  currentSlot: 0,
+  _setupLogoData: null,
+
+  // Multipliers
+  oilPriceMultiplier: 1,
+  demandMultiplier: 1,
+  costMultiplier: 1,
+  fuelEfficiency: 1,
+
+  defaultGame() {
+    return {
+      airlineName: 'SkyEmpire Airlines',
+      slogan: '하늘을 연결합니다',
+      hubCode: 'ICN',
+      brandColor: '#1565C0',
+      logoData: null,
+      balance: 50000000,
+      week: 1,
+      fleet: [],
+      routes: [],
+      upgrades: {},
+      oilOrders: {},
+      fuel: 100,
+      totalRevenue: 0,
+      totalCost: 0,
+      totalPax: 0,
+      reputation: 2,
+      transactions: [],
+      news: [],
+      oilPrices: OIL_COUNTRIES.map(o => ({...o})),
+      lastOilBought: {},
+      weeklyProfit: 0,
+    };
+  },
+
+  showNewGame() {
+    G._setupLogoData = null;
+    showScreen('screen-setup');
+  },
+
+  showLoadGame() {
+    const grid = document.getElementById('slot-grid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+      const save = G.loadSlotData(i);
+      const div = document.createElement('div');
+      div.className = 'save-slot' + (save ? '' : ' empty');
+      if (save) {
+        div.innerHTML = `<div><div class="slot-name">${save.airlineName}</div><div class="slot-info">${save.week}주차 | 잔고: ${fmt(save.balance)}</div></div><button class="slot-delete" onclick="G.deleteSlot(${i},event)">삭제</button>`;
+        div.addEventListener('click', e => { if (!e.target.classList.contains('slot-delete')) G.loadGame(i); });
+      } else {
+        div.innerHTML = `<div><div class="slot-name" style="color:var(--text3)">빈 슬롯 ${i+1}</div></div>`;
+      }
+      grid.appendChild(div);
+    }
+    openModal('modal-load');
+  },
+
+  loadSlotData(slot) {
+    try {
+      const raw = localStorage.getItem(`skyempire_slot_${slot}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  },
+
+  deleteSlot(slot, e) {
+    e.stopPropagation();
+    if (confirm('이 저장 슬롯을 삭제하시겠습니까?')) {
+      localStorage.removeItem(`skyempire_slot_${slot}`);
+      G.showLoadGame();
+      G.notify('저장 슬롯 삭제됨', 'success');
+    }
+  },
+
+  startNewGame() {
+    const name = document.getElementById('setup-name').value.trim() || 'SkyEmpire Airlines';
+    const slogan = document.getElementById('setup-slogan').value.trim() || '하늘을 연결합니다';
+    const hub = document.getElementById('setup-hub').value;
+    G.game = G.defaultGame();
+    G.game.airlineName = name;
+    G.game.slogan = slogan;
+    G.game.hubCode = hub;
+    G.game.brandColor = selectedColor;
+    if (G._setupLogoData) G.game.logoData = G._setupLogoData;
+    G.oilPriceMultiplier = 1;
+    G.demandMultiplier = 1;
+    G.costMultiplier = 1;
+    G.fuelEfficiency = 1;
+    G.currentSlot = 0;
+    G.initGame();
+  },
+
+  loadGame(slot) {
+    const save = G.loadSlotData(slot);
+    if (!save) return;
+    G.game = {...G.defaultGame(), ...save};
+    G.currentSlot = slot;
+    G.oilPriceMultiplier = 1;
+    G.demandMultiplier = 1;
+    G.costMultiplier = 1;
+    G.fuelEfficiency = 1;
+    closeModal('modal-load');
+    G.initGame();
+  },
+
+  initGame() {
+    closeModal('modal-load');
+    showScreen('screen-game');
+    G.updateTopbar();
+    G.renderMarket('all');
+    G.renderUpgrades();
+    G.renderOil();
+    G.renderFleet();
+    G.renderRoutes();
+    G.renderFinance();
+    G.renderSocial();
+    G.renderNews();
+    G.initMap();
+    G.updateSettings();
+    if (G.gameInterval) clearInterval(G.gameInterval);
+    G.paused = false;
+    document.getElementById('speed-btn').textContent = '일시정지';
+    G.gameInterval = setInterval(() => { if (!G.paused) G.tick(); }, 7000);
+    G.notify(`${G.game.airlineName} 운항 시작!`, 'success');
+  },
+
+  tick() {
+    G.game.week++;
+    G.weeklyRevenue = 0;
+    G.weeklyCost = 0;
+
+    // Oil auto-buy
+    G.processOilOrders();
+
+    // Route income
+    G.processRoutes();
+
+    // Oil price fluctuation
+    G.fluctuateOilPrices();
+
+    // Random news
+    if (G.game.week % 4 === 0) G.generateNews();
+
+    // Reputation changes
+    G.checkReputation();
+
+    G.game.weeklyProfit = G.weeklyRevenue - G.weeklyCost;
+    G.game.totalRevenue += G.weeklyRevenue;
+    G.game.totalCost += G.weeklyCost;
+    G.game.balance += G.game.weeklyProfit;
+
+    if (G.weeklyRevenue > 0 || G.weeklyCost > 0) {
+      G.game.transactions.unshift({week:G.game.week, type:'주간 운항', desc:'노선 수익/비용', amount: G.game.weeklyProfit});
+      if (G.game.transactions.length > 100) G.game.transactions.pop();
+    }
+
+    G.updateTopbar();
+    G.renderRoutes();
+    G.renderFinance();
+    G.renderOil();
+    G.updateMapPlanes();
+    G.autoSave();
+  },
+
+  processOilOrders() {
+    if (!G.game.oilOrders) return;
+    G.game.oilPrices.forEach(op => {
+      const order = G.game.oilOrders[op.airport];
+      if (!order || !order.days) return;
+      const lastBought = G.game.lastOilBought[op.airport] || 0;
+      if (G.game.week - lastBought >= order.days) {
+        const cost = order.amount * op.currentPrice * 1000;
+        if (G.game.balance >= cost) {
+          G.game.balance -= cost;
+          G.game.fuel = Math.min(100, G.game.fuel + order.amount);
+          G.game.lastOilBought[op.airport] = G.game.week;
+          G.game.transactions.unshift({week:G.game.week,type:'연료 구매',desc:`${op.country} 자동 구매`,amount:-cost});
+          G.game.totalCost += cost;
+        } else {
+          G.notify(`${op.country}에서 자동 연료 구매 실패 (잔고 부족)`, 'error');
+        }
+      }
+    });
+  },
+
+  processRoutes() {
+    const fuelOk = G.game.fuel > 10;
+    G.game.routes.forEach(r => {
+      if (!fuelOk) { r.active = false; return; }
+      r.active = true;
+      const depAp = AIRPORTS.find(a => a.code === r.dep);
+      const arrAp = AIRPORTS.find(a => a.code === r.arr);
+      if (!depAp || !arrAp) return;
+      const ac = AIRCRAFT_DATA.find(a => a.id === r.aircraftId);
+      if (!ac) return;
+
+      const d = dist(depAp, arrAp);
+      const flightHours = d / ac.speed;
+
+      // Demand factor
+      const avgDemand = ((depAp.demand + arrAp.demand) / 200) * G.demandMultiplier;
+      const upgrService = G.game.upgrades['service'] || 0;
+      const upgrMileage = G.game.upgrades['mileage'] || 0;
+      const upgrDigital = G.game.upgrades['digital'] || 0;
+      const loadBonus = 1 + upgrService*0.03 + upgrMileage*0.05 + upgrDigital*0.03;
+      r.loadFactor = Math.min(0.98, avgDemand * loadBonus);
+
+      const weeklyFlights = 14;
+      if (ac.category === 'cargo') {
+        const cargoRev = ac.cargo * 0.008 * weeklyFlights * G.demandMultiplier;
+        r.weeklyRevenue = cargoRev;
+        r.weeklyPax = 0;
+      } else {
+        r.weeklyPax = Math.round(ac.seats * r.loadFactor * weeklyFlights);
+        const ticketPrice = 0.12 * d + 80;
+        const upgrLounge = G.game.upgrades['lounge'] || 0;
+        const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06;
+        r.weeklyRevenue = r.weeklyPax * ticketPrice * revBonus;
+        G.game.totalPax += r.weeklyPax;
+      }
+
+      const upgrMaint = G.game.upgrades['maintenance'] || 0;
+      const upgrFuel = G.game.upgrades['fuel'] || 0;
+      const costMult = G.costMultiplier * (1 - upgrMaint*0.03) * (1 - upgrFuel*0.04);
+      const fuelEff = G.fuelEfficiency * (1 + upgrFuel*0.04);
+      r.weeklyCost = (ac.opCostPerHour * flightHours + ac.fuelPerHour * flightHours * 0.001 * 1000) * weeklyFlights * costMult / fuelEff;
+
+      r.weeklyProfit = r.weeklyRevenue - r.weeklyCost;
+      G.weeklyRevenue += r.weeklyRevenue;
+      G.weeklyCost += r.weeklyCost;
+
+      // Consume fuel
+      G.game.fuel = Math.max(0, G.game.fuel - ac.fuelPerHour * flightHours * weeklyFlights / 50000);
+    });
+
+    if (G.game.fuel < 15) {
+      document.getElementById('fuel-warn-map').style.display = 'block';
+      document.getElementById('fuel-warn-routes').classList.add('visible');
+    } else {
+      document.getElementById('fuel-warn-map').style.display = 'none';
+      document.getElementById('fuel-warn-routes').classList.remove('visible');
+    }
+  },
+
+  fluctuateOilPrices() {
+    if (!G.game.oilPrices) return;
+    G.game.oilPrices.forEach(op => {
+      const change = (Math.random() - 0.48) * 0.03;
+      op.currentPrice = Math.max(0.2, Math.min(1.5, op.currentPrice + change));
+      op.currentPrice *= G.oilPriceMultiplier;
+      op.currentPrice = Math.round(op.currentPrice * 100) / 100;
+      op.trend = change > 0 ? 1 : -1;
+    });
+    G.oilPriceMultiplier = 1 + (G.oilPriceMultiplier - 1) * 0.9;
+  },
+
+  generateNews() {
+    const item = NEWS_POOL[Math.floor(Math.random() * NEWS_POOL.length)];
+    const newsEntry = {title: item.title, body: item.body, type: item.type, week: G.game.week};
+    G.game.news.unshift(newsEntry);
+    if (G.game.news.length > 30) G.game.news.pop();
+    try { item.effect(G); } catch(e) {}
+    G.renderNews();
+    G.notify(item.title, item.type === 'positive' ? 'success' : 'warning');
+  },
+
+  checkReputation() {
+    const routes = G.game.routes.length;
+    const fleet = G.game.fleet.length;
+    const pax = G.game.totalPax;
+    let rep = 1;
+    if (routes >= 3) rep = 1.5;
+    if (routes >= 8) rep = 2;
+    if (pax >= 10000) rep = 2.5;
+    if (fleet >= 5) rep += 0.5;
+    if (pax >= 50000) rep = 3;
+    if (routes >= 15 && pax >= 100000) rep = 3.5;
+    if (pax >= 500000) rep = 4;
+    if (routes >= 25 && pax >= 1000000) rep = 4.5;
+    if (routes >= 40 && pax >= 5000000) rep = 5;
+    const upgrMileage = G.game.upgrades['mileage'] || 0;
+    const upgrLounge = G.game.upgrades['lounge'] || 0;
+    rep += (upgrMileage >= 4 ? 1 : 0) + (upgrLounge >= 3 ? 1 : 0);
+    rep = Math.min(5, rep);
+    if (G.game.balance < 0) rep = Math.max(1, rep - 1);
+    G.game.reputation = rep;
+  },
+
+  // ============================================================
+  // MAP
+  // ============================================================
+  initMap() {
+    if (G.leafletMap) { G.leafletMap.remove(); G.leafletMap = null; }
+    const mapEl = document.getElementById('leaflet-map');
+    G.leafletMap = L.map(mapEl, { zoomControl: true, minZoom: 2, maxZoom: 8 }).setView([30, 20], 3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 18,
+    }).addTo(G.leafletMap);
+    G.mapMarkers = {};
+    G.mapRouteLines = {};
+    G.mapPlanes = {};
+
+    AIRPORTS.forEach(ap => {
+      const color = ap.type === 'hub' ? '#1565C0' : ap.type === 'oil' ? '#F9A825' : '#00897B';
+      const size = ap.type === 'hub' ? 12 : ap.type === 'oil' ? 10 : 8;
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer"></div>`,
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2],
+      });
+      const marker = L.marker([ap.lat, ap.lng], {icon}).addTo(G.leafletMap);
+      marker.on('click', () => G.showAirportPopup(ap, marker));
+      G.mapMarkers[ap.code] = marker;
+    });
+
+    G.drawRouteLines();
+  },
+
+  showAirportPopup(ap, marker) {
+    const typeLabel = ap.type === 'hub' ? '허브 공항' : ap.type === 'oil' ? '산유국 공항' : '일반 공항';
+    const typeClass = ap.type === 'hub' ? 'hub' : ap.type === 'oil' ? '' : 'regular';
+    const d = dist(AIRPORTS.find(a=>a.code===G.game.hubCode)||{lat:0,lng:0}, ap);
+    const hasRoute = G.game.routes.some(r => (r.dep===ap.code||r.arr===ap.code));
+    const html = `
+      <div class="airport-popup">
+        <h3>${ap.name} (${ap.code})</h3>
+        <span class="ap-type ${typeClass}">${typeLabel}</span>
+        <div class="ap-info">${ap.city}, ${ap.country}</div>
+        <div class="ap-demand">수요 지수: ${ap.demand} | 허브까지 ${Math.round(d)}km</div>
+        ${ap.code !== G.game.hubCode ? `<button class="ap-route-btn" onclick="G.openRouteModal('${ap.code}')">${hasRoute?'추가 노선 개설':'노선 개설'}</button>` : '<div style="font-size:12px;color:var(--sky);font-weight:700">현재 허브 공항</div>'}
+      </div>`;
+    marker.bindPopup(html, {maxWidth: 260}).openPopup();
+  },
+
+  drawRouteLines() {
+    if (!G.leafletMap) return;
+    Object.values(G.mapRouteLines).forEach(l => l.remove());
+    G.mapRouteLines = {};
+    Object.values(G.mapPlanes).forEach(p => p.remove());
+    G.mapPlanes = {};
+
+    G.game.routes.forEach((r, idx) => {
+      const dep = AIRPORTS.find(a => a.code === r.dep);
+      const arr = AIRPORTS.find(a => a.code === r.arr);
+      if (!dep || !arr) return;
+      const line = L.polyline([[dep.lat, dep.lng],[arr.lat, arr.lng]], {
+        color: '#1565C0', weight: 1.5, opacity: 0.5, dashArray: '6,4'
+      }).addTo(G.leafletMap);
+      G.mapRouteLines[idx] = line;
+
+      // Animated plane
+      const midLat = (dep.lat + arr.lat) / 2;
+      const midLng = (dep.lng + arr.lng) / 2;
+      const planeIcon = L.divIcon({
+        className: '',
+        html: `<div style="width:16px;height:16px;transform:rotate(${Math.atan2(arr.lat-dep.lat,arr.lng-dep.lng)*180/Math.PI}deg)"><svg viewBox='0 0 24 24' fill='#1565C0' width='16' height='16'><path d='M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z'/></svg></div>`,
+        iconSize: [16,16], iconAnchor: [8,8]
+      });
+      const plane = L.marker([midLat, midLng], {icon: planeIcon}).addTo(G.leafletMap);
+      G.mapPlanes[idx] = plane;
+    });
+  },
+
+  updateMapPlanes() {
+    if (!G.leafletMap) return;
+    G.game.routes.forEach((r, idx) => {
+      const dep = AIRPORTS.find(a => a.code === r.dep);
+      const arr = AIRPORTS.find(a => a.code === r.arr);
+      if (!dep || !arr || !G.mapPlanes[idx]) return;
+      const t = ((G.game.week * 0.3) % 1);
+      const lat = dep.lat + (arr.lat - dep.lat) * t;
+      const lng = dep.lng + (arr.lng - dep.lng) * t;
+      G.mapPlanes[idx].setLatLng([lat, lng]);
+    });
+  },
+
+  openRouteModal(arrCode) {
+    const dep = G.game.hubCode;
+    document.getElementById('route-dep').textContent = dep;
+    const arrSel = document.getElementById('route-arr');
+    arrSel.innerHTML = '<option value="">공항 선택...</option>';
+    AIRPORTS.filter(a => a.code !== dep).forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.code;
+      opt.textContent = `${a.code} - ${a.name} (${a.city})`;
+      if (a.code === arrCode) opt.selected = true;
+      arrSel.appendChild(opt);
+    });
+
+    const acGrid = document.getElementById('route-ac-grid');
+    acGrid.innerHTML = '';
+    if (G.game.fleet.length === 0) {
+      acGrid.innerHTML = '<div style="color:var(--text3);font-size:13px">항공기가 없습니다. 먼저 구매하세요.</div>';
+    } else {
+      G.game.fleet.forEach(f => {
+        const ac = AIRCRAFT_DATA.find(a => a.id === f.aircraftId);
+        if (!ac) return;
+        const div = document.createElement('div');
+        div.className = 'select-ac-item';
+        div.dataset.fid = f.id;
+        div.innerHTML = `<div style="font-size:11px;color:var(--text3)">${renderAircraftSVG(ac.svg, G.game.brandColor, 40, 24)}</div><div>${f.nickname||ac.name}</div><div style="font-size:10px;color:var(--text3)">${f.reg||''}</div>`;
+        div.onclick = () => {
+          document.querySelectorAll('.select-ac-item').forEach(i => i.classList.remove('selected'));
+          div.classList.add('selected');
+          G._selectedFleetId = f.id;
+          G.updateRoutePreview();
+        };
+        acGrid.appendChild(div);
+      });
+    }
+
+    arrSel.onchange = G.updateRoutePreview;
+    G._selectedFleetId = null;
+    document.getElementById('route-preview').style.display = 'none';
+    openModal('modal-route');
+  },
+
+  updateRoutePreview() {
+    const arr = document.getElementById('route-arr').value;
+    const fid = G._selectedFleetId;
+    if (!arr || !fid) { document.getElementById('route-preview').style.display = 'none'; return; }
+    const dep = AIRPORTS.find(a => a.code === G.game.hubCode);
+    const arrAp = AIRPORTS.find(a => a.code === arr);
+    const fleet = G.game.fleet.find(f => f.id === fid);
+    if (!dep || !arrAp || !fleet) return;
+    const ac = AIRCRAFT_DATA.find(a => a.id === fleet.aircraftId);
+    if (!ac) return;
+    const d = dist(dep, arrAp);
+    const hours = d / ac.speed;
+    const ticketPrice = 0.12 * d + 80;
+    const loadFactor = Math.min(0.95, (dep.demand + arrAp.demand) / 200 * G.demandMultiplier);
+    const weeklyPax = Math.round(ac.seats * loadFactor * 14);
+    const rev = weeklyPax * ticketPrice;
+    const cost = (ac.opCostPerHour * hours + ac.fuelPerHour * hours * 20) * 14;
+    document.getElementById('rp-revenue').textContent = fmt(rev);
+    document.getElementById('rp-cost').textContent = fmt(cost);
+    document.getElementById('rp-load').textContent = Math.round(loadFactor*100) + '%';
+    document.getElementById('route-preview').style.display = 'block';
+  },
+
+  openRoute() {
+    const arr = document.getElementById('route-arr').value;
+    const fid = G._selectedFleetId;
+    if (!arr) { G.notify('도착 공항을 선택하세요', 'error'); return; }
+    if (!fid) { G.notify('항공기를 선택하세요', 'error'); return; }
+    const dep = G.game.hubCode;
+    if (G.game.routes.some(r => r.dep===dep && r.arr===arr && r.fleetId===fid)) {
+      G.notify('이미 동일 노선/항공기 조합이 있습니다', 'error'); return;
+    }
+    const fleet = G.game.fleet.find(f => f.id === fid);
+    if (!fleet) return;
+    G.game.routes.push({
+      id: Date.now(),
+      dep, arr,
+      fleetId: fid,
+      aircraftId: fleet.aircraftId,
+      weeklyRevenue: 0,
+      weeklyCost: 0,
+      weeklyPax: 0,
+      weeklyProfit: 0,
+      loadFactor: 0,
+      active: true,
+    });
+    closeModal('modal-route');
+    G.drawRouteLines();
+    G.renderRoutes();
+    G.updateTopbar();
+    G.notify(`${dep} → ${arr} 노선 개설!`, 'success');
+  },
+
+  closeRoute(id) {
+    G.game.routes = G.game.routes.filter(r => r.id !== id);
+    G.drawRouteLines();
+    G.renderRoutes();
+    G.updateTopbar();
+    G.notify('노선이 폐쇄되었습니다', 'warning');
+  },
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  updateTopbar() {
+    const g = G.game;
+    document.getElementById('tb-balance').textContent = fmt(g.balance);
+    document.getElementById('tb-rep').innerHTML = starsHTML(g.reputation);
+    document.getElementById('tb-pax').textContent = fmtN(g.totalPax);
+    document.getElementById('tb-routes').textContent = g.routes.length;
+    document.getElementById('tb-fleet').textContent = g.fleet.length;
+    document.getElementById('tb-week').textContent = g.week + '주차';
+    document.getElementById('tb-fuel').textContent = Math.round(g.fuel) + '%';
+    document.getElementById('tb-airline-name').textContent = g.airlineName;
+    if (g.logoData) document.getElementById('tb-logo').src = g.logoData;
+  },
+
+  renderMarket(cat) {
+    const grid = document.getElementById('aircraft-grid');
+    grid.innerHTML = '';
+    const list = cat === 'all' ? AIRCRAFT_DATA : AIRCRAFT_DATA.filter(a => a.category === cat);
+    list.forEach(ac => {
+      const canBuy = G.game.balance >= ac.price;
+      const div = document.createElement('div');
+      div.className = 'aircraft-card';
+      div.innerHTML = `
+        <div class="ac-visual">${renderAircraftSVG(ac.svg, G.game.brandColor, 90, 55)}</div>
+        <div class="ac-body">
+          <div class="ac-name">${ac.name}</div>
+          <div class="ac-maker">${ac.maker}</div>
+          <div class="ac-specs">
+            <div class="ac-spec"><div class="ac-spec-label">좌석</div><div class="ac-spec-val">${ac.seats||'화물'}</div></div>
+            <div class="ac-spec"><div class="ac-spec-label">항속거리</div><div class="ac-spec-val">${(ac.range/1000).toFixed(1)}K km</div></div>
+            <div class="ac-spec"><div class="ac-spec-label">속도</div><div class="ac-spec-val">${ac.speed} km/h</div></div>
+            <div class="ac-spec"><div class="ac-spec-label">연료소비</div><div class="ac-spec-val">${(ac.fuelPerHour/1000).toFixed(1)}K/h</div></div>
+          </div>
+          <div class="ac-price">${fmt(ac.price)}</div>
+          <button class="ac-buy-btn" ${canBuy?'':'disabled'} onclick="G.buyAircraft('${ac.id}')">${canBuy?'구매':'잔고 부족'}</button>
+        </div>`;
+      grid.appendChild(div);
+    });
+  },
+
+  buyAircraft(id) {
+    const ac = AIRCRAFT_DATA.find(a => a.id === id);
+    if (!ac || G.game.balance < ac.price) { G.notify('잔고가 부족합니다', 'error'); return; }
+    G.game.balance -= ac.price;
+    const fleetEntry = {
+      id: Date.now(),
+      aircraftId: id,
+      reg: 'HL' + Math.floor(1000 + Math.random()*9000),
+      nickname: '',
+      color: G.game.brandColor,
+      purchasedWeek: G.game.week,
+    };
+    G.game.fleet.push(fleetEntry);
+    G.game.transactions.unshift({week:G.game.week,type:'항공기 구매',desc:ac.name,amount:-ac.price});
+    G.renderMarket('all');
+    G.renderFleet();
+    G.updateTopbar();
+    G.notify(`${ac.name} 구매 완료! 잔고: ${fmt(G.game.balance)}`, 'success');
+  },
+
+  renderFleet() {
+    const grid = document.getElementById('fleet-grid');
+    grid.innerHTML = '';
+    if (G.game.fleet.length === 0) {
+      grid.innerHTML = '<div class="no-route-msg">보유 항공기가 없습니다.</div>';
+      return;
+    }
+    G.game.fleet.forEach(f => {
+      const ac = AIRCRAFT_DATA.find(a => a.id === f.aircraftId);
+      if (!ac) return;
+      const isOnRoute = G.game.routes.some(r => r.fleetId === f.id && r.active);
+      const statusClass = isOnRoute ? 'status-active' : 'status-idle';
+      const statusText = isOnRoute ? '운항 중' : '대기 중';
+      const div = document.createElement('div');
+      div.className = 'fleet-card';
+      div.innerHTML = `
+        <div class="fleet-card-header" style="background:linear-gradient(135deg,${f.color||G.game.brandColor}22,${f.color||G.game.brandColor}44)">
+          ${renderAircraftSVG(ac.svg, f.color||G.game.brandColor, 60, 38)}
+          <div>
+            <div class="fleet-ac-name">${ac.name}</div>
+            <div class="fleet-ac-reg">${f.reg}</div>
+          </div>
+        </div>
+        <div class="fleet-card-body">
+          <div class="fleet-status">
+            <span class="status-badge ${statusClass}">${statusText}</span>
+            <span style="font-size:11px;color:var(--text3)">${f.nickname||'닉네임 없음'}</span>
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px">
+            좌석: ${ac.seats||'화물'} | 항속: ${(ac.range/1000).toFixed(0)}K km
+          </div>
+          <div style="display:flex;gap:8px">
+            <button style="flex:1;padding:7px;border:1.5px solid var(--sky);border-radius:var(--radius-sm);color:var(--sky);background:none;font-size:12px;font-weight:600;cursor:pointer" onclick="G.openCustomize('${f.id}')">커스텀</button>
+            <button style="flex:1;padding:7px;border:1.5px solid var(--red);border-radius:var(--radius-sm);color:var(--red);background:none;font-size:12px;font-weight:600;cursor:pointer" onclick="G.sellAircraft('${f.id}')">매각</button>
+          </div>
+        </div>`;
+      grid.appendChild(div);
+    });
+  },
+
+  sellAircraft(id) {
+    const f = G.game.fleet.find(f => f.id == id);
+    if (!f) return;
+    const ac = AIRCRAFT_DATA.find(a => a.id === f.aircraftId);
+    const price = Math.round(ac.price * 0.6);
+    if (!confirm(`${ac.name}을(를) ${fmt(price)}에 매각하시겠습니까?`)) return;
+    G.game.routes = G.game.routes.filter(r => r.fleetId != id);
+    G.game.fleet = G.game.fleet.filter(f => f.id != id);
+    G.game.balance += price;
+    G.game.transactions.unshift({week:G.game.week,type:'항공기 매각',desc:ac.name,amount:price});
+    G.renderFleet();
+    G.renderRoutes();
+    G.updateTopbar();
+    G.drawRouteLines();
+    G.notify(`${ac.name} 매각 완료`, 'success');
+  },
+
+  openCustomize(id) {
+    const f = G.game.fleet.find(f => f.id == id);
+    if (!f) return;
+    document.getElementById('cust-reg').value = f.reg || '';
+    document.getElementById('cust-nick').value = f.nickname || '';
+    custColor = f.color || G.game.brandColor;
+    document.querySelectorAll('#cust-color-row .color-swatch').forEach(s => {
+      s.classList.toggle('selected', s.dataset.color === custColor);
+    });
+    document.getElementById('cust-aircraft-id').value = id;
+    updateLiveryPreview();
+    openModal('modal-customize');
+  },
+
+  saveCustomize() {
+    const id = document.getElementById('cust-aircraft-id').value;
+    const f = G.game.fleet.find(f => f.id == id);
+    if (!f) return;
+    f.reg = document.getElementById('cust-reg').value;
+    f.nickname = document.getElementById('cust-nick').value;
+    f.color = custColor;
+    closeModal('modal-customize');
+    G.renderFleet();
+    G.notify('항공기 커스텀 저장됨', 'success');
+  },
+
+  renderRoutes() {
+    const list = document.getElementById('routes-list');
+    if (G.game.routes.length === 0) {
+      list.innerHTML = '<div class="no-route-msg">아직 개설된 노선이 없습니다.<br>세계 지도에서 공항을 클릭하여 노선을 개설하세요.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    G.game.routes.forEach(r => {
+      const depAp = AIRPORTS.find(a => a.code === r.dep);
+      const arrAp = AIRPORTS.find(a => a.code === r.arr);
+      const fleet = G.game.fleet.find(f => f.id === r.fleetId);
+      const ac = AIRCRAFT_DATA.find(a => a.id === r.aircraftId);
+      if (!depAp || !arrAp || !ac) return;
+      const profitClass = r.weeklyProfit >= 0 ? 'profit-positive' : 'profit-negative';
+      const div = document.createElement('div');
+      div.className = 'route-card';
+      div.innerHTML = `
+        <div class="route-airports">
+          <div class="route-ap">
+            <div class="route-ap-code">${r.dep}</div>
+            <div class="route-ap-name">${depAp.city}</div>
+          </div>
+          <div class="route-line" style="width:60px"></div>
+          <div class="route-ap">
+            <div class="route-ap-code">${r.arr}</div>
+            <div class="route-ap-name">${arrAp.city}</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${ac.name} ${fleet?`(${fleet.reg})`:''}</div>
+          <div class="route-stats">
+            <div class="route-stat"><div class="route-stat-val">${Math.round((r.loadFactor||0)*100)}%</div><div class="route-stat-label">탑승률</div></div>
+            <div class="route-stat"><div class="route-stat-val">${fmtN(r.weeklyPax||0)}</div><div class="route-stat-label">주간 탑승객</div></div>
+            <div class="route-stat"><div class="route-stat-val" style="color:var(--green)">${fmt(r.weeklyRevenue||0)}</div><div class="route-stat-label">수익</div></div>
+            <div class="route-stat"><div class="route-stat-val ${profitClass}">${fmt(r.weeklyProfit||0)}</div><div class="route-stat-label">순이익</div></div>
+          </div>
+        </div>
+        <div class="route-actions">
+          <button class="route-close-btn" onclick="G.closeRoute(${r.id})">노선 폐쇄</button>
+        </div>`;
+      list.appendChild(div);
+    });
+  },
+
+  renderFinance() {
+    const g = G.game;
+    document.getElementById('fin-assets').textContent = fmt(g.balance);
+    const wp = g.weeklyProfit || 0;
+    const wpEl = document.getElementById('fin-weekly');
+    wpEl.textContent = fmt(Math.abs(wp));
+    wpEl.className = 'fc-value ' + (wp >= 0 ? 'positive' : 'negative');
+    document.getElementById('fin-revenue').textContent = fmt(g.totalRevenue);
+    document.getElementById('fin-cost').textContent = fmt(g.totalCost);
+    const tbody = document.getElementById('tx-table');
+    tbody.innerHTML = '';
+    (g.transactions||[]).slice(0,50).forEach(tx => {
+      const tr = document.createElement('tr');
+      const cls = tx.amount >= 0 ? 'tx-positive' : 'tx-negative';
+      tr.innerHTML = `<td>${tx.week}주</td><td>${tx.type}</td><td>${tx.desc}</td><td class="${cls}">${tx.amount>=0?'+':''}${fmt(tx.amount)}</td>`;
+      tbody.appendChild(tr);
+    });
+  },
+
+  renderUpgrades() {
+    const grid = document.getElementById('upgrades-grid');
+    grid.innerHTML = '';
+    UPGRADES_DATA.forEach(up => {
+      const lvl = G.game.upgrades[up.id] || 0;
+      const maxed = lvl >= up.maxLevel;
+      const cost = maxed ? 0 : up.costs[lvl];
+      const canAfford = G.game.balance >= cost;
+      const div = document.createElement('div');
+      div.className = 'upgrade-card';
+      const dots = Array.from({length: up.maxLevel}, (_, i) => `<div class="level-dot ${i < lvl ? 'filled' : ''}"></div>`).join('');
+      div.innerHTML = `
+        <div class="upgrade-card-header">
+          <div class="upgrade-name">${up.name}</div>
+        </div>
+        <div class="upgrade-desc">${up.desc}</div>
+        <div class="upgrade-level">${dots}</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${lvl > 0 ? '현재: ' + up.effects[lvl-1] : '미구매'}</div>
+        ${maxed
+          ? `<div class="upgrade-maxed">최대 레벨</div>`
+          : `<div class="upgrade-cost">${fmt(cost)}</div><button class="upgrade-btn" ${canAfford?'':'disabled'} onclick="G.buyUpgrade('${up.id}')">업그레이드</button>`
+        }`;
+      grid.appendChild(div);
+    });
+  },
+
+  buyUpgrade(id) {
+    const up = UPGRADES_DATA.find(u => u.id === id);
+    if (!up) return;
+    const lvl = G.game.upgrades[id] || 0;
+    if (lvl >= up.maxLevel) return;
+    const cost = up.costs[lvl];
+    if (G.game.balance < cost) { G.notify('잔고가 부족합니다', 'error'); return; }
+    G.game.balance -= cost;
+    G.game.upgrades[id] = lvl + 1;
+    G.game.transactions.unshift({week:G.game.week,type:'업그레이드',desc:up.name,amount:-cost});
+    G.renderUpgrades();
+    G.updateTopbar();
+    G.notify(`${up.name} 레벨 ${lvl+1} 달성!`, 'success');
+  },
+
+  renderOil() {
+    const grid = document.getElementById('oil-grid');
+    grid.innerHTML = '';
+    const fuelPct = Math.round(G.game.fuel);
+    document.getElementById('oil-level-text').textContent = fuelPct + '%';
+    document.getElementById('fuel-gauge-fill').style.width = fuelPct + '%';
+    document.getElementById('tb-fuel').textContent = fuelPct + '%';
+
+    if (!G.game.oilPrices) G.game.oilPrices = OIL_COUNTRIES.map(o=>({...o}));
+    G.game.oilPrices.forEach((op, idx) => {
+      const order = (G.game.oilOrders||{})[op.airport] || {amount:10,days:4};
+      const div = document.createElement('div');
+      div.className = 'oil-card';
+      div.innerHTML = `
+        <div class="oil-country">${op.country}</div>
+        <div class="oil-airport">${op.airport}</div>
+        <div class="oil-price" style="color:${op.trend>0?'var(--red)':'var(--green)'}">$${op.currentPrice.toFixed(3)}/L</div>
+        <div class="oil-trend ${op.trend>0?'trend-up':'trend-down'}">${op.trend>0?'▲ 상승':'▼ 하락'}</div>
+        <div class="oil-settings">
+          <input class="oil-input" type="number" min="1" max="100" value="${order.amount}" id="oil-amount-${idx}" placeholder="수량">
+          <span class="oil-auto-label">단위 매</span>
+          <input class="oil-input" type="number" min="1" max="52" value="${order.days}" id="oil-days-${idx}" placeholder="주">
+          <span class="oil-auto-label">주마다</span>
+        </div>
+        <button class="oil-buy-btn" onclick="G.buyOilManual(${idx})">즉시 구매</button>
+        <button style="width:100%;margin-top:6px;padding:7px;border:1.5px solid var(--sky);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--sky);background:none;cursor:pointer" onclick="G.setAutoOil(${idx})">자동 구매 설정</button>`;
+      grid.appendChild(div);
+    });
+  },
+
+  buyOilManual(idx) {
+    const op = G.game.oilPrices[idx];
+    const amount = parseInt(document.getElementById(`oil-amount-${idx}`).value) || 10;
+    const cost = amount * op.currentPrice * 1000;
+    if (G.game.balance < cost) { G.notify('잔고 부족', 'error'); return; }
+    G.game.balance -= cost;
+    G.game.fuel = Math.min(100, G.game.fuel + amount);
+    G.game.totalCost += cost;
+    G.game.transactions.unshift({week:G.game.week,type:'연료 구매',desc:`${op.country} 수동`,amount:-cost});
+    G.renderOil();
+    G.updateTopbar();
+    G.notify(`연료 ${amount}단위 구매 (${fmt(cost)})`, 'success');
+  },
+
+  setAutoOil(idx) {
+    const op = G.game.oilPrices[idx];
+    const amount = parseInt(document.getElementById(`oil-amount-${idx}`).value) || 10;
+    const days = parseInt(document.getElementById(`oil-days-${idx}`).value) || 4;
+    if (!G.game.oilOrders) G.game.oilOrders = {};
+    G.game.oilOrders[op.airport] = {amount, days};
+    G.notify(`${op.country}: 매 ${days}주 ${amount}단위 자동 구매 설정`, 'success');
+  },
+
+  renderNews() {
+    const list = document.getElementById('news-list');
+    if (!G.game.news || G.game.news.length === 0) {
+      list.innerHTML = '<div class="no-route-msg">아직 뉴스가 없습니다.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    G.game.news.forEach(n => {
+      const div = document.createElement('div');
+      div.className = `news-card ${n.type}`;
+      div.innerHTML = `
+        <div class="news-header">
+          <div class="news-title">${n.title}</div>
+          <div class="news-week">${n.week}주차</div>
+        </div>
+        <div class="news-body">${n.body}</div>`;
+      list.appendChild(div);
+    });
+  },
+
+  renderSocial() {
+    const grid = document.getElementById('social-grid');
+    grid.innerHTML = '';
+    // Improvements
+    const improvCard = document.createElement('div');
+    improvCard.className = 'social-card';
+    const improv = [];
+    if (G.game.routes.length < 5) improv.push('더 많은 노선을 개설하면 수익이 증가합니다.');
+    if (G.game.fleet.length < 3) improv.push('기단을 늘리면 더 많은 노선 운항이 가능합니다.');
+    if (!G.game.upgrades['service'] || G.game.upgrades['service'] < 3) improv.push('기내 서비스 업그레이드로 탑승률을 높이세요.');
+    if (G.game.fuel < 30) improv.push('연료가 부족합니다. 빨리 구매하세요!');
+    if (G.game.upgrades['maintenance'] < 2) improv.push('정비 시스템 업그레이드로 운영 비용을 절감하세요.');
+    improvCard.innerHTML = `<div class="social-title">SkySocial - 개선 제안</div>`;
+    improv.forEach((txt, i) => {
+      const p = document.createElement('div');
+      p.className = 'social-post';
+      p.innerHTML = `<div class="post-author">@SkyAnalyst_${i+1}</div><div class="post-content">${txt}</div><div class="post-like">좋아요 ${Math.floor(Math.random()*500+50)}</div>`;
+      improvCard.appendChild(p);
+    });
+    grid.appendChild(improvCard);
+
+    // Positives
+    const posCard = document.createElement('div');
+    posCard.className = 'social-card';
+    const pos = [];
+    if (G.game.routes.length > 0) pos.push(SOCIAL_POSTS_POSITIVE[G.game.week % SOCIAL_POSTS_POSITIVE.length]);
+    if (G.game.reputation >= 3) pos.push(SOCIAL_POSTS_POSITIVE[(G.game.week+1) % SOCIAL_POSTS_POSITIVE.length]);
+    if (G.game.totalPax > 1000) pos.push(SOCIAL_POSTS_POSITIVE[(G.game.week+2) % SOCIAL_POSTS_POSITIVE.length]);
+    posCard.innerHTML = `<div class="social-title">SkySocial - 승객 반응</div>`;
+    const negCount = G.game.reputation < 2 ? 2 : 1;
+    pos.forEach((txt, i) => {
+      const p = document.createElement('div');
+      p.className = 'social-post';
+      p.innerHTML = `<div class="post-author">@traveler_${1000+i}</div><div class="post-content">${txt}</div><div class="post-like">좋아요 ${Math.floor(Math.random()*300+30)}</div>`;
+      posCard.appendChild(p);
+    });
+    SOCIAL_POSTS_NEGATIVE.slice(0, negCount).forEach((txt, i) => {
+      const p = document.createElement('div');
+      p.className = 'social-post';
+      p.style.background = '#FEF2F2';
+      p.innerHTML = `<div class="post-author" style="color:var(--red)">@critic_${i+1}</div><div class="post-content">${txt}</div><div class="post-like">좋아요 ${Math.floor(Math.random()*100+10)}</div>`;
+      posCard.appendChild(p);
+    });
+    grid.appendChild(posCard);
+  },
+
+  updateSettings() {
+    document.getElementById('set-name').value = G.game.airlineName;
+    document.getElementById('set-slogan').value = G.game.slogan;
+    if (G.game.logoData) {
+      const prev = document.getElementById('set-logo-preview');
+      prev.src = G.game.logoData;
+      prev.style.display = 'block';
+      document.getElementById('set-logo-plus').style.display = 'none';
+    }
+    document.querySelectorAll('#set-color-row .color-swatch').forEach(s => {
+      s.classList.toggle('selected', s.dataset.color === G.game.brandColor);
+    });
+    for (let i = 0; i < 5; i++) {
+      const btn = document.getElementById(`slot-${i}-btn`);
+      if (btn) btn.classList.toggle('active', i === G.currentSlot);
+    }
+  },
+
+  selectSaveSlot(slot) {
+    G.currentSlot = slot;
+    for (let i = 0; i < 5; i++) {
+      const btn = document.getElementById(`slot-${i}-btn`);
+      if (btn) btn.classList.toggle('active', i === slot);
+    }
+    G.notify(`저장 슬롯 ${slot+1} 선택됨`, 'success');
+  },
+
+  updateAirlineName() {
+    G.game.airlineName = document.getElementById('set-name').value;
+    G.updateTopbar();
+  },
+
+  updateSlogan() {
+    G.game.slogan = document.getElementById('set-slogan').value;
+  },
+
+  // ============================================================
+  // SAVE/LOAD
+  // ============================================================
+  saveGame() {
+    const data = JSON.stringify(G.game);
+    localStorage.setItem(`skyempire_slot_${G.currentSlot}`, data);
+    if (currentUser && fbDB) {
+      try {
+        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(`slot_${G.currentSlot}`).set({data, savedAt: new Date().toISOString()});
+      } catch(e) {}
+    }
+    G.notify('저장 완료!', 'success');
+  },
+
+  autoSave() {
+    try {
+      localStorage.setItem(`skyempire_slot_${G.currentSlot}`, JSON.stringify(G.game));
+    } catch(e) {}
+  },
+
+  exitToMenu() {
+    G.saveGame();
+    if (G.gameInterval) clearInterval(G.gameInterval);
+    if (G.leafletMap) { G.leafletMap.remove(); G.leafletMap = null; }
+    showScreen('screen-menu');
+  },
+
+  togglePause() {
+    G.paused = !G.paused;
+    document.getElementById('speed-btn').textContent = G.paused ? '재개' : '일시정지';
+    G.notify(G.paused ? '일시정지' : '게임 재개', 'warning');
+  },
+
+  // ============================================================
+  // AUTH
+  // ============================================================
+  showPrivacyConsent() {
+    // 이미 동의 기록이 있으면 바로 로그인
+    if (currentUser) { G.notify('이미 로그인되어 있습니다', 'success'); return; }
+    const check = document.getElementById('privacy-agree-check');
+    if (check) check.checked = false;
+    const btn = document.getElementById('privacy-consent-confirm');
+    if (btn) btn.disabled = true;
+    openModal('modal-privacy-consent');
+    // 체크박스 연동
+    if (check) {
+      check.onchange = () => {
+        const checked = check.checked;
+        if (btn) {
+          btn.disabled = !checked;
+          btn.style.opacity = checked ? '1' : '0.45';
+          btn.style.cursor = checked ? 'pointer' : 'not-allowed';
+        }
+      };
+    }
+  },
+
+  confirmPrivacyAndLogin() {
+    const check = document.getElementById('privacy-agree-check');
+    if (!check || !check.checked) { G.notify('개인정보 처리방침에 동의해 주세요', 'error'); return; }
+    closeModal('modal-privacy-consent');
+    if (!fbAuth) { G.notify('Firebase 미설정 상태입니다', 'error'); return; }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    // Google OAuth 동의 화면에 개인정보처리방침 URL 설정은
+    // Firebase Console > Authentication > 설정에서 지정합니다
+    fbAuth.signInWithPopup(provider)
+      .then(result => {
+        G.notify(`${result.user.displayName || result.user.email}님 환영합니다!`, 'success');
+      })
+      .catch(e => G.notify('로그인 실패: ' + e.message, 'error'));
+  },
+
+  googleLogin() {
+    if (!fbAuth) { G.notify('Firebase 미설정 상태입니다', 'error'); return; }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    // Google OAuth 동의 화면에 개인정보처리방침 URL 설정은
+    // Firebase Console > Authentication > 설정에서 지정합니다
+    fbAuth.signInWithPopup(provider).catch(e => G.notify('로그인 실패: ' + e.message, 'error'));
+  },
+
+  googleLogout() {
+    if (!fbAuth) return;
+    fbAuth.signOut().then(() => {
+      G.notify('로그아웃되었습니다', 'success');
+      showScreen('screen-menu');
+      if (G.gameInterval) clearInterval(G.gameInterval);
+      if (G.leafletMap) { G.leafletMap.remove(); G.leafletMap = null; }
+    });
+  },
+
+  // ============================================================
+  // NOTIFICATION
+  // ============================================================
+  notify(msg, type = 'info') {
+    const c = document.getElementById('notif-container');
+    const el = document.createElement('div');
+    el.className = `notification ${type}`;
+    el.textContent = msg;
+    c.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  },
+};
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('load-overlay').style.display = 'none';
+  }, 1200);
+});
+</script>
+</body>
+</html>
