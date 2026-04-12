@@ -2335,7 +2335,7 @@ openRouteModal(apCode) {
     const fid = G._selectedFleetId;
     if (!arr) { G.notify('도착 공항을 선택하세요', 'error'); return; }
     if (!fid) { G.notify('항공기를 선택하세요', 'error'); return; }
-    const dep = G.game.hubCode;
+    const dep = G._selectedDeparture;
     if (G.game.routes.some(r => r.dep===dep && r.arr===arr && r.fleetId===fid)) {
       G.notify('이미 동일 노선/항공기 조합이 있습니다', 'error'); return;
     }
