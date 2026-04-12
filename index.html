@@ -882,6 +882,41 @@
     overflow: hidden;
   }
 
+  /* SNS 스타일 */
+  .sns-feed { display: flex; flex-direction: column; gap: 12px; }
+  .sns-post {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .sns-post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .sns-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; color: white; flex-shrink: 0;
+  }
+  .sns-handle { font-weight: 700; font-size: 13px; color: var(--text); }
+  .sns-time { font-size: 11px; color: var(--text3); margin-left: auto; }
+  .sns-body { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
+  .sns-actions { display: flex; gap: 16px; }
+  .sns-action { font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  .sns-action:hover { color: var(--sky); }
+  .sns-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .sns-tab { padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: white; color: var(--text2); }
+  .sns-tab.active { background: var(--sky); color: white; border-color: var(--sky); }
+
+  /* 평판 패널 */
+  .rep-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 20px; }
+  .rep-card { background: white; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); text-align: center; }
+  .rep-val { font-size: 28px; font-weight: 800; color: var(--sky); }
+  .rep-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .rep-bar-wrap { background: var(--border); border-radius: 4px; height: 8px; margin: 8px 0 4px; overflow: hidden; }
+  .rep-bar { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--sky), var(--accent2)); transition: width 0.5s; }
+  .rep-factor { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .rep-factor:last-child { border-bottom: none; }
+
   /* Scrollbar */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -1023,7 +1058,7 @@
     </div>
     <div class="topbar-stats">
       <div class="stat-pill"><span class="label">잔고</span><span id="tb-balance">$50,000,000</span></div>
-      <div class="stat-pill"><span class="label">평판</span><span id="tb-rep" class="reputation-stars">★★☆☆☆</span></div>
+      <div class="stat-pill" onclick="setPanel('reputation')" style="cursor:pointer" title="평판 관리"><span class="label">평판</span><span id="tb-rep" class="reputation-stars">★★☆☆☆</span></div>
       <div class="stat-pill"><span class="label">탑승객</span><span id="tb-pax">0</span></div>
       <div class="stat-pill"><span class="label">노선</span><span id="tb-routes">0</span></div>
       <div class="stat-pill"><span class="label">기단</span><span id="tb-fleet">0</span></div>
@@ -1074,6 +1109,10 @@
       <div class="nav-item" onclick="setPanel('news')">
         <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a4 4 0 01-4-4V6"/><path d="M8 6h8M8 10h8M8 14h4"/></svg></div>
         뉴스
+      </div>
+      <div class="nav-item" onclick="setPanel('reputation')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        평판 관리
       </div>
       <div class="nav-item" onclick="setPanel('social')">
         <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
@@ -1189,6 +1228,12 @@
           </div>
         </div>
         <div id="oil-grid" class="oil-grid"></div>
+      </div>
+
+      <!-- REPUTATION PANEL -->
+      <div class="content-panel" id="panel-reputation">
+        <div class="section-title" style="margin-bottom:4px">평판 관리</div>
+        <div id="reputation-content"></div>
       </div>
 
       <!-- NEWS PANEL -->
@@ -1520,7 +1565,6 @@ const AIRPORTS = [
   {code:'DEL',name:'인디라간디',city:'델리',country:'인도',lat:28.5665,lng:77.1031,type:'hub',demand:76},
   {code:'BOM',name:'차트라파티',city:'뭄바이',country:'인도',lat:19.0896,lng:72.8656,type:'hub',demand:74},
   // Regular airports
-  {code:'GMP',name:'김포',city:'서울',country:'한국',lat:37.5583,lng:126.7906,type:'regular',demand:65},
   {code:'PUS',name:'김해',city:'부산',country:'한국',lat:35.1795,lng:128.9382,type:'regular',demand:55},
   {code:'CJU',name:'제주',city:'제주',country:'한국',lat:33.5113,lng:126.4930,type:'regular',demand:60},
   {code:'ORD',name:'오헤어',city:'시카고',country:'미국',lat:41.9742,lng:-87.9073,type:'regular',demand:72},
@@ -1557,7 +1601,6 @@ const AIRPORTS = [
   {code:'CSX',name:'창사',city:'창사',country:'중국',lat:28.1892,lng:113.2196,type:'regular',demand:58},
   {code:'HAK',name:'하이커우',city:'하이커우',country:'중국',lat:19.9349,lng:110.4590,type:'regular',demand:55},
   {code:'CKG',name:'충칭',city:'충칭',country:'중국',lat:29.7192,lng:106.6419,type:'regular',demand:60},
-  {code:'ICN2',name:'인천T2',city:'인천',country:'한국',lat:37.4680,lng:126.4281,type:'regular',demand:70},
   {code:'CAI',name:'카이로',city:'카이로',country:'이집트',lat:30.1219,lng:31.4056,type:'regular',demand:63},
   {code:'ADD',name:'볼레',city:'아디스아바바',country:'에티오피아',lat:8.9779,lng:38.7993,type:'regular',demand:55},
   {code:'LOS',name:'무르탈라',city:'라고스',country:'나이지리아',lat:6.5774,lng:3.3212,type:'regular',demand:60},
@@ -1953,6 +1996,7 @@ const G = {
     G.renderFinance();
     G.renderSocial();
     G.renderNews();
+    G.renderReputation();
     G.initMap();
     G.updateSettings();
     if (G.gameInterval) clearInterval(G.gameInterval);
@@ -2130,7 +2174,7 @@ const G = {
   initMap() {
     if (G.leafletMap) { G.leafletMap.remove(); G.leafletMap = null; }
     const mapEl = document.getElementById('leaflet-map');
-    G.leafletMap = L.map(mapEl, { zoomControl: true, minZoom: 2, maxZoom: 8 }).setView([30, 20], 3);
+    G.leafletMap = L.map(mapEl, { zoomControl: true, minZoom: 2, maxZoom: 8, closePopupOnClick: false }).setView([30, 20], 3);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 18,
@@ -2149,7 +2193,10 @@ const G = {
         iconAnchor: [size/2, size/2],
       });
       const marker = L.marker([ap.lat, ap.lng], {icon}).addTo(G.leafletMap);
-      marker.on('click', () => G.showAirportPopup(ap, marker));
+      marker.on('click', () => {
+        G.leafletMap.closePopup();
+        setTimeout(() => G.showAirportPopup(ap, marker), 10);
+      });
       G.mapMarkers[ap.code] = marker;
     });
 
@@ -2167,7 +2214,8 @@ const G = {
         <span class="ap-type ${typeClass}">${typeLabel}</span>
         <div class="ap-info">${ap.city}, ${ap.country}</div>
         <div class="ap-demand">수요 지수: ${ap.demand} | 허브까지 ${Math.round(d)}km</div>
-        ${ap.code !== G.game.hubCode ? `<button class="ap-route-btn" onclick="G.openRouteModal('${ap.code}')">${hasRoute?'추가 노선 개설':'노선 개설'}</button>` : '<div style="font-size:12px;color:var(--sky);font-weight:700">현재 허브 공항</div>'}
+        <div style="font-size:11px;color:var(--sky);font-weight:600;margin-bottom:6px">${ap.code === G.game.hubCode ? '현재 허브 공항' : ''}</div>
+        <button class="ap-route-btn" onclick="G.openRouteModal('${ap.code}')">${hasRoute?'추가 노선 개설':'노선 개설'}</button>
       </div>`;
     marker.bindPopup(html, {maxWidth: 260}).openPopup();
   },
@@ -2639,49 +2687,160 @@ const G = {
   },
 
   renderSocial() {
-    const grid = document.getElementById('social-grid');
-    grid.innerHTML = '';
-    // Improvements
-    const improvCard = document.createElement('div');
-    improvCard.className = 'social-card';
-    const improv = [];
-    if (G.game.routes.length < 5) improv.push('더 많은 노선을 개설하면 수익이 증가합니다.');
-    if (G.game.fleet.length < 3) improv.push('기단을 늘리면 더 많은 노선 운항이 가능합니다.');
-    if (!G.game.upgrades['service'] || G.game.upgrades['service'] < 3) improv.push('기내 서비스 업그레이드로 탑승률을 높이세요.');
-    if (G.game.fuel < 30) improv.push('연료가 부족합니다. 빨리 구매하세요!');
-    if (G.game.upgrades['maintenance'] < 2) improv.push('정비 시스템 업그레이드로 운영 비용을 절감하세요.');
-    improvCard.innerHTML = `<div class="social-title">SkySocial - 개선 제안</div>`;
-    improv.forEach((txt, i) => {
-      const p = document.createElement('div');
-      p.className = 'social-post';
-      p.innerHTML = `<div class="post-author">@SkyAnalyst_${i+1}</div><div class="post-content">${txt}</div><div class="post-like">좋아요 ${Math.floor(Math.random()*500+50)}</div>`;
-      improvCard.appendChild(p);
-    });
-    grid.appendChild(improvCard);
+    const container = document.getElementById('panel-social');
+    // 탭 UI + 피드 구조
+    const USERS = [
+      {name:'김민준',handle:'minjun_flies',color:'#1565C0'},
+      {name:'이서연',handle:'seoyeon_travel',color:'#00897B'},
+      {name:'박지호',handle:'jiho_aviation',color:'#E53935'},
+      {name:'최하은',handle:'haeun_wing',color:'#6A1B9A'},
+      {name:'정우진',handle:'woojin_airport',color:'#F9A825'},
+      {name:'항공매니아',handle:'avgeek_kr',color:'#0288D1'},
+      {name:'여행블로거',handle:'travelblog_kr',color:'#00ACC1'},
+      {name:'항공분석가',handle:'skyanalyst',color:'#455A64'},
+    ];
+    const week = G.game.week;
+    const rep = G.game.reputation;
+    const routes = G.game.routes.length;
+    const pax = G.game.totalPax;
+    const airline = G.game.airlineName;
 
-    // Positives
-    const posCard = document.createElement('div');
-    posCard.className = 'social-card';
-    const pos = [];
-    if (G.game.routes.length > 0) pos.push(SOCIAL_POSTS_POSITIVE[G.game.week % SOCIAL_POSTS_POSITIVE.length]);
-    if (G.game.reputation >= 3) pos.push(SOCIAL_POSTS_POSITIVE[(G.game.week+1) % SOCIAL_POSTS_POSITIVE.length]);
-    if (G.game.totalPax > 1000) pos.push(SOCIAL_POSTS_POSITIVE[(G.game.week+2) % SOCIAL_POSTS_POSITIVE.length]);
-    posCard.innerHTML = `<div class="social-title">SkySocial - 승객 반응</div>`;
-    const negCount = G.game.reputation < 2 ? 2 : 1;
-    pos.forEach((txt, i) => {
-      const p = document.createElement('div');
-      p.className = 'social-post';
-      p.innerHTML = `<div class="post-author">@traveler_${1000+i}</div><div class="post-content">${txt}</div><div class="post-like">좋아요 ${Math.floor(Math.random()*300+30)}</div>`;
-      posCard.appendChild(p);
+    // 게임 상태에 따라 동적으로 포스트 생성
+    const posts = [];
+
+    // 긍정 포스트
+    if (routes > 0) posts.push({user:USERS[0], text:`${airline} 타고 왔는데 정말 좋았어요! 다음에도 이용할 것 같아요 ㅎㅎ`, likes:Math.floor(Math.random()*200+50+rep*30), comments:Math.floor(Math.random()*20+5), time:`${week}주차`, positive:true});
+    if (rep >= 2) posts.push({user:USERS[1], text:`오늘 ${airline} 첫 탑승! 서비스가 기대 이상이었어요. 좌석도 편하고 직원분들도 친절하셨습니다.`, likes:Math.floor(Math.random()*150+30), comments:Math.floor(Math.random()*15+3), time:`${week}주차`, positive:true});
+    if (pax > 500) posts.push({user:USERS[2], text:`${airline} 노선이 이제 ${routes}개나 됐네요. 제가 가고 싶은 곳도 생겼으면 좋겠어요!`, likes:Math.floor(Math.random()*100+20), comments:Math.floor(Math.random()*10+2), time:`${Math.max(1,week-1)}주차`, positive:true});
+    if (rep >= 3) posts.push({user:USERS[5], text:`항공사 분석: ${airline}의 최근 성장세가 인상적입니다. 탑승객 수 ${Math.floor(pax).toLocaleString()}명 달성. 업계 주목 중.`, likes:Math.floor(Math.random()*300+100), comments:Math.floor(Math.random()*30+10), time:`${week}주차`, positive:true});
+    if (rep >= 4) posts.push({user:USERS[6], text:`${airline} 비즈니스 클래스 후기 올립니다. 솔직히 대형 항공사 부럽지 않은 수준이에요. 강추!`, likes:Math.floor(Math.random()*500+200), comments:Math.floor(Math.random()*50+20), time:`${week}주차`, positive:true});
+
+    // 부정 포스트
+    if (rep < 3) posts.push({user:USERS[3], text:`${airline} 오늘 또 연착... 제발 정시 운항 좀 해주세요. 벌써 세 번째예요.`, likes:Math.floor(Math.random()*80+10), comments:Math.floor(Math.random()*20+5), time:`${week}주차`, positive:false});
+    if (routes < 5) posts.push({user:USERS[4], text:`${airline} 노선이 너무 적어요. 제주도 노선은 언제 생기나요?`, likes:Math.floor(Math.random()*60+10), comments:Math.floor(Math.random()*10+2), time:`${Math.max(1,week-2)}주차`, positive:false});
+    if (G.game.fuel < 30) posts.push({user:USERS[7], text:`${airline} 연료 관리 문제로 일부 노선 운항 중단 소식. 경영진의 빠른 조치가 필요해 보입니다.`, likes:Math.floor(Math.random()*120+30), comments:Math.floor(Math.random()*25+8), time:`${week}주차`, positive:false});
+
+    // 중립/정보
+    posts.push({user:USERS[5], text:`${airline} ${week}주차 운항 현황: 노선 ${routes}개, 총 탑승객 ${Math.floor(pax).toLocaleString()}명. 지속적인 성장세를 보이고 있습니다.`, likes:Math.floor(Math.random()*200+50), comments:Math.floor(Math.random()*20+5), time:`${week}주차`, positive:null});
+
+    // 섞기
+    posts.sort(() => Math.random() - 0.5);
+
+    container.innerHTML = `
+      <div class="section-title" style="margin-bottom:16px">SkySocial</div>
+      <div class="sns-tabs">
+        <div class="sns-tab active" onclick="G.setSnsTab(this,'all')">전체</div>
+        <div class="sns-tab" onclick="G.setSnsTab(this,'positive')">긍정</div>
+        <div class="sns-tab" onclick="G.setSnsTab(this,'negative')">부정</div>
+      </div>
+      <div class="sns-feed" id="sns-feed"></div>`;
+
+    G._snsPosts = posts;
+    G.renderSnsFeed('all');
+  },
+
+  setSnsTab(el, type) {
+    document.querySelectorAll('.sns-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    G.renderSnsFeed(type);
+  },
+
+  renderSnsFeed(type) {
+    const feed = document.getElementById('sns-feed');
+    if (!feed) return;
+    const posts = (G._snsPosts || []).filter(p => {
+      if (type === 'all') return true;
+      if (type === 'positive') return p.positive === true;
+      if (type === 'negative') return p.positive === false;
+      return true;
     });
-    SOCIAL_POSTS_NEGATIVE.slice(0, negCount).forEach((txt, i) => {
-      const p = document.createElement('div');
-      p.className = 'social-post';
-      p.style.background = '#FEF2F2';
-      p.innerHTML = `<div class="post-author" style="color:var(--red)">@critic_${i+1}</div><div class="post-content">${txt}</div><div class="post-like">좋아요 ${Math.floor(Math.random()*100+10)}</div>`;
-      posCard.appendChild(p);
-    });
-    grid.appendChild(posCard);
+    feed.innerHTML = posts.map(p => `
+      <div class="sns-post">
+        <div class="sns-post-header">
+          <div class="sns-avatar" style="background:${p.user.color}">${p.user.name[0]}</div>
+          <div>
+            <div class="sns-handle">${p.user.name}</div>
+            <div style="font-size:11px;color:var(--text3)">@${p.user.handle}</div>
+          </div>
+          <div class="sns-time">${p.time}</div>
+        </div>
+        <div class="sns-body">${p.text}</div>
+        <div class="sns-actions">
+          <div class="sns-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> ${p.likes}</div>
+          <div class="sns-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> ${p.comments}</div>
+          <div class="sns-action" style="margin-left:auto;color:${p.positive===true?'var(--green)':p.positive===false?'var(--red)':'var(--text3)'}">${p.positive===true?'긍정':p.positive===false?'부정':'중립'}</div>
+        </div>
+      </div>`).join('');
+  },
+
+  renderReputation() {
+    const el = document.getElementById('reputation-content');
+    if (!el) return;
+    const rep = G.game.reputation;
+    const stars = starsHTML(rep);
+    const routes = G.game.routes.length;
+    const fleet = G.game.fleet.length;
+    const pax = G.game.totalPax;
+    const svcLv = G.game.upgrades['service'] || 0;
+    const mntLv = G.game.upgrades['maintenance'] || 0;
+    const mileLv = G.game.upgrades['mileage'] || 0;
+    const loungeLv = G.game.upgrades['lounge'] || 0;
+    const repPct = Math.round((rep / 5) * 100);
+
+    el.innerHTML = `
+      <div class="rep-grid">
+        <div class="rep-card">
+          <div class="rep-val" style="font-size:36px;color:var(--gold)">${stars}</div>
+          <div class="rep-label">현재 평판</div>
+          <div class="rep-bar-wrap"><div class="rep-bar" style="width:${repPct}%"></div></div>
+          <div style="font-size:11px;color:var(--text3)">${rep.toFixed(1)} / 5.0</div>
+        </div>
+        <div class="rep-card">
+          <div class="rep-val">${Math.floor(pax).toLocaleString()}</div>
+          <div class="rep-label">총 탑승객</div>
+        </div>
+        <div class="rep-card">
+          <div class="rep-val">${routes}</div>
+          <div class="rep-label">운항 노선 수</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title" style="font-size:15px;margin-bottom:14px">평판 영향 요소</div>
+        <div class="rep-factor">
+          <span>운항 노선 수 (${routes}개)</span>
+          <span style="color:${routes>=15?'var(--green)':routes>=5?'var(--sky)':'var(--red)'}">${routes>=15?'우수':routes>=5?'양호':'부족'}</span>
+        </div>
+        <div class="rep-factor">
+          <span>총 탑승객 (${Math.floor(pax).toLocaleString()}명)</span>
+          <span style="color:${pax>=100000?'var(--green)':pax>=10000?'var(--sky)':'var(--red)'}">${pax>=100000?'우수':pax>=10000?'양호':'성장중'}</span>
+        </div>
+        <div class="rep-factor">
+          <span>기내 서비스 (Lv.${svcLv})</span>
+          <span style="color:${svcLv>=4?'var(--green)':svcLv>=2?'var(--sky)':'var(--text3)'}">${svcLv>=4?'최상':svcLv>=2?'양호':'기본'}</span>
+        </div>
+        <div class="rep-factor">
+          <span>마일리지 프로그램 (Lv.${mileLv})</span>
+          <span style="color:${mileLv>=3?'var(--green)':mileLv>=1?'var(--sky)':'var(--text3)'}">${mileLv>=3?'우수':mileLv>=1?'운영중':'없음'}</span>
+        </div>
+        <div class="rep-factor">
+          <span>VIP 라운지 (Lv.${loungeLv})</span>
+          <span style="color:${loungeLv>=2?'var(--green)':loungeLv>=1?'var(--sky)':'var(--text3)'}">${loungeLv>=2?'우수':loungeLv>=1?'운영중':'없음'}</span>
+        </div>
+        <div class="rep-factor">
+          <span>재정 상태</span>
+          <span style="color:${G.game.balance>=0?'var(--green)':'var(--red)'}">${G.game.balance>=0?'정상':'위험 (평판 -1)'}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title" style="font-size:15px;margin-bottom:14px">평판 올리는 방법</div>
+        ${routes < 5 ? '<div class="rep-factor"><span>노선 5개 이상 운항</span><span style="color:var(--sky)">+평판 상승</span></div>' : ''}
+        ${pax < 50000 ? '<div class="rep-factor"><span>탑승객 50,000명 달성</span><span style="color:var(--sky)">+평판 상승</span></div>' : ''}
+        ${svcLv < 5 ? `<div class="rep-factor"><span>기내 서비스 업그레이드 (현재 Lv.${svcLv})</span><span style="color:var(--sky)">+탑승률</span></div>` : ''}
+        ${mileLv < 4 ? `<div class="rep-factor"><span>마일리지 프로그램 Lv.4 달성</span><span style="color:var(--sky)">+1 평판</span></div>` : ''}
+        ${loungeLv < 3 ? `<div class="rep-factor"><span>VIP 라운지 Lv.3 달성</span><span style="color:var(--sky)">+1 평판</span></div>` : ''}
+      </div>`;
   },
 
   updateSettings() {
@@ -2843,4 +3002,4 @@ window.addEventListener('load', () => {
 });
 </script>
 </body>
-          </html>
+              </html>
