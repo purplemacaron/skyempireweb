@@ -14,6 +14,9 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
+<!-- Lucide Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -1847,6 +1850,14 @@ function filterAC(cat, btn) {
   G.renderMarket(cat);
 }
 
+function acCategoryIcon(cat) {
+  if (cat === 'cargo')    return 'fa-box';
+  if (cat === 'widebody') return 'fa-plane-circle-check';
+  if (cat === 'large')    return 'fa-plane-departure';
+  if (cat === 'medium')   return 'fa-plane';
+  return 'fa-plane-up'; // small
+}
+
 function renderAircraftSVG(type, color = '#1565C0', w=80, h=50) {
   const c = color;
   if (type === 'small') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="28" ry="8" fill="${c}"/><polygon points="12,25 2,18 2,32" fill="${c}"/><polygon points="68,25 78,20 78,30" fill="${c}"/><polygon points="30,17 40,8 50,17" fill="${c}80"/><polygon points="15,33 22,25 29,33" fill="${c}60"/><circle cx="40" cy="25" r="4" fill="white" opacity="0.6"/></svg>`;
@@ -2215,7 +2226,7 @@ const G = {
         <h3>${ap.name} (${ap.code})</h3>
         <span class="ap-type ${typeClass}">${typeLabel}</span>
         <div class="ap-info">${ap.city}, ${ap.country}</div>
-        <div class="ap-demand">수요 지수: ${ap.demand} | 허브(${G.game.hubCode})까지 ${Math.round(d)}km</div>
+        <div class="ap-demand">수요 지수: ${ap.demand}</div>
         <div style="font-size:11px;color:var(--sky);font-weight:600;margin-bottom:6px">${ap.code === G.game.hubCode ? '현재 허브 공항' : ''}</div>
         <button class="ap-route-btn" onclick="G.openRouteModal('${ap.code}')">${hasRoute?'추가 노선 개설':'노선 개설'}</button>
       </div>`;
@@ -2401,7 +2412,7 @@ const G = {
       const div = document.createElement('div');
       div.className = 'aircraft-card';
       div.innerHTML = `
-        <div class="ac-visual">${renderAircraftSVG(ac.svg, G.game.brandColor, 90, 55)}</div>
+        <div class="ac-visual" style="display:flex;align-items:center;justify-content:center;padding:12px 0;font-size:52px;color:${G.game.brandColor}"><i class="fa-solid ${acCategoryIcon(ac.category)}"></i></div>
         <div class="ac-body">
           <div class="ac-name">${ac.name}</div>
           <div class="ac-maker">${ac.maker}</div>
