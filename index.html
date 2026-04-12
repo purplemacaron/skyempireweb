@@ -2264,7 +2264,7 @@ openRouteModal(apCode) {
   },
 
   openRouteModal(arrCode) {
-    const dep = G.game.hubCode;
+    const dep = G._selectedDeparture;
     document.getElementById('route-dep').textContent = dep;
     const arrSel = document.getElementById('route-arr');
     arrSel.innerHTML = '<option value="">공항 선택...</option>';
@@ -2308,7 +2308,7 @@ openRouteModal(apCode) {
     const arr = document.getElementById('route-arr').value;
     const fid = G._selectedFleetId;
     if (!arr || !fid) { document.getElementById('route-preview').style.display = 'none'; return; }
-    const dep = AIRPORTS.find(a => a.code === G.game.hubCode);
+    const dep = AIRPORTS.find(a => a.code === G._selectedDeparture);
     const arrAp = AIRPORTS.find(a => a.code === arr);
     const fleet = G.game.fleet.find(f => f.id === fid);
     if (!dep || !arrAp || !fleet) return;
