@@ -729,14 +729,14 @@
   .modal-overlay.open { display: flex; }
 
   .modal-box {
-  position: fixed;
-  top: 5%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 95%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.2s ease;
   }
 
   @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -1405,16 +1405,15 @@
 
 <!-- ===== ROUTE MODAL ===== -->
 <div class="modal-overlay" id="modal-route">
-  <div>
-  출발 공항: <span id="route-dep"></span>
-  </div>
   <div class="modal-box" style="width:520px">
     <button class="modal-close" onclick="closeModal('modal-route')">&times;</button>
     <div class="modal-title">노선 개설</div>
     <div class="route-modal-airports">
       <div class="route-modal-ap">
         <div class="form-label">출발 공항</div>
-        <div class="form-input" id="route-dep" style="background:var(--sky-pale);font-weight:700;color:var(--sky)">-</div>
+        <select class="form-input" id="route-dep" style="font-weight:600">
+          <option value="">공항 선택...</option>
+        </select>
       </div>
       <div style="display:flex;align-items:flex-end;padding-bottom:8px;font-size:20px;color:var(--text3)">→</div>
       <div class="route-modal-ap">
@@ -2209,21 +2208,20 @@ const G = {
   showAirportPopup(ap, marker) {
     const typeLabel = ap.type === 'hub' ? '허브 공항' : ap.type === 'oil' ? '산유국 공항' : '일반 공항';
     const typeClass = ap.type === 'hub' ? 'hub' : ap.type === 'oil' ? '' : 'regular';
+    const d = dist(AIRPORTS.find(a=>a.code===G.game.hubCode)||{lat:0,lng:0}, ap);
     const hasRoute = G.game.routes.some(r => (r.dep===ap.code||r.arr===ap.code));
     const html = `
       <div class="airport-popup">
         <h3>${ap.name} (${ap.code})</h3>
         <span class="ap-type ${typeClass}">${typeLabel}</span>
         <div class="ap-info">${ap.city}, ${ap.country}</div>
+        <div class="ap-demand">수요 지수: ${ap.demand} | 허브(${G.game.hubCode})까지 ${Math.round(d)}km</div>
+        <div style="font-size:11px;color:var(--sky);font-weight:600;margin-bottom:6px">${ap.code === G.game.hubCode ? '현재 허브 공항' : ''}</div>
         <button class="ap-route-btn" onclick="G.openRouteModal('${ap.code}')">${hasRoute?'추가 노선 개설':'노선 개설'}</button>
       </div>`;
     marker.bindPopup(html, {maxWidth: 260}).openPopup();
   },
-openRouteModal(apCode) {
-  G._selectedDeparture = apCode;
-  document.getElementById('route-dep').textContent = apCode;
-  openModal('modal-route');
-},
+
   drawRouteLines() {
     if (!G.leafletMap) return;
     Object.values(G.mapRouteLines).forEach(l => l.remove());
@@ -2267,17 +2265,24 @@ openRouteModal(apCode) {
   },
 
   openRouteModal(arrCode) {
-    const dep = G._selectedDeparture;
-    document.getElementById('route-dep').textContent = dep;
+    const depSel = document.getElementById('route-dep');
     const arrSel = document.getElementById('route-arr');
+    depSel.innerHTML = '<option value="">공항 선택...</option>';
     arrSel.innerHTML = '<option value="">공항 선택...</option>';
-    AIRPORTS.filter(a => a.code !== dep).forEach(a => {
-      const opt = document.createElement('option');
-      opt.value = a.code;
-      opt.textContent = `${a.code} - ${a.name} (${a.city})`;
-      if (a.code === arrCode) opt.selected = true;
-      arrSel.appendChild(opt);
+    AIRPORTS.forEach(a => {
+      const optDep = document.createElement('option');
+      optDep.value = a.code;
+      optDep.textContent = `${a.code} - ${a.name} (${a.city})`;
+      if (a.code === G.game.hubCode) optDep.selected = true;
+      depSel.appendChild(optDep);
+
+      const optArr = document.createElement('option');
+      optArr.value = a.code;
+      optArr.textContent = `${a.code} - ${a.name} (${a.city})`;
+      if (a.code === arrCode) optArr.selected = true;
+      arrSel.appendChild(optArr);
     });
+    depSel.onchange = G.updateRoutePreview;
 
     const acGrid = document.getElementById('route-ac-grid');
     acGrid.innerHTML = '';
@@ -2308,10 +2313,11 @@ openRouteModal(apCode) {
   },
 
   updateRoutePreview() {
+    const depCode = document.getElementById('route-dep').value;
     const arr = document.getElementById('route-arr').value;
     const fid = G._selectedFleetId;
-    if (!arr || !fid) { document.getElementById('route-preview').style.display = 'none'; return; }
-    const dep = AIRPORTS.find(a => a.code === G._selectedDeparture);
+    if (!depCode || !arr || !fid) { document.getElementById('route-preview').style.display = 'none'; return; }
+    const dep = AIRPORTS.find(a => a.code === depCode);
     const arrAp = AIRPORTS.find(a => a.code === arr);
     const fleet = G.game.fleet.find(f => f.id === fid);
     if (!dep || !arrAp || !fleet) return;
@@ -2332,10 +2338,12 @@ openRouteModal(apCode) {
 
   openRoute() {
     const arr = document.getElementById('route-arr').value;
+    const dep = document.getElementById('route-dep').value;
     const fid = G._selectedFleetId;
+    if (!dep) { G.notify('출발 공항을 선택하세요', 'error'); return; }
     if (!arr) { G.notify('도착 공항을 선택하세요', 'error'); return; }
+    if (dep === arr) { G.notify('출발과 도착 공항이 같습니다', 'error'); return; }
     if (!fid) { G.notify('항공기를 선택하세요', 'error'); return; }
-    const dep = G._selectedDeparture;
     if (G.game.routes.some(r => r.dep===dep && r.arr===arr && r.fleetId===fid)) {
       G.notify('이미 동일 노선/항공기 조합이 있습니다', 'error'); return;
     }
@@ -3006,4 +3014,4 @@ window.addEventListener('load', () => {
 });
 </script>
 </body>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          </html>
+          </html>
