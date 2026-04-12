@@ -2206,15 +2206,12 @@ const G = {
   showAirportPopup(ap, marker) {
     const typeLabel = ap.type === 'hub' ? '허브 공항' : ap.type === 'oil' ? '산유국 공항' : '일반 공항';
     const typeClass = ap.type === 'hub' ? 'hub' : ap.type === 'oil' ? '' : 'regular';
-    const d = dist(AIRPORTS.find(a=>a.code===G.game.hubCode)||{lat:0,lng:0}, ap);
     const hasRoute = G.game.routes.some(r => (r.dep===ap.code||r.arr===ap.code));
     const html = `
       <div class="airport-popup">
         <h3>${ap.name} (${ap.code})</h3>
         <span class="ap-type ${typeClass}">${typeLabel}</span>
         <div class="ap-info">${ap.city}, ${ap.country}</div>
-        <div class="ap-demand">수요 지수: ${ap.demand} | 허브까지 ${Math.round(d)}km</div>
-        <div style="font-size:11px;color:var(--sky);font-weight:600;margin-bottom:6px">${ap.code === G.game.hubCode ? '현재 허브 공항' : ''}</div>
         <button class="ap-route-btn" onclick="G.openRouteModal('${ap.code}')">${hasRoute?'추가 노선 개설':'노선 개설'}</button>
       </div>`;
     marker.bindPopup(html, {maxWidth: 260}).openPopup();
