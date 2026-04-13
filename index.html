@@ -948,6 +948,24 @@
   /* AIRCRAFT CUSTOMIZE */
   .customize-form { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
+  /* BRAND CUSTOM */
+  .brand-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); gap: 20px; }
+  .brand-preview-card {
+    background: linear-gradient(135deg, rgba(21,101,192,0.06), rgba(79,195,247,0.12));
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    min-height: 100%;
+  }
+  .brand-preview-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; margin-bottom: 10px; }
+  .brand-preview-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .brand-preview-logo { width: 64px; height: 64px; border-radius: 16px; background: white; border: 1.5px solid var(--border); object-fit: cover; box-shadow: var(--shadow); }
+  .brand-preview-name { font-family: 'Noto Sans KR', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); line-height: 1.2; }
+  .brand-preview-slogan { font-size: 13px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
+  .brand-color-chip { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; background: white; border: 1.5px solid var(--border); border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--text2); }
+  .brand-color-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.08); }
+  .brand-help { font-size: 12px; color: var(--text2); line-height: 1.7; margin-top: 12px; }
+
   /* ROUTE MODAL */
   .route-modal-airports { display: flex; gap: 12px; margin-bottom: 16px; }
   .route-modal-ap { flex: 1; }
@@ -1229,6 +1247,10 @@
         <div class="nav-icon"><i class="fa-solid fa-comments"></i></div>
         SkySocial
       </div>
+      <div class="nav-item" onclick="setPanel('brand')">
+        <div class="nav-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+        브랜드 커스텀
+      </div>
       <div class="nav-item" onclick="setPanel('settings')">
         <div class="nav-icon"><i class="fa-solid fa-gear"></i></div>
         설정
@@ -1450,6 +1472,66 @@
         <div class="social-grid" id="social-grid"></div>
       </div>
 
+      <!-- BRAND PANEL -->
+      <div class="content-panel" id="panel-brand">
+        <div class="section-title" style="margin-bottom:16px">브랜드 커스텀</div>
+        <div class="brand-grid">
+          <div class="settings-card">
+            <div class="settings-section-title">항공사 브랜드 편집</div>
+            <div class="form-group">
+              <label class="form-label">항공사 이름</label>
+              <input class="form-input" id="brand-name" oninput="G.updateAirlineName('brand')" placeholder="항공사 이름 입력">
+            </div>
+            <div class="form-group">
+              <label class="form-label">슬로건</label>
+              <input class="form-input" id="brand-slogan" oninput="G.updateSlogan('brand')" placeholder="슬로건 입력">
+            </div>
+            <div class="form-group">
+              <label class="form-label">상징색</label>
+              <div class="color-row" id="brand-color-row">
+                <div class="color-swatch" style="background:#1565C0" data-color="#1565C0" onclick="selectColorSettings(this, 'brand')"></div>
+                <div class="color-swatch" style="background:#00897B" data-color="#00897B" onclick="selectColorSettings(this, 'brand')"></div>
+                <div class="color-swatch" style="background:#E53935" data-color="#E53935" onclick="selectColorSettings(this, 'brand')"></div>
+                <div class="color-swatch" style="background:#F9A825" data-color="#F9A825" onclick="selectColorSettings(this, 'brand')"></div>
+                <div class="color-swatch" style="background:#6A1B9A" data-color="#6A1B9A" onclick="selectColorSettings(this, 'brand')"></div>
+                <div class="color-swatch" style="background:#212121" data-color="#212121" onclick="selectColorSettings(this, 'brand')"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">항공사 로고</label>
+              <div class="logo-upload">
+                <div class="logo-preview" onclick="document.getElementById('brand-logo-file').click()">
+                  <img id="brand-logo-preview" src="" alt="" style="display:none">
+                  <span id="brand-logo-plus" style="font-size:20px;color:var(--text3)">+</span>
+                </div>
+                <input type="file" id="brand-logo-file" accept="image/*" style="display:none" onchange="loadLogoSettings(this, 'brand')">
+                <span style="font-size:12px;color:var(--text2)">업로드 즉시 브랜드에 반영됩니다.</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+              <button class="btn-primary" style="padding:10px 18px" onclick="G.applyBrandChanges()">변경 즉시 반영</button>
+              <button class="btn-secondary" style="padding:10px 18px" onclick="G.saveGame()">현재 슬롯 저장</button>
+            </div>
+            <div class="brand-help">항공사 이름, 로고, 슬로건, 상징색은 저장/자동저장/불러오기에 모두 함께 반영됩니다.</div>
+          </div>
+          <div class="brand-preview-card">
+            <div class="brand-preview-label">Live Brand Preview</div>
+            <div class="brand-preview-head">
+              <img id="brand-preview-logo" class="brand-preview-logo" src="" alt="브랜드 로고">
+              <div>
+                <div id="brand-preview-name" class="brand-preview-name">SkyEmpire Airlines</div>
+                <div id="brand-preview-slogan" class="brand-preview-slogan">하늘을 연결합니다</div>
+              </div>
+            </div>
+            <div class="brand-color-chip">
+              <span id="brand-preview-color-dot" class="brand-color-dot"></span>
+              <span id="brand-preview-color-text">#1565C0</span>
+            </div>
+            <div class="brand-help">브랜드 커스텀 탭에서 언제든지 항공사 아이덴티티를 수정할 수 있습니다.</div>
+          </div>
+        </div>
+      </div>
+
       <!-- SETTINGS PANEL -->
       <div class="content-panel" id="panel-settings">
         <div class="section-title" style="margin-bottom:16px">항공사 설정</div>
@@ -1458,11 +1540,11 @@
             <div class="settings-section-title">항공사 정보</div>
             <div class="form-group">
               <label class="form-label">항공사 이름</label>
-              <input class="form-input" id="set-name" onchange="G.updateAirlineName()">
+              <input class="form-input" id="set-name" oninput="G.updateAirlineName('settings')">
             </div>
             <div class="form-group">
               <label class="form-label">슬로건</label>
-              <input class="form-input" id="set-slogan" onchange="G.updateSlogan()">
+              <input class="form-input" id="set-slogan" oninput="G.updateSlogan('settings')">
             </div>
             <div class="form-group">
               <label class="form-label">브랜드 색상</label>
@@ -2100,6 +2182,11 @@ function starsHTML(rep) {
   return s;
 }
 
+function defaultAirlineLogo(color = '#1565C0') {
+  const safe = encodeURIComponent(color || '#1565C0');
+  return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><rect width='28' height='28' rx='6' fill='${safe}'/><path d='M6 14 L22 14 M14 6 L14 22' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>`;
+}
+
 let selectedColor = '#1565C0';
 function selectColor(el) {
   document.querySelectorAll('#color-row .color-swatch').forEach(s => s.classList.remove('selected'));
@@ -2108,12 +2195,20 @@ function selectColor(el) {
 }
 
 let selectedColorSettings = '#1565C0';
-function selectColorSettings(el) {
-  document.querySelectorAll('#set-color-row .color-swatch').forEach(s => s.classList.remove('selected'));
-  el.classList.add('selected');
+function syncBrandColorSwatches(color) {
+  ['#set-color-row .color-swatch', '#brand-color-row .color-swatch'].forEach(selector => {
+    document.querySelectorAll(selector).forEach(s => {
+      s.classList.toggle('selected', s.dataset.color === color);
+    });
+  });
+}
+
+function selectColorSettings(el, source = 'settings') {
   selectedColorSettings = el.dataset.color;
-  G.game.brandColor = selectedColorSettings;
+  if (G.game) G.game.brandColor = selectedColorSettings;
+  syncBrandColorSwatches(selectedColorSettings);
   G.updateTopbar();
+  G.updateSettings();
 }
 
 let custColor = '#1565C0';
@@ -2140,17 +2235,15 @@ function loadLogo(input) {
   reader.readAsDataURL(file);
 }
 
-function loadLogoSettings(input) {
+function loadLogoSettings(input, source = 'settings') {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    G.game.logoData = e.target.result;
-    const prev = document.getElementById('set-logo-preview');
-    prev.src = e.target.result;
-    prev.style.display = 'block';
-    document.getElementById('set-logo-plus').style.display = 'none';
-    document.getElementById('tb-logo').src = e.target.result;
+    if (G.game) G.game.logoData = e.target.result;
+    G.updateTopbar();
+    G.updateSettings();
+    G.notify('항공사 로고가 적용되었습니다', 'success');
   };
   reader.readAsDataURL(file);
 }
@@ -2366,6 +2459,11 @@ const G = {
     if (!Array.isArray(G.game.transactions)) G.game.transactions = [];
     if (!Array.isArray(G.game.news)) G.game.news = [];
     if (!Array.isArray(G.game.claimedChallenges)) G.game.claimedChallenges = [];
+    if (!G.game.airlineName || !String(G.game.airlineName).trim()) G.game.airlineName = 'SkyEmpire Airlines';
+    if (!G.game.slogan || !String(G.game.slogan).trim()) G.game.slogan = '하늘을 연결합니다';
+    if (!G.game.brandColor) G.game.brandColor = '#1565C0';
+    if (typeof G.game.logoData === 'undefined') G.game.logoData = null;
+    selectedColorSettings = G.game.brandColor;
     G.game.loanDebt = Number(G.game.loanDebt || 0);
     if (typeof G.game.autoSaveSlot === 'undefined') G.game.autoSaveSlot = 'auto';
     G.game.routes = G.game.routes
@@ -2819,7 +2917,8 @@ const G = {
     document.getElementById('tb-week').textContent = `${g.week}주차 | 운임지수 ${Math.round((g.ticketMarketIndex||1)*100)}%`;
     document.getElementById('tb-fuel').textContent = Math.round(g.fuel) + '%';
     document.getElementById('tb-airline-name').textContent = g.airlineName;
-    if (g.logoData) document.getElementById('tb-logo').src = g.logoData;
+    document.getElementById('tb-airline-name').style.color = g.brandColor || 'var(--sky)';
+    document.getElementById('tb-logo').src = g.logoData || defaultAirlineLogo(g.brandColor);
   },
 
   renderMarket(cat) {
@@ -3444,15 +3543,31 @@ const G = {
   updateSettings() {
     document.getElementById('set-name').value = G.game.airlineName;
     document.getElementById('set-slogan').value = G.game.slogan;
-    if (G.game.logoData) {
-      const prev = document.getElementById('set-logo-preview');
-      prev.src = G.game.logoData;
-      prev.style.display = 'block';
-      document.getElementById('set-logo-plus').style.display = 'none';
-    }
-    document.querySelectorAll('#set-color-row .color-swatch').forEach(s => {
-      s.classList.toggle('selected', s.dataset.color === G.game.brandColor);
+    const brandNameEl = document.getElementById('brand-name');
+    const brandSloganEl = document.getElementById('brand-slogan');
+    if (brandNameEl) brandNameEl.value = G.game.airlineName;
+    if (brandSloganEl) brandSloganEl.value = G.game.slogan;
+
+    const logoPairs = [
+      ['set-logo-preview', 'set-logo-plus'],
+      ['brand-logo-preview', 'brand-logo-plus']
+    ];
+    logoPairs.forEach(([imgId, plusId]) => {
+      const img = document.getElementById(imgId);
+      const plus = document.getElementById(plusId);
+      if (!img || !plus) return;
+      if (G.game.logoData) {
+        img.src = G.game.logoData;
+        img.style.display = 'block';
+        plus.style.display = 'none';
+      } else {
+        img.style.display = 'none';
+        plus.style.display = 'block';
+      }
     });
+
+    syncBrandColorSwatches(G.game.brandColor);
+
     for (let i = 0; i < 5; i++) {
       const btn = document.getElementById(`slot-${i}-btn`);
       if (btn) btn.classList.toggle('active', i === G.currentSlot);
@@ -3463,6 +3578,42 @@ const G = {
       const btn = document.getElementById(`autosave-slot-${k}-btn`);
       if (btn) btn.classList.toggle('active', autoTarget === k);
     });
+    G.updateBrandPreview();
+  },
+
+  syncBrandFromInputs(source = 'auto') {
+    if (!G.game) return;
+    const preferBrand = source === 'brand' || document.getElementById('panel-brand')?.classList.contains('active');
+    const namePrimary = document.getElementById(preferBrand ? 'brand-name' : 'set-name');
+    const nameSecondary = document.getElementById(preferBrand ? 'set-name' : 'brand-name');
+    const sloganPrimary = document.getElementById(preferBrand ? 'brand-slogan' : 'set-slogan');
+    const sloganSecondary = document.getElementById(preferBrand ? 'set-slogan' : 'brand-slogan');
+    const nextName = (namePrimary?.value || nameSecondary?.value || G.game.airlineName || 'SkyEmpire Airlines').trim() || 'SkyEmpire Airlines';
+    const nextSlogan = (sloganPrimary?.value || sloganSecondary?.value || G.game.slogan || '하늘을 연결합니다').trim() || '하늘을 연결합니다';
+    G.game.airlineName = nextName;
+    G.game.slogan = nextSlogan;
+  },
+
+  updateBrandPreview() {
+    if (!G.game) return;
+    const previewName = document.getElementById('brand-preview-name');
+    const previewSlogan = document.getElementById('brand-preview-slogan');
+    const previewLogo = document.getElementById('brand-preview-logo');
+    const previewDot = document.getElementById('brand-preview-color-dot');
+    const previewText = document.getElementById('brand-preview-color-text');
+    if (previewName) previewName.textContent = G.game.airlineName || 'SkyEmpire Airlines';
+    if (previewName) previewName.style.color = G.game.brandColor || '#1565C0';
+    if (previewSlogan) previewSlogan.textContent = G.game.slogan || '하늘을 연결합니다';
+    if (previewLogo) previewLogo.src = G.game.logoData || defaultAirlineLogo(G.game.brandColor);
+    if (previewDot) previewDot.style.background = G.game.brandColor || '#1565C0';
+    if (previewText) previewText.textContent = G.game.brandColor || '#1565C0';
+  },
+
+  applyBrandChanges() {
+    G.syncBrandFromInputs('brand');
+    G.updateTopbar();
+    G.updateSettings();
+    G.notify('브랜드 정보가 즉시 반영되었습니다', 'success');
   },
 
   selectSaveSlot(slot) {
@@ -3485,19 +3636,22 @@ const G = {
     G.notify(`자동 저장 대상: ${label}`, 'success');
   },
 
-  updateAirlineName() {
-    G.game.airlineName = document.getElementById('set-name').value;
+  updateAirlineName(source = 'settings') {
+    G.syncBrandFromInputs(source);
     G.updateTopbar();
+    G.updateSettings();
   },
 
-  updateSlogan() {
-    G.game.slogan = document.getElementById('set-slogan').value;
+  updateSlogan(source = 'settings') {
+    G.syncBrandFromInputs(source);
+    G.updateSettings();
   },
 
   // ============================================================
   // SAVE/LOAD
   // ============================================================
   saveGame(slot) {
+    G.syncBrandFromInputs();
     const targetSlot = (slot !== undefined) ? slot : G.currentSlot;
     const data = JSON.stringify(G.game);
     localStorage.setItem(G.slotStorageKey(targetSlot), data);
@@ -3542,6 +3696,7 @@ const G = {
 
 
   autoSave() {
+    G.syncBrandFromInputs();
     const data = JSON.stringify(G.game);
     const target = G.game.autoSaveSlot ?? 'auto';
     const resolvedSlot = target === 'current' ? G.currentSlot : target;
