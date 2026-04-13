@@ -1464,6 +1464,17 @@
                 <button class="tab-btn" id="slot-4-btn" onclick="G.selectSaveSlot(4)">슬롯 5</button>
               </div>
             </div>
+            <div style="margin-top:12px">
+              <div class="settings-section-title">자동 저장 슬롯</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="tab-btn" id="autoslot-0-btn" onclick="G.selectAutoSaveSlot(0)">슬롯 1</button>
+                <button class="tab-btn" id="autoslot-1-btn" onclick="G.selectAutoSaveSlot(1)">슬롯 2</button>
+                <button class="tab-btn" id="autoslot-2-btn" onclick="G.selectAutoSaveSlot(2)">슬롯 3</button>
+                <button class="tab-btn" id="autoslot-3-btn" onclick="G.selectAutoSaveSlot(3)">슬롯 4</button>
+                <button class="tab-btn" id="autoslot-4-btn" onclick="G.selectAutoSaveSlot(4)">슬롯 5</button>
+                <button class="tab-btn" id="autoslot-5-btn" onclick="G.selectAutoSaveSlot(5)">자동 전용 슬롯</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2054,6 +2065,7 @@ const G = {
   mapRouteLines: {},
   mapPlanes: {},
   currentSlot: 0,
+  lastCloudAutoSaveAt: 0,
   _setupLogoData: null,
 
   // Multipliers
@@ -2086,6 +2098,7 @@ const G = {
       weeklyProfit: 0,
       allianceId: null,
       ticketMarketIndex: 1,
+      autoSaveSlot: 5,
     };
   },
 
@@ -2099,15 +2112,16 @@ const G = {
     if (!currentUser) { G.notify('Google 로그인이 필요합니다', 'error'); return; }
     const grid = document.getElementById('slot-grid');
     grid.innerHTML = '';
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const save = G.loadSlotData(i);
       const div = document.createElement('div');
       div.className = 'save-slot' + (save ? '' : ' empty');
+      const slotLabel = i === 5 ? '자동 전용 슬롯' : `슬롯 ${i+1}`;
       if (save) {
-        div.innerHTML = `<div><div class="slot-name">${save.airlineName}</div><div class="slot-info">${save.week}주차 | 잔고: ${fmt(save.balance)}</div></div><button class="slot-delete" onclick="G.deleteSlot(${i},event)">삭제</button>`;
+        div.innerHTML = `<div><div class="slot-name">${save.airlineName} ${i===5?'<span style="font-size:11px;color:var(--text3)">(자동)</span>':''}</div><div class="slot-info">${slotLabel} · ${save.week}주차 | 잔고: ${fmt(save.balance)}</div></div><button class="slot-delete" onclick="G.deleteSlot(${i},event)">삭제</button>`;
         div.addEventListener('click', e => { if (!e.target.classList.contains('slot-delete')) G.loadGame(i); });
       } else {
-        div.innerHTML = `<div><div class="slot-name" style="color:var(--text3)">빈 슬롯 ${i+1}</div></div>`;
+        div.innerHTML = `<div><div class="slot-name" style="color:var(--text3)">빈 ${slotLabel}</div></div>`;
       }
       grid.appendChild(div);
     }
@@ -2138,6 +2152,7 @@ const G = {
     G.game.slogan = slogan;
     G.game.brandColor = selectedColor;
     if (G._setupLogoData) G.game.logoData = G._setupLogoData;
+    G.game.autoSaveSlot = 5;
     G.oilPriceMultiplier = 1;
     G.demandMultiplier = 1;
     G.costMultiplier = 1;
@@ -2150,6 +2165,9 @@ const G = {
     const save = G.loadSlotData(slot);
     if (!save) return;
     G.game = {...G.defaultGame(), ...save};
+    if (!Array.isArray(G.game.routes)) G.game.routes = [];
+    if (!Array.isArray(G.game.fleet)) G.game.fleet = [];
+    if (!Number.isInteger(G.game.autoSaveSlot) || G.game.autoSaveSlot < 0 || G.game.autoSaveSlot > 5) G.game.autoSaveSlot = 5;
     G.currentSlot = slot;
     G.oilPriceMultiplier = 1;
     G.demandMultiplier = 1;
@@ -2288,7 +2306,8 @@ const G = {
         r.weeklyRevenue = cargoRev;
         r.weeklyPax = 0;
       } else {
-        r.weeklyPax = Math.round(ac.seats * r.loadFactor * weeklyFlights);
+        const estimatedPax = Math.round((ac.seats || 0) * Math.max(0, r.loadFactor || 0) * weeklyFlights);
+        r.weeklyPax = Math.max(1, estimatedPax);
         const ticketPrice = (0.12 * d + 80) * G.game.ticketMarketIndex;
         const upgrLounge = G.game.upgrades['lounge'] || 0;
         const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
@@ -2486,9 +2505,8 @@ const G = {
       if (!dep || !arr || !G.mapPlanes[idx]) return;
       const speedFactor = Math.max(0.05, Math.min(0.3, 1200 / Math.max(3000, dist(dep, arr))));
       const t = ((now * speedFactor) + idx * 0.17) % 1;
-      const arc = Math.sin(Math.PI * t) * 0.12;
-      const lat = dep.lat + (arr.lat - dep.lat) * t + arc * (arr.lng - dep.lng) / 10;
-      const lng = dep.lng + (arr.lng - dep.lng) * t - arc * (arr.lat - dep.lat) / 10;
+      const lat = dep.lat + (arr.lat - dep.lat) * t;
+      const lng = dep.lng + (arr.lng - dep.lng) * t;
       G.mapPlanes[idx].setLatLng([lat, lng]);
     });
   },
@@ -2609,6 +2627,7 @@ const G = {
   // ============================================================
   updateTopbar() {
     const g = G.game;
+    if (!Array.isArray(g.routes)) g.routes = [];
     document.getElementById('tb-balance').textContent = fmt(g.balance);
     document.getElementById('tb-rep').innerHTML = starsHTML(g.reputation);
     document.getElementById('tb-pax').textContent = fmtN(g.totalPax);
@@ -2789,6 +2808,7 @@ const G = {
 
   renderRoutes() {
     const list = document.getElementById('routes-list');
+    if (!Array.isArray(G.game.routes)) G.game.routes = [];
     if (G.game.routes.length === 0) {
       list.innerHTML = '<div class="no-route-msg">아직 개설된 노선이 없습니다.<br>세계 지도에서 공항을 클릭하여 노선을 개설하세요.</div>';
       return;
@@ -2902,6 +2922,7 @@ const G = {
     if (!G.game.oilPrices) G.game.oilPrices = OIL_COUNTRIES.map(o=>({...o}));
     G.game.oilPrices.forEach((op, idx) => {
       const order = (G.game.oilOrders||{})[op.airport] || {amount:10,days:4};
+      const hasAutoOrder = !!((G.game.oilOrders||{})[op.airport]);
       const div = document.createElement('div');
       div.className = 'oil-card';
       div.innerHTML = `
@@ -2916,7 +2937,8 @@ const G = {
           <span class="oil-auto-label">주마다</span>
         </div>
         <button class="oil-buy-btn" onclick="G.buyOilManual(${idx})">즉시 구매</button>
-        <button style="width:100%;margin-top:6px;padding:7px;border:1.5px solid var(--sky);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--sky);background:none;cursor:pointer" onclick="G.setAutoOil(${idx})">자동 구매 설정</button>`;
+        <button style="width:100%;margin-top:6px;padding:7px;border:1.5px solid var(--sky);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--sky);background:none;cursor:pointer" onclick="G.setAutoOil(${idx})">자동 구매 설정</button>
+        <button style="width:100%;margin-top:6px;padding:7px;border:1.5px solid var(--red);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--red);background:none;cursor:${hasAutoOrder?'pointer':'not-allowed'};opacity:${hasAutoOrder?'1':'0.45'}" onclick="G.cancelAutoOil(${idx})" ${hasAutoOrder?'':'disabled'}>자동 구매 취소</button>`;
       grid.appendChild(div);
     });
   },
@@ -2942,6 +2964,16 @@ const G = {
     if (!G.game.oilOrders) G.game.oilOrders = {};
     G.game.oilOrders[op.airport] = {amount, days};
     G.notify(`${op.country}: 매 ${days}주 ${amount}단위 자동 구매 설정`, 'success');
+    G.renderOil();
+  },
+
+  cancelAutoOil(idx) {
+    const op = G.game.oilPrices[idx];
+    if (!G.game.oilOrders || !G.game.oilOrders[op.airport]) return;
+    delete G.game.oilOrders[op.airport];
+    if (G.game.lastOilBought) delete G.game.lastOilBought[op.airport];
+    G.notify(`${op.country}: 자동 구매가 취소되었습니다`, 'warning');
+    G.renderOil();
   },
 
   renderNews() {
@@ -3137,6 +3169,10 @@ const G = {
       const btn = document.getElementById(`slot-${i}-btn`);
       if (btn) btn.classList.toggle('active', i === G.currentSlot);
     }
+    for (let i = 0; i < 6; i++) {
+      const btn = document.getElementById(`autoslot-${i}-btn`);
+      if (btn) btn.classList.toggle('active', i === (G.game.autoSaveSlot ?? 5));
+    }
   },
 
   selectSaveSlot(slot) {
@@ -3146,6 +3182,16 @@ const G = {
       if (btn) btn.classList.toggle('active', i === slot);
     }
     G.notify(`저장 슬롯 ${slot+1} 선택됨`, 'success');
+  },
+
+  selectAutoSaveSlot(slot) {
+    if (!Number.isInteger(slot) || slot < 0 || slot > 5) return;
+    G.game.autoSaveSlot = slot;
+    for (let i = 0; i < 6; i++) {
+      const btn = document.getElementById(`autoslot-${i}-btn`);
+      if (btn) btn.classList.toggle('active', i === slot);
+    }
+    G.notify(slot === 5 ? '자동 저장: 전용 슬롯 선택됨' : `자동 저장 슬롯 ${slot+1} 선택됨`, 'success');
   },
 
   updateAirlineName() {
@@ -3165,16 +3211,29 @@ const G = {
     localStorage.setItem(`skyempire_slot_${G.currentSlot}`, data);
     if (currentUser && fbDB) {
       try {
-        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(`slot_${G.currentSlot}`).set({data, savedAt: new Date().toISOString()});
+        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(`slot_${G.currentSlot}`).set({data, savedAt: new Date().toISOString(), slot: G.currentSlot});
       } catch(e) {}
     }
     G.notify('저장 완료!', 'success');
   },
 
   autoSave() {
+    const data = JSON.stringify(G.game);
+    const autoSlot = Number.isInteger(G.game.autoSaveSlot) ? G.game.autoSaveSlot : 5;
     try {
-      localStorage.setItem(`skyempire_slot_${G.currentSlot}`, JSON.stringify(G.game));
+      localStorage.setItem(`skyempire_slot_${autoSlot}`, data);
     } catch(e) {}
+    if (currentUser && fbDB) {
+      const now = Date.now();
+      if (now - (G.lastCloudAutoSaveAt || 0) >= 20000) {
+        G.lastCloudAutoSaveAt = now;
+        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(`slot_${autoSlot}`).set({
+          data,
+          savedAt: new Date().toISOString(),
+          slot: autoSlot
+        }).catch(() => {});
+      }
+    }
   },
 
   exitToMenu() {
