@@ -2054,6 +2054,7 @@ const G = {
   mapRouteLines: {},
   mapPlanes: {},
   currentSlot: 0,
+  lastCloudAutoSaveAt: 0,
   _setupLogoData: null,
 
   // Multipliers
@@ -2288,7 +2289,8 @@ const G = {
         r.weeklyRevenue = cargoRev;
         r.weeklyPax = 0;
       } else {
-        r.weeklyPax = Math.round(ac.seats * r.loadFactor * weeklyFlights);
+        const estimatedPax = Math.round((ac.seats || 0) * Math.max(0, r.loadFactor || 0) * weeklyFlights);
+        r.weeklyPax = Math.max(1, estimatedPax);
         const ticketPrice = (0.12 * d + 80) * G.game.ticketMarketIndex;
         const upgrLounge = G.game.upgrades['lounge'] || 0;
         const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
@@ -2902,6 +2904,7 @@ const G = {
     if (!G.game.oilPrices) G.game.oilPrices = OIL_COUNTRIES.map(o=>({...o}));
     G.game.oilPrices.forEach((op, idx) => {
       const order = (G.game.oilOrders||{})[op.airport] || {amount:10,days:4};
+      const hasAutoOrder = !!((G.game.oilOrders||{})[op.airport]);
       const div = document.createElement('div');
       div.className = 'oil-card';
       div.innerHTML = `
@@ -2916,7 +2919,8 @@ const G = {
           <span class="oil-auto-label">주마다</span>
         </div>
         <button class="oil-buy-btn" onclick="G.buyOilManual(${idx})">즉시 구매</button>
-        <button style="width:100%;margin-top:6px;padding:7px;border:1.5px solid var(--sky);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--sky);background:none;cursor:pointer" onclick="G.setAutoOil(${idx})">자동 구매 설정</button>`;
+        <button style="width:100%;margin-top:6px;padding:7px;border:1.5px solid var(--sky);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--sky);background:none;cursor:pointer" onclick="G.setAutoOil(${idx})">자동 구매 설정</button>
+        <button style="width:100%;margin-top:6px;padding:7px;border:1.5px solid var(--red);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--red);background:none;cursor:${hasAutoOrder?'pointer':'not-allowed'};opacity:${hasAutoOrder?'1':'0.45'}" onclick="G.cancelAutoOil(${idx})" ${hasAutoOrder?'':'disabled'}>자동 구매 취소</button>`;
       grid.appendChild(div);
     });
   },
@@ -2942,6 +2946,16 @@ const G = {
     if (!G.game.oilOrders) G.game.oilOrders = {};
     G.game.oilOrders[op.airport] = {amount, days};
     G.notify(`${op.country}: 매 ${days}주 ${amount}단위 자동 구매 설정`, 'success');
+    G.renderOil();
+  },
+
+  cancelAutoOil(idx) {
+    const op = G.game.oilPrices[idx];
+    if (!G.game.oilOrders || !G.game.oilOrders[op.airport]) return;
+    delete G.game.oilOrders[op.airport];
+    if (G.game.lastOilBought) delete G.game.lastOilBought[op.airport];
+    G.notify(`${op.country}: 자동 구매가 취소되었습니다`, 'warning');
+    G.renderOil();
   },
 
   renderNews() {
@@ -3165,16 +3179,28 @@ const G = {
     localStorage.setItem(`skyempire_slot_${G.currentSlot}`, data);
     if (currentUser && fbDB) {
       try {
-        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(`slot_${G.currentSlot}`).set({data, savedAt: new Date().toISOString()});
+        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(`slot_${G.currentSlot}`).set({data, savedAt: new Date().toISOString(), slot: G.currentSlot});
       } catch(e) {}
     }
     G.notify('저장 완료!', 'success');
   },
 
   autoSave() {
+    const data = JSON.stringify(G.game);
     try {
-      localStorage.setItem(`skyempire_slot_${G.currentSlot}`, JSON.stringify(G.game));
+      localStorage.setItem(`skyempire_slot_${G.currentSlot}`, data);
     } catch(e) {}
+    if (currentUser && fbDB) {
+      const now = Date.now();
+      if (now - (G.lastCloudAutoSaveAt || 0) >= 20000) {
+        G.lastCloudAutoSaveAt = now;
+        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(`slot_${G.currentSlot}`).set({
+          data,
+          savedAt: new Date().toISOString(),
+          slot: G.currentSlot
+        }).catch(() => {});
+      }
+    }
   },
 
   exitToMenu() {
