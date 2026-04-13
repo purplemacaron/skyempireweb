@@ -1346,7 +1346,48 @@
             <div class="fc-value negative" id="fin-cost">$0</div>
           </div>
         </div>
-        <div class="card" style="margin-top:4px">
+
+        <div class="card" style="margin-top:12px">
+          <div class="section-title" style="font-size:15px;margin-bottom:12px">대출 센터</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+            <div style="border:1px solid #E3EEF9;border-radius:14px;padding:14px;background:linear-gradient(135deg,#F7FBFF,#EEF5FF)">
+              <div style="font-size:12px;color:var(--text2);margin-bottom:8px">마이너스 통장 / 운영자금 대출</div>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px">
+                <div>
+                  <div class="fc-label">현재 대출 잔액</div>
+                  <div class="fc-value negative" id="fin-loan-debt" style="font-size:24px">$0</div>
+                </div>
+                <div>
+                  <div class="fc-label">추가 한도</div>
+                  <div class="fc-value" id="fin-loan-available" style="font-size:24px">$0</div>
+                </div>
+              </div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:12px">주차가 넘어갈 때마다 미상환 대출금에 이자 5%가 붙습니다. 현재 총 한도: <span id="fin-loan-limit">$0</span></div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+                <button class="btn-primary" style="padding:8px 12px" onclick="G.takeLoan(5000000)">500만 달러 대출</button>
+                <button class="btn-primary" style="padding:8px 12px" onclick="G.takeLoan(10000000)">1,000만 달러 대출</button>
+                <button class="btn-primary" style="padding:8px 12px" onclick="G.takeLoan(20000000)">2,000만 달러 대출</button>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <button class="btn-secondary" style="padding:8px 12px" onclick="G.repayLoan(5000000)">500만 달러 상환</button>
+                <button class="btn-secondary" style="padding:8px 12px" onclick="G.repayLoan(10000000)">1,000만 달러 상환</button>
+                <button class="btn-secondary" style="padding:8px 12px" onclick="G.repayLoan('all')">전액 상환</button>
+              </div>
+            </div>
+            <div style="border:1px solid #F0E7D4;border-radius:14px;padding:14px;background:linear-gradient(135deg,#FFFDF8,#FFF7E8)">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px">
+                <div>
+                  <div class="section-title" style="font-size:15px;margin-bottom:4px">고난도 도전 과제</div>
+                  <div style="font-size:12px;color:var(--text2)">달성 후 직접 보상을 수령하면 난이도에 따라 100만~200만 달러를 즉시 받습니다.</div>
+                </div>
+                <div id="fin-challenge-summary" style="font-size:12px;font-weight:700;color:var(--sky)">0 / 0 수령</div>
+              </div>
+              <div id="fin-challenge-list" style="display:grid;gap:10px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
           <div class="section-title" style="font-size:15px;margin-bottom:12px">거래 내역</div>
           <div class="table-wrap">
             <table>
@@ -1911,6 +1952,58 @@ const ALLIANCE_DATA = [
   {id:'aero_union',name:'Aero Union',joinCost:90000000,desc:'정비·조업 협력으로 운영 효율 확대',paxBonus:0.15,revenueBonus:0.1,costBonus:0.05}
 ];
 
+
+const CHALLENGE_DATA = [
+  {
+    id:'profit_master',
+    name:'흑자 터널 돌파',
+    desc:'주간 순이익 2,000,000달러 이상 달성',
+    reward:1000000,
+    condition:(g)=>(g.weeklyProfit||0) >= 2000000,
+    progress:(g)=>`현재 주간 순이익 ${fmt(g.weeklyProfit||0)} / 목표 ${fmt(2000000)}`
+  },
+  {
+    id:'route_titan',
+    name:'글로벌 노선 제패',
+    desc:'활성 노선 12개 이상 운영',
+    reward:1200000,
+    condition:(g)=>(g.routes||[]).length >= 12,
+    progress:(g)=>`현재 ${(g.routes||[]).length}개 / 목표 12개 노선`
+  },
+  {
+    id:'fleet_tycoon',
+    name:'초대형 함대 구축',
+    desc:'보유 항공기 8대 이상 확보',
+    reward:1400000,
+    condition:(g)=>(g.fleet||[]).length >= 8,
+    progress:(g)=>`현재 ${(g.fleet||[]).length}대 / 목표 8대`
+  },
+  {
+    id:'passenger_crown',
+    name:'승객 5만 명의 선택',
+    desc:'누적 탑승객 50,000명 달성',
+    reward:1600000,
+    condition:(g)=>(g.totalPax||0) >= 50000,
+    progress:(g)=>`현재 ${fmtN(g.totalPax||0)}명 / 목표 50,000명`
+  },
+  {
+    id:'premium_empire',
+    name:'프리미엄 제국',
+    desc:'평판 4.5 이상이면서 VIP 라운지 3레벨 달성',
+    reward:1800000,
+    condition:(g)=>(g.reputation||0) >= 4.5 && ((g.upgrades||{}).lounge||0) >= 3,
+    progress:(g)=>`현재 평판 ${(g.reputation||0).toFixed(1)} / VIP 라운지 Lv.${((g.upgrades||{}).lounge||0)}`
+  },
+  {
+    id:'sky_legend',
+    name:'하늘의 전설',
+    desc:'누적 수익 300,000,000달러 이상 + 항공 동맹 가입',
+    reward:2000000,
+    condition:(g)=>(g.totalRevenue||0) >= 300000000 && !!g.allianceId,
+    progress:(g)=>`누적 수익 ${fmt(g.totalRevenue||0)} / 목표 ${fmt(300000000)}${g.allianceId ? ' · 동맹 가입 완료' : ' · 동맹 미가입'}`
+  }
+];
+
 const NEWS_POOL = [
   {title:'국제 유가 급등',body:'중동 지역 분쟁으로 국제 유가가 급등하였습니다. 연료비가 증가합니다.',type:'negative',effect:(g)=>{g.oilPriceMultiplier=1.3; g.notify('유가 급등! 연료비 +30%','warning');}},
   {title:'항공 수요 증가',body:'여름 성수기로 항공 수요가 크게 증가하였습니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.2; g.notify('수요 증가! 탑승률 +20%','success');}},
@@ -2135,6 +2228,8 @@ const G = {
       weeklyProfit: 0,
       allianceId: null,
       ticketMarketIndex: 1,
+      loanDebt: 0,
+      claimedChallenges: [],
       autoSaveSlot: 'auto',
     };
   },
@@ -2270,6 +2365,8 @@ const G = {
     if (!Array.isArray(G.game.fleet)) G.game.fleet = [];
     if (!Array.isArray(G.game.transactions)) G.game.transactions = [];
     if (!Array.isArray(G.game.news)) G.game.news = [];
+    if (!Array.isArray(G.game.claimedChallenges)) G.game.claimedChallenges = [];
+    G.game.loanDebt = Number(G.game.loanDebt || 0);
     if (typeof G.game.autoSaveSlot === 'undefined') G.game.autoSaveSlot = 'auto';
     G.game.routes = G.game.routes
       .filter(r => r && r.dep && r.arr && r.fleetId && r.aircraftId)
@@ -2307,6 +2404,9 @@ const G = {
 
     // Reputation changes
     G.checkReputation();
+
+    // Loan interest
+    G.applyLoanInterest();
 
     G.game.weeklyProfit = G.weeklyRevenue - G.weeklyCost;
     G.game.totalRevenue += G.weeklyRevenue;
@@ -2933,6 +3033,71 @@ const G = {
     });
   },
 
+
+  getLoanLimit() {
+    const repBonus = Math.max(0, Math.floor(Math.max(0, (G.game.reputation || 1) - 1)) * 5000000);
+    const routeBonus = Math.min(15000000, Math.floor((G.game.routes || []).length / 4) * 5000000);
+    return 40000000 + repBonus + routeBonus;
+  },
+
+  applyLoanInterest() {
+    const debt = Number(G.game.loanDebt || 0);
+    if (debt <= 0) return;
+    const interest = Math.round(debt * 0.05);
+    if (interest <= 0) return;
+    G.game.loanDebt += interest;
+    G.weeklyCost += interest;
+    G.game.totalCost += interest;
+    G.game.transactions.unshift({week:G.game.week,type:'대출 이자',desc:'미상환 대출 5% 이자',amount:-interest});
+    if (G.game.transactions.length > 100) G.game.transactions.pop();
+    G.notify(`대출 이자 ${fmt(interest)}가 반영되었습니다`, 'warning');
+  },
+
+  takeLoan(amount) {
+    amount = Number(amount || 0);
+    if (amount <= 0) return;
+    const debt = Number(G.game.loanDebt || 0);
+    const limit = G.getLoanLimit();
+    if (debt + amount > limit) { G.notify('대출 한도를 초과했습니다', 'error'); return; }
+    G.game.loanDebt = debt + amount;
+    G.game.balance += amount;
+    G.game.transactions.unshift({week:G.game.week,type:'대출 실행',desc:'운영자금 대출',amount:amount});
+    if (G.game.transactions.length > 100) G.game.transactions.pop();
+    G.renderFinance();
+    G.updateTopbar();
+    G.notify(`${fmt(amount)} 대출 실행`, 'success');
+  },
+
+  repayLoan(amount) {
+    let debt = Number(G.game.loanDebt || 0);
+    if (debt <= 0) { G.notify('상환할 대출이 없습니다', 'warning'); return; }
+    amount = amount === 'all' ? debt : Number(amount || 0);
+    amount = Math.min(debt, amount);
+    if (amount <= 0) return;
+    if (G.game.balance < amount) { G.notify('잔고가 부족해 상환할 수 없습니다', 'error'); return; }
+    G.game.loanDebt = Math.max(0, debt - amount);
+    G.game.balance -= amount;
+    G.game.transactions.unshift({week:G.game.week,type:'대출 상환',desc:'운영자금 상환',amount:-amount});
+    if (G.game.transactions.length > 100) G.game.transactions.pop();
+    G.renderFinance();
+    G.updateTopbar();
+    G.notify(`${fmt(amount)} 상환 완료`, 'success');
+  },
+
+  claimChallenge(id) {
+    const ch = CHALLENGE_DATA.find(x => x.id === id);
+    if (!ch) return;
+    if ((G.game.claimedChallenges || []).includes(id)) { G.notify('이미 보상을 받은 업적입니다', 'warning'); return; }
+    if (!ch.condition(G.game)) { G.notify('아직 달성 조건을 만족하지 않았습니다', 'error'); return; }
+    G.game.claimedChallenges.push(id);
+    G.game.balance += ch.reward;
+    G.game.transactions.unshift({week:G.game.week,type:'업적 보상',desc:ch.name,amount:ch.reward});
+    if (G.game.transactions.length > 100) G.game.transactions.pop();
+    G.renderFinance();
+    G.updateTopbar();
+    G.notify(`${ch.name} 달성! 보상 ${fmt(ch.reward)} 지급`, 'success');
+  },
+
   renderFinance() {
     const g = G.game;
     document.getElementById('fin-assets').textContent = fmt(g.balance);
@@ -2942,6 +3107,46 @@ const G = {
     wpEl.className = 'fc-value ' + (wp >= 0 ? 'positive' : 'negative');
     document.getElementById('fin-revenue').textContent = fmt(g.totalRevenue);
     document.getElementById('fin-cost').textContent = fmt(g.totalCost);
+
+    const debt = Number(g.loanDebt || 0);
+    const limit = G.getLoanLimit();
+    const available = Math.max(0, limit - debt);
+    const debtEl = document.getElementById('fin-loan-debt');
+    const availableEl = document.getElementById('fin-loan-available');
+    const limitEl = document.getElementById('fin-loan-limit');
+    if (debtEl) debtEl.textContent = fmt(debt);
+    if (availableEl) availableEl.textContent = fmt(available);
+    if (limitEl) limitEl.textContent = fmt(limit);
+
+    const challengeList = document.getElementById('fin-challenge-list');
+    const challengeSummary = document.getElementById('fin-challenge-summary');
+    if (challengeList && challengeSummary) {
+      const claimedSet = new Set(g.claimedChallenges || []);
+      const claimedCount = CHALLENGE_DATA.filter(ch => claimedSet.has(ch.id)).length;
+      challengeSummary.textContent = `${claimedCount} / ${CHALLENGE_DATA.length} 수령`;
+      challengeList.innerHTML = CHALLENGE_DATA.map(ch => {
+        const completed = ch.condition(g);
+        const claimed = claimedSet.has(ch.id);
+        const accent = claimed ? 'var(--green)' : (completed ? 'var(--sky)' : 'var(--text3)');
+        const btnDisabled = claimed || !completed;
+        const btnLabel = claimed ? '수령 완료' : (completed ? '보상 받기' : '미달성');
+        return `
+          <div style="border:1px solid ${claimed ? '#CDE8D6' : completed ? '#D6EAFE' : '#E5EAF0'};border-radius:12px;padding:12px;background:${claimed ? '#F4FBF6' : completed ? '#F7FBFF' : '#FFFFFF'}">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+              <div style="min-width:0">
+                <div style="font-weight:800;color:${accent};margin-bottom:4px">${ch.name}</div>
+                <div style="font-size:12px;color:var(--text2);margin-bottom:8px">${ch.desc}</div>
+                <div style="font-size:12px;color:${completed ? 'var(--green)' : 'var(--text3)'}">${ch.progress(g)}</div>
+              </div>
+              <div style="text-align:right;flex:0 0 auto">
+                <div style="font-size:13px;font-weight:800;color:var(--sky);margin-bottom:8px">${fmt(ch.reward)}</div>
+                <button class="${claimed || !completed ? 'btn-secondary' : 'btn-primary'}" style="padding:7px 10px;white-space:nowrap;opacity:${btnDisabled ? '0.72' : '1'}" ${btnDisabled ? 'disabled' : ''} onclick="G.claimChallenge('${ch.id}')">${btnLabel}</button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
     const tbody = document.getElementById('tx-table');
     tbody.innerHTML = '';
     (g.transactions||[]).slice(0,50).forEach(tx => {
@@ -3316,11 +3521,10 @@ const G = {
       const div = document.createElement('div');
       div.className = 'save-slot' + (save ? '' : ' empty');
       const isCurrent = (i === G.currentSlot);
-      const currentBadge = isCurrent ? ' <span style="color:var(--sky);font-size:11px;font-weight:700">[현재]</span>' : '';
       if (save) {
-        div.innerHTML = `<div><div class="slot-name">슬롯 ${i+1}${currentBadge}</div><div class="slot-info">${save.airlineName} | ${save.week}주차 | 잔고: ${fmt(save.balance)}</div></div>`;
+        div.innerHTML = `<div><div class="slot-name">슬롯 ${i+1}</div><div class="slot-info">${save.airlineName} | ${save.week}주차 | 잔고: ${fmt(save.balance)}</div></div>`;
       } else {
-        div.innerHTML = `<div><div class="slot-name" style="color:var(--text3)">빈 슬롯 ${i+1}${currentBadge}</div><div class="slot-info" style="color:var(--text3)">비어 있음</div></div>`;
+        div.innerHTML = `<div><div class="slot-name" style="color:var(--text3)">빈 슬롯 ${i+1}</div><div class="slot-info" style="color:var(--text3)">비어 있음</div></div>`;
       }
       div.addEventListener('click', () => {
         const slotLabel = `슬롯 ${i + 1}`;
