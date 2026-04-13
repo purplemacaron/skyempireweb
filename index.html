@@ -1464,6 +1464,18 @@
                 <button class="tab-btn" id="slot-4-btn" onclick="G.selectSaveSlot(4)">슬롯 5</button>
               </div>
             </div>
+            <div style="margin-top:16px">
+              <div class="settings-section-title">자동 저장 대상 슬롯</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="tab-btn active" id="autosave-slot-auto-btn" onclick="G.selectAutoSaveSlot('auto')">자동저장 전용</button>
+                <button class="tab-btn" id="autosave-slot-current-btn" onclick="G.selectAutoSaveSlot('current')">현재 선택 슬롯</button>
+                <button class="tab-btn" id="autosave-slot-0-btn" onclick="G.selectAutoSaveSlot(0)">슬롯 1</button>
+                <button class="tab-btn" id="autosave-slot-1-btn" onclick="G.selectAutoSaveSlot(1)">슬롯 2</button>
+                <button class="tab-btn" id="autosave-slot-2-btn" onclick="G.selectAutoSaveSlot(2)">슬롯 3</button>
+                <button class="tab-btn" id="autosave-slot-3-btn" onclick="G.selectAutoSaveSlot(3)">슬롯 4</button>
+                <button class="tab-btn" id="autosave-slot-4-btn" onclick="G.selectAutoSaveSlot(4)">슬롯 5</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2079,6 +2091,7 @@ const G = {
   mapMarkers: {},
   mapRouteLines: {},
   mapPlanes: {},
+  mapPlaneMeta: {},
   currentSlot: 0,
   lastCloudAutoSaveAt: 0,
   _setupLogoData: null,
@@ -2113,6 +2126,7 @@ const G = {
       weeklyProfit: 0,
       allianceId: null,
       ticketMarketIndex: 1,
+      autoSaveSlot: 'auto',
     };
   },
 
@@ -2138,12 +2152,30 @@ const G = {
       }
       grid.appendChild(div);
     }
+    const autoSave = G.loadSlotData('auto');
+    const autoDiv = document.createElement('div');
+    autoDiv.className = 'save-slot' + (autoSave ? '' : ' empty');
+    if (autoSave) {
+      autoDiv.innerHTML = `<div><div class="slot-name">자동저장 전용 슬롯</div><div class="slot-info">${autoSave.week}주차 | 잔고: ${fmt(autoSave.balance)}</div></div><button class="slot-delete" onclick="G.deleteSlot('auto',event)">삭제</button>`;
+      autoDiv.addEventListener('click', e => { if (!e.target.classList.contains('slot-delete')) G.loadGame('auto'); });
+    } else {
+      autoDiv.innerHTML = `<div><div class="slot-name" style="color:var(--text3)">자동저장 전용 슬롯 (비어 있음)</div></div>`;
+    }
+    grid.appendChild(autoDiv);
     openModal('modal-load');
+  },
+
+  slotStorageKey(slot) {
+    return `skyempire_slot_${slot}`;
+  },
+
+  slotDocKey(slot) {
+    return `slot_${slot}`;
   },
 
   loadSlotData(slot) {
     try {
-      const raw = localStorage.getItem(`skyempire_slot_${slot}`);
+      const raw = localStorage.getItem(G.slotStorageKey(slot));
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   },
@@ -2151,7 +2183,7 @@ const G = {
   deleteSlot(slot, e) {
     e.stopPropagation();
     if (confirm('이 저장 슬롯을 삭제하시겠습니까?')) {
-      localStorage.removeItem(`skyempire_slot_${slot}`);
+      localStorage.removeItem(G.slotStorageKey(slot));
       G.showLoadGame();
       G.notify('저장 슬롯 삭제됨', 'success');
     }
@@ -2177,7 +2209,8 @@ const G = {
     const save = G.loadSlotData(slot);
     if (!save) return;
     G.game = {...G.defaultGame(), ...save};
-    G.currentSlot = slot;
+    G.currentSlot = (typeof slot === 'number') ? slot : 0;
+    G.normalizeGameData();
     G.oilPriceMultiplier = 1;
     G.demandMultiplier = 1;
     G.costMultiplier = 1;
@@ -2188,6 +2221,7 @@ const G = {
 
   initGame() {
     closeModal('modal-load');
+    G.normalizeGameData();
     // 모든 화면 숨기기
     document.querySelectorAll('.screen').forEach(s => {
       s.style.display = 'none';
@@ -2220,6 +2254,29 @@ const G = {
     G.gameInterval = setInterval(() => { if (!G.paused) G.tick(); }, 7000);
     G.mapAnimInterval = setInterval(() => { if (!G.paused) G.updateMapPlanes(); }, 80);
     G.notify(`${G.game.airlineName} 운항 시작!`, 'success');
+  },
+
+  normalizeGameData() {
+    if (!Array.isArray(G.game.routes)) G.game.routes = [];
+    if (!Array.isArray(G.game.fleet)) G.game.fleet = [];
+    if (!Array.isArray(G.game.transactions)) G.game.transactions = [];
+    if (!Array.isArray(G.game.news)) G.game.news = [];
+    if (typeof G.game.autoSaveSlot === 'undefined') G.game.autoSaveSlot = 'auto';
+    G.game.routes = G.game.routes
+      .filter(r => r && r.dep && r.arr && r.fleetId && r.aircraftId)
+      .map((r, idx) => ({
+        id: r.id || (Date.now() + idx),
+        dep: r.dep,
+        arr: r.arr,
+        fleetId: r.fleetId,
+        aircraftId: r.aircraftId,
+        weeklyRevenue: Number(r.weeklyRevenue || 0),
+        weeklyCost: Number(r.weeklyCost || 0),
+        weeklyPax: Number(r.weeklyPax || 0),
+        weeklyProfit: Number(r.weeklyProfit || 0),
+        loadFactor: Number(r.loadFactor || 0),
+        active: r.active !== false,
+      }));
   },
 
   tick() {
@@ -2482,22 +2539,28 @@ const G = {
     G.mapRouteLines = {};
     Object.values(G.mapPlanes).forEach(p => p.remove());
     G.mapPlanes = {};
+    G.mapPlaneMeta = {};
 
     G.game.routes.forEach((r, idx) => {
       const dep = AIRPORTS.find(a => a.code === r.dep);
       const arr = AIRPORTS.find(a => a.code === r.arr);
       if (!dep || !arr) return;
-      const line = L.polyline([[dep.lat, dep.lng],[arr.lat, arr.lng]], {
+      const deltaLng = arr.lng - dep.lng;
+      const targetLng = deltaLng > 180 ? arr.lng - 360 : (deltaLng < -180 ? arr.lng + 360 : arr.lng);
+      const line = L.polyline([[dep.lat, dep.lng],[arr.lat, targetLng]], {
         color: '#1565C0', weight: 1.5, opacity: 0.5, dashArray: '6,4'
       }).addTo(G.leafletMap);
       G.mapRouteLines[idx] = line;
+      G.mapPlaneMeta[idx] = {depLat: dep.lat, depLng: dep.lng, arrLat: arr.lat, arrLng: targetLng};
 
       // Animated plane
       const midLat = (dep.lat + arr.lat) / 2;
-      const midLng = (dep.lng + arr.lng) / 2;
+      const midLngRaw = (dep.lng + targetLng) / 2;
+      const midLng = ((midLngRaw + 540) % 360) - 180;
+      const angle = Math.atan2(arr.lat - dep.lat, targetLng - dep.lng) * 180 / Math.PI;
       const planeIcon = L.divIcon({
         className: '',
-        html: `<div style="width:16px;height:16px;transform:rotate(${Math.atan2(arr.lat-dep.lat,arr.lng-dep.lng)*180/Math.PI}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#1565C0;font-size:14px'></i></div>`,
+        html: `<div style="width:16px;height:16px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#1565C0;font-size:14px'></i></div>`,
         iconSize: [16,16], iconAnchor: [8,8]
       });
       const plane = L.marker([midLat, midLng], {icon: planeIcon}).addTo(G.leafletMap);
@@ -2509,14 +2572,14 @@ const G = {
     if (!G.leafletMap) return;
     const now = Date.now() / 1000;
     G.game.routes.forEach((r, idx) => {
-      const dep = AIRPORTS.find(a => a.code === r.dep);
-      const arr = AIRPORTS.find(a => a.code === r.arr);
-      if (!dep || !arr || !G.mapPlanes[idx]) return;
-      const speedFactor = Math.max(0.05, Math.min(0.3, 1200 / Math.max(3000, dist(dep, arr))));
+      const meta = G.mapPlaneMeta[idx];
+      if (!meta || !G.mapPlanes[idx]) return;
+      const pseudoDist = Math.max(3000, Math.hypot(meta.arrLat - meta.depLat, meta.arrLng - meta.depLng) * 111);
+      const speedFactor = Math.max(0.05, Math.min(0.3, 1200 / pseudoDist));
       const t = ((now * speedFactor) + idx * 0.17) % 1;
-      const arc = Math.sin(Math.PI * t) * 0.12;
-      const lat = dep.lat + (arr.lat - dep.lat) * t + arc * (arr.lng - dep.lng) / 10;
-      const lng = dep.lng + (arr.lng - dep.lng) * t - arc * (arr.lat - dep.lat) / 10;
+      const lat = meta.depLat + (meta.arrLat - meta.depLat) * t;
+      const lngRaw = meta.depLng + (meta.arrLng - meta.depLng) * t;
+      const lng = ((lngRaw + 540) % 360) - 180;
       G.mapPlanes[idx].setLatLng([lat, lng]);
     });
   },
@@ -3177,6 +3240,12 @@ const G = {
       const btn = document.getElementById(`slot-${i}-btn`);
       if (btn) btn.classList.toggle('active', i === G.currentSlot);
     }
+    const autoTarget = G.game.autoSaveSlot ?? 'auto';
+    const autoKeys = ['auto', 'current', 0, 1, 2, 3, 4];
+    autoKeys.forEach(k => {
+      const btn = document.getElementById(`autosave-slot-${k}-btn`);
+      if (btn) btn.classList.toggle('active', autoTarget === k);
+    });
   },
 
   selectSaveSlot(slot) {
@@ -3186,6 +3255,17 @@ const G = {
       if (btn) btn.classList.toggle('active', i === slot);
     }
     G.notify(`저장 슬롯 ${slot+1} 선택됨`, 'success');
+  },
+
+  selectAutoSaveSlot(slot) {
+    G.game.autoSaveSlot = slot;
+    const autoKeys = ['auto', 'current', 0, 1, 2, 3, 4];
+    autoKeys.forEach(k => {
+      const btn = document.getElementById(`autosave-slot-${k}-btn`);
+      if (btn) btn.classList.toggle('active', slot === k);
+    });
+    const label = slot === 'auto' ? '자동저장 전용 슬롯' : (slot === 'current' ? '현재 선택 슬롯' : `슬롯 ${slot + 1}`);
+    G.notify(`자동 저장 대상: ${label}`, 'success');
   },
 
   updateAirlineName() {
@@ -3202,10 +3282,10 @@ const G = {
   // ============================================================
   saveGame() {
     const data = JSON.stringify(G.game);
-    localStorage.setItem(`skyempire_slot_${G.currentSlot}`, data);
+    localStorage.setItem(G.slotStorageKey(G.currentSlot), data);
     if (currentUser && fbDB) {
       try {
-        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(`slot_${G.currentSlot}`).set({data, savedAt: new Date().toISOString(), slot: G.currentSlot});
+        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(G.slotDocKey(G.currentSlot)).set({data, savedAt: new Date().toISOString(), slot: G.currentSlot});
       } catch(e) {}
     }
     G.notify('저장 완료!', 'success');
@@ -3213,17 +3293,19 @@ const G = {
 
   autoSave() {
     const data = JSON.stringify(G.game);
+    const target = G.game.autoSaveSlot ?? 'auto';
+    const resolvedSlot = target === 'current' ? G.currentSlot : target;
     try {
-      localStorage.setItem(`skyempire_slot_${G.currentSlot}`, data);
+      localStorage.setItem(G.slotStorageKey(resolvedSlot), data);
     } catch(e) {}
     if (currentUser && fbDB) {
       const now = Date.now();
       if (now - (G.lastCloudAutoSaveAt || 0) >= 20000) {
         G.lastCloudAutoSaveAt = now;
-        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(`slot_${G.currentSlot}`).set({
+        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(G.slotDocKey(resolvedSlot)).set({
           data,
           savedAt: new Date().toISOString(),
-          slot: G.currentSlot
+          slot: resolvedSlot
         }).catch(() => {});
       }
     }
