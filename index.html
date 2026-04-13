@@ -1873,9 +1873,16 @@ try {
   fbApp = firebase.initializeApp(firebaseConfig);
   fbAuth = firebase.auth();
   fbDB = firebase.firestore();
-  fbAuth.onAuthStateChanged(user => {
+  fbAuth.onAuthStateChanged(async user => {
     currentUser = user;
     updateAuthUI(user);
+    if (typeof G !== 'undefined' && G) {
+      try {
+        await G.syncSlotsFromCloud();
+      } catch (e) {
+        console.warn('Cloud slot sync failed:', e);
+      }
+    }
   });
 } catch(e) {
   console.warn('Firebase not configured. Using localStorage only.');
@@ -2373,6 +2380,9 @@ const G = {
   mapPlaneMeta: {},
   currentSlot: 0,
   lastCloudAutoSaveAt: 0,
+  cloudSlots: {},
+  cloudSlotsLoadedForUid: null,
+  cloudSyncPromise: null,
   _setupLogoData: null,
 
   // Multipliers
@@ -2417,8 +2427,9 @@ const G = {
     showScreen('screen-setup');
   },
 
-  showLoadGame() {
+  async showLoadGame() {
     if (!currentUser) { G.notify('Google 로그인이 필요합니다', 'error'); return; }
+    await G.ensureCloudSlotsLoaded();
     const grid = document.getElementById('slot-grid');
     grid.innerHTML = '';
     for (let i = 0; i < 5; i++) {
@@ -2454,20 +2465,126 @@ const G = {
     return `slot_${slot}`;
   },
 
-  loadSlotData(slot) {
+  cloneSaveData(data) {
+    return data ? JSON.parse(JSON.stringify(data)) : null;
+  },
+
+  getCachedLocalSlot(slot) {
     try {
       const raw = localStorage.getItem(G.slotStorageKey(slot));
       return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   },
 
-  deleteSlot(slot, e) {
-    e.stopPropagation();
-    if (confirm('이 저장 슬롯을 삭제하시겠습니까?')) {
-      localStorage.removeItem(G.slotStorageKey(slot));
-      G.showLoadGame();
-      G.notify('저장 슬롯 삭제됨', 'success');
+  setCachedSlot(slot, saveData) {
+    const key = String(slot);
+    if (saveData) {
+      G.cloudSlots[key] = G.cloneSaveData(saveData);
+      try {
+        localStorage.setItem(G.slotStorageKey(slot), JSON.stringify(saveData));
+      } catch (e) {}
+    } else {
+      delete G.cloudSlots[key];
+      try {
+        localStorage.removeItem(G.slotStorageKey(slot));
+      } catch (e) {}
     }
+  },
+
+  async syncSlotsFromCloud(force = false) {
+    if (!currentUser || !fbDB) {
+      G.cloudSlots = {};
+      G.cloudSlotsLoadedForUid = null;
+      G.cloudSyncPromise = null;
+      return {};
+    }
+    if (!force && G.cloudSlotsLoadedForUid === currentUser.uid && Object.keys(G.cloudSlots || {}).length) {
+      return G.cloudSlots;
+    }
+    if (!force && G.cloudSyncPromise) return G.cloudSyncPromise;
+
+    G.cloudSyncPromise = fbDB.collection('saves').doc(currentUser.uid).collection('slots').get()
+      .then(snap => {
+        const slots = {};
+        snap.forEach(doc => {
+          const row = doc.data() || {};
+          try {
+            const parsed = row.data ? JSON.parse(row.data) : null;
+            if (!parsed) return;
+            const slot = (typeof row.slot !== 'undefined') ? row.slot : doc.id.replace(/^slot_/, '');
+            slots[String(slot)] = parsed;
+            try { localStorage.setItem(G.slotStorageKey(slot), JSON.stringify(parsed)); } catch (e) {}
+          } catch (e) {
+            console.warn('Failed to parse slot data', doc.id, e);
+          }
+        });
+        G.cloudSlots = slots;
+        G.cloudSlotsLoadedForUid = currentUser.uid;
+        G.cloudSyncPromise = null;
+        return slots;
+      })
+      .catch(err => {
+        G.cloudSyncPromise = null;
+        console.warn('Cloud sync failed:', err);
+        return G.cloudSlots || {};
+      });
+
+    return G.cloudSyncPromise;
+  },
+
+  async ensureCloudSlotsLoaded(force = false) {
+    if (!currentUser || !fbDB) return G.cloudSlots || {};
+    return G.syncSlotsFromCloud(force);
+  },
+
+  loadSlotData(slot) {
+    const key = String(slot);
+    if (G.cloudSlots && G.cloudSlots[key]) return G.cloneSaveData(G.cloudSlots[key]);
+    const local = G.getCachedLocalSlot(slot);
+    return local ? G.cloneSaveData(local) : null;
+  },
+
+  async persistSlotData(slot, saveData, opts = {}) {
+    const { notifySuccess = false, successMessage = '저장 완료!' } = opts;
+    G.setCachedSlot(slot, saveData);
+
+    if (!currentUser || !fbDB) {
+      if (notifySuccess) G.notify(successMessage + ' (로컬 캐시)', 'warning');
+      return true;
+    }
+
+    try {
+      await fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(G.slotDocKey(slot)).set({
+        data: JSON.stringify(saveData),
+        savedAt: new Date().toISOString(),
+        slot
+      });
+      if (notifySuccess) G.notify(successMessage, 'success');
+      return true;
+    } catch (e) {
+      console.warn('Cloud save failed:', e);
+      if (notifySuccess) G.notify('클라우드 저장 실패. 브라우저 캐시에만 보관되었습니다.', 'warning');
+      return false;
+    }
+  },
+
+  async deleteSlot(slot, e) {
+    e.stopPropagation();
+    if (!confirm('이 저장 슬롯을 삭제하시겠습니까?')) return;
+
+    G.setCachedSlot(slot, null);
+    if (currentUser && fbDB) {
+      try {
+        await fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(G.slotDocKey(slot)).delete();
+      } catch (err) {
+        console.warn('Cloud delete failed:', err);
+        G.notify('클라우드 삭제에 실패했지만 로컬 캐시는 비웠습니다.', 'warning');
+      }
+    }
+    G.showLoadGame();
+    G.notify('저장 슬롯 삭제됨', 'success');
   },
 
   startNewGame() {
@@ -2486,7 +2603,8 @@ const G = {
     G.initGame();
   },
 
-  loadGame(slot) {
+  async loadGame(slot) {
+    await G.ensureCloudSlotsLoaded();
     const save = G.loadSlotData(slot);
     if (!save) return;
     G.game = {...G.defaultGame(), ...save};
@@ -3744,24 +3862,18 @@ const G = {
   // ============================================================
   // SAVE/LOAD
   // ============================================================
-  saveGame(slot) {
+  async saveGame(slot) {
     G.syncBrandFromInputs();
     const targetSlot = (slot !== undefined) ? slot : G.currentSlot;
-    const data = JSON.stringify(G.game);
-    localStorage.setItem(G.slotStorageKey(targetSlot), data);
-    if (currentUser && fbDB) {
-      try {
-        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(G.slotDocKey(targetSlot)).set({data, savedAt: new Date().toISOString(), slot: targetSlot});
-      } catch(e) {}
-    }
-    if (slot !== undefined && slot !== G.currentSlot) {
-      G.notify(`슬롯 ${targetSlot + 1}에 저장 완료!`, 'success');
-    } else {
-      G.notify('저장 완료!', 'success');
-    }
+    const saveData = G.cloneSaveData(G.game);
+    const successMessage = (slot !== undefined && slot !== G.currentSlot)
+      ? `슬롯 ${targetSlot + 1}에 클라우드 저장 완료!`
+      : '클라우드 저장 완료!';
+    await G.persistSlotData(targetSlot, saveData, { notifySuccess: true, successMessage });
   },
 
-  showSaveGame() {
+  async showSaveGame() {
+    await G.ensureCloudSlotsLoaded();
     const grid = document.getElementById('save-slot-grid');
     grid.innerHTML = '';
     for (let i = 0; i < 5; i++) {
@@ -3791,21 +3903,21 @@ const G = {
 
   autoSave() {
     G.syncBrandFromInputs();
-    const data = JSON.stringify(G.game);
+    const saveData = G.cloneSaveData(G.game);
     const target = G.game.autoSaveSlot ?? 'auto';
     const resolvedSlot = target === 'current' ? G.currentSlot : target;
-    try {
-      localStorage.setItem(G.slotStorageKey(resolvedSlot), data);
-    } catch(e) {}
+    G.setCachedSlot(resolvedSlot, saveData);
     if (currentUser && fbDB) {
       const now = Date.now();
       if (now - (G.lastCloudAutoSaveAt || 0) >= 20000) {
         G.lastCloudAutoSaveAt = now;
         fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(G.slotDocKey(resolvedSlot)).set({
-          data,
+          data: JSON.stringify(saveData),
           savedAt: new Date().toISOString(),
           slot: resolvedSlot
-        }).catch(() => {});
+        }).catch(err => {
+          console.warn('Cloud autosave failed:', err);
+        });
       }
     }
   },
@@ -3856,8 +3968,9 @@ const G = {
     // Google OAuth 동의 화면에 개인정보처리방침 URL 설정은
     // Firebase Console > Authentication > 설정에서 지정합니다
     fbAuth.signInWithPopup(provider)
-      .then(result => {
-        G.notify(`${result.user.displayName || result.user.email}님 환영합니다!`, 'success');
+      .then(async result => {
+        try { await G.syncSlotsFromCloud(true); } catch (e) {}
+        G.notify(`${result.user.displayName || result.user.email}님 환영합니다! 클라우드 저장이 활성화되었습니다.`, 'success');
       })
       .catch(e => G.notify('로그인 실패: ' + e.message, 'error'));
   },
@@ -3867,7 +3980,12 @@ const G = {
     const provider = new firebase.auth.GoogleAuthProvider();
     // Google OAuth 동의 화면에 개인정보처리방침 URL 설정은
     // Firebase Console > Authentication > 설정에서 지정합니다
-    fbAuth.signInWithPopup(provider).catch(e => G.notify('로그인 실패: ' + e.message, 'error'));
+    fbAuth.signInWithPopup(provider)
+      .then(async () => {
+        try { await G.syncSlotsFromCloud(true); } catch (e) {}
+        G.notify('Google 계정 클라우드 저장이 활성화되었습니다.', 'success');
+      })
+      .catch(e => G.notify('로그인 실패: ' + e.message, 'error'));
   },
 
   googleLogout() {
