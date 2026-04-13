@@ -1143,6 +1143,15 @@
   </div>
 </div>
 
+<!-- ===== MANUAL SAVE SLOT MODAL ===== -->
+<div class="modal-overlay" id="modal-save">
+  <div class="modal-box" style="width:420px">
+    <button class="modal-close" onclick="closeModal('modal-save')">&times;</button>
+    <div class="modal-title">저장할 슬롯 선택</div>
+    <div class="slot-grid" id="save-slot-grid"></div>
+  </div>
+</div>
+
 <!-- ===== GAME SCREEN ===== -->
 <div class="screen" id="screen-game">
 
@@ -1163,7 +1172,7 @@
     </div>
     <div class="week-display" id="tb-week">1주차</div>
     <button class="speed-btn" id="speed-btn" onclick="G.togglePause()">일시정지</button>
-    <button class="speed-btn" style="background:var(--text2)" onclick="G.saveGame()">저장</button>
+    <button class="speed-btn" style="background:var(--text2)" onclick="G.showSaveGame()">저장</button>
     <button class="speed-btn" style="background:var(--text3)" onclick="G.exitToMenu()">메뉴</button>
   </div>
 
@@ -2464,17 +2473,18 @@ const G = {
   checkReputation() {
     const routes = G.game.routes.length;
     const fleet = G.game.fleet.length;
-    const pax = G.game.totalPax;
+    // 주간 탑승객 합산 (누적이 아닌 이번 주 기준)
+    const weeklyPax = G.game.routes.reduce((s, r) => s + (r.weeklyPax || 0), 0);
     let rep = 1;
     if (routes >= 3) rep = 1.5;
     if (routes >= 8) rep = 2;
-    if (pax >= 10000) rep = 2.5;
+    if (weeklyPax >= 500) rep = 2.5;
     if (fleet >= 5) rep += 0.5;
-    if (pax >= 50000) rep = 3;
-    if (routes >= 15 && pax >= 100000) rep = 3.5;
-    if (pax >= 500000) rep = 4;
-    if (routes >= 25 && pax >= 1000000) rep = 4.5;
-    if (routes >= 40 && pax >= 5000000) rep = 5;
+    if (weeklyPax >= 2000) rep = 3;
+    if (routes >= 15 && weeklyPax >= 5000) rep = 3.5;
+    if (weeklyPax >= 20000) rep = 4;
+    if (routes >= 25 && weeklyPax >= 50000) rep = 4.5;
+    if (routes >= 40 && weeklyPax >= 150000) rep = 5;
     const upgrMileage = G.game.upgrades['mileage'] || 0;
     const upgrLounge = G.game.upgrades['lounge'] || 0;
     rep += (upgrMileage >= 4 ? 1 : 0) + (upgrLounge >= 3 ? 1 : 0);
@@ -2557,11 +2567,12 @@ const G = {
       const midLat = (dep.lat + arr.lat) / 2;
       const midLngRaw = (dep.lng + targetLng) / 2;
       const midLng = ((midLngRaw + 540) % 360) - 180;
-      const angle = Math.atan2(arr.lat - dep.lat, targetLng - dep.lng) * 180 / Math.PI;
+      // fa-plane 기본 방향은 오른쪽(동쪽). atan2는 반시계(CCW), CSS rotate는 시계(CW)이므로 부호 반전
+      const angle = -Math.atan2(arr.lat - dep.lat, targetLng - dep.lng) * 180 / Math.PI;
       const planeIcon = L.divIcon({
         className: '',
-        html: `<div style="width:16px;height:16px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#1565C0;font-size:14px'></i></div>`,
-        iconSize: [16,16], iconAnchor: [8,8]
+        html: `<div style="width:20px;height:20px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#1565C0;font-size:15px'></i></div>`,
+        iconSize: [20,20], iconAnchor: [10,10]
       });
       const plane = L.marker([midLat, midLng], {icon: planeIcon}).addTo(G.leafletMap);
       G.mapPlanes[idx] = plane;
@@ -3161,7 +3172,8 @@ const G = {
     const stars = starsHTML(rep);
     const routes = G.game.routes.length;
     const fleet = G.game.fleet.length;
-    const pax = G.game.totalPax;
+    const totalPax = G.game.totalPax;
+    const weeklyPax = G.game.routes.reduce((s, r) => s + (r.weeklyPax || 0), 0);
     const svcLv = G.game.upgrades['service'] || 0;
     const mntLv = G.game.upgrades['maintenance'] || 0;
     const mileLv = G.game.upgrades['mileage'] || 0;
@@ -3177,8 +3189,8 @@ const G = {
           <div style="font-size:11px;color:var(--text3)">${rep.toFixed(1)} / 5.0</div>
         </div>
         <div class="rep-card">
-          <div class="rep-val">${Math.floor(pax).toLocaleString()}</div>
-          <div class="rep-label">총 탑승객</div>
+          <div class="rep-val">${Math.floor(weeklyPax).toLocaleString()}</div>
+          <div class="rep-label">주간 탑승객</div>
         </div>
         <div class="rep-card">
           <div class="rep-val">${routes}</div>
@@ -3193,8 +3205,8 @@ const G = {
           <span style="color:${routes>=15?'var(--green)':routes>=5?'var(--sky)':'var(--red)'}">${routes>=15?'우수':routes>=5?'양호':'부족'}</span>
         </div>
         <div class="rep-factor">
-          <span>총 탑승객 (${Math.floor(pax).toLocaleString()}명)</span>
-          <span style="color:${pax>=100000?'var(--green)':pax>=10000?'var(--sky)':'var(--red)'}">${pax>=100000?'우수':pax>=10000?'양호':'성장중'}</span>
+          <span>주간 탑승객 (${Math.floor(weeklyPax).toLocaleString()}명)</span>
+          <span style="color:${weeklyPax>=5000?'var(--green)':weeklyPax>=500?'var(--sky)':'var(--red)'}">${weeklyPax>=5000?'우수':weeklyPax>=500?'양호':'성장중'}</span>
         </div>
         <div class="rep-factor">
           <span>기내 서비스 (Lv.${svcLv})</span>
@@ -3217,7 +3229,7 @@ const G = {
       <div class="card">
         <div class="section-title" style="font-size:15px;margin-bottom:14px">평판 올리는 방법</div>
         ${routes < 5 ? '<div class="rep-factor"><span>노선 5개 이상 운항</span><span style="color:var(--sky)">+평판 상승</span></div>' : ''}
-        ${pax < 50000 ? '<div class="rep-factor"><span>탑승객 50,000명 달성</span><span style="color:var(--sky)">+평판 상승</span></div>' : ''}
+        ${weeklyPax < 2000 ? `<div class="rep-factor"><span>주간 탑승객 2,000명 달성 (현재 ${Math.floor(weeklyPax).toLocaleString()}명)</span><span style="color:var(--sky)">+평판 상승</span></div>` : ''}
         ${svcLv < 5 ? `<div class="rep-factor"><span>기내 서비스 업그레이드 (현재 Lv.${svcLv})</span><span style="color:var(--sky)">+탑승률</span></div>` : ''}
         ${mileLv < 4 ? `<div class="rep-factor"><span>마일리지 프로그램 Lv.4 달성</span><span style="color:var(--sky)">+1 평판</span></div>` : ''}
         ${loungeLv < 3 ? `<div class="rep-factor"><span>VIP 라운지 Lv.3 달성</span><span style="color:var(--sky)">+1 평판</span></div>` : ''}
@@ -3280,16 +3292,50 @@ const G = {
   // ============================================================
   // SAVE/LOAD
   // ============================================================
-  saveGame() {
+  saveGame(slot) {
+    const targetSlot = (slot !== undefined) ? slot : G.currentSlot;
     const data = JSON.stringify(G.game);
-    localStorage.setItem(G.slotStorageKey(G.currentSlot), data);
+    localStorage.setItem(G.slotStorageKey(targetSlot), data);
     if (currentUser && fbDB) {
       try {
-        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(G.slotDocKey(G.currentSlot)).set({data, savedAt: new Date().toISOString(), slot: G.currentSlot});
+        fbDB.collection('saves').doc(currentUser.uid).collection('slots').doc(G.slotDocKey(targetSlot)).set({data, savedAt: new Date().toISOString(), slot: targetSlot});
       } catch(e) {}
     }
-    G.notify('저장 완료!', 'success');
+    if (slot !== undefined && slot !== G.currentSlot) {
+      G.notify(`슬롯 ${targetSlot + 1}에 저장 완료!`, 'success');
+    } else {
+      G.notify('저장 완료!', 'success');
+    }
   },
+
+  showSaveGame() {
+    const grid = document.getElementById('save-slot-grid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+      const save = G.loadSlotData(i);
+      const div = document.createElement('div');
+      div.className = 'save-slot' + (save ? '' : ' empty');
+      const isCurrent = (i === G.currentSlot);
+      const currentBadge = isCurrent ? ' <span style="color:var(--sky);font-size:11px;font-weight:700">[현재]</span>' : '';
+      if (save) {
+        div.innerHTML = `<div><div class="slot-name">슬롯 ${i+1}${currentBadge}</div><div class="slot-info">${save.airlineName} | ${save.week}주차 | 잔고: ${fmt(save.balance)}</div></div>`;
+      } else {
+        div.innerHTML = `<div><div class="slot-name" style="color:var(--text3)">빈 슬롯 ${i+1}${currentBadge}</div><div class="slot-info" style="color:var(--text3)">비어 있음</div></div>`;
+      }
+      div.addEventListener('click', () => {
+        const slotLabel = `슬롯 ${i + 1}`;
+        const overwriteMsg = save && !isCurrent ? `"${save.airlineName}" 데이터를 덮어씁니다. ` : '';
+        if (confirm(`${slotLabel}에 저장하시겠습니까?\n${overwriteMsg}`)) {
+          G.saveGame(i);
+          closeModal('modal-save');
+        }
+      });
+      grid.appendChild(div);
+    }
+    openModal('modal-save');
+  },
+
+
 
   autoSave() {
     const data = JSON.stringify(G.game);
@@ -3312,7 +3358,7 @@ const G = {
   },
 
   exitToMenu() {
-    G.saveGame();
+    G.saveGame(G.currentSlot);
     if (G.gameInterval) clearInterval(G.gameInterval);
     if (G.leafletMap) { G.leafletMap.remove(); G.leafletMap = null; }
     showScreen('screen-menu');
