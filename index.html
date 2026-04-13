@@ -1155,7 +1155,7 @@
     </div>
     <div class="topbar-stats">
       <div class="stat-pill"><span class="label">잔고</span><span id="tb-balance">$50,000,000</span></div>
-      <div class="stat-pill" onclick="setPanel('reputation')" style="cursor:pointer" title="평판 관리"><span class="label">평판</span><span id="tb-rep" class="reputation-stars">★★☆☆☆</span></div>
+      <div class="stat-pill" onclick="setPanel('reputation')" style="cursor:pointer" title="평판 관리"><span class="label">평판</span><span id="tb-rep" class="reputation-stars"></span></div>
       <div class="stat-pill"><span class="label">탑승객</span><span id="tb-pax">0</span></div>
       <div class="stat-pill"><span class="label">노선</span><span id="tb-routes">0</span></div>
       <div class="stat-pill"><span class="label">기단</span><span id="tb-fleet">0</span></div>
@@ -1173,50 +1173,55 @@
     <div class="sidebar">
       <div class="nav-section-title">운항</div>
       <div class="nav-item active" onclick="setPanel('map')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-earth-asia"></i></div>
         세계 지도
       </div>
       <div class="nav-item" onclick="setPanel('routes')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-route"></i></div>
         노선 관리
       </div>
       <div class="nav-section-title">자산</div>
       <div class="nav-item" onclick="setPanel('fleet')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.5a19.79 19.79 0 01-3-8.72A2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.72 6.72l1.28-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-plane"></i></div>
         기단
       </div>
       <div class="nav-item" onclick="setPanel('market')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-cart-shopping"></i></div>
         항공기 구매
       </div>
       <div class="nav-section-title">경영</div>
       <div class="nav-item" onclick="setPanel('finance')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-coins"></i></div>
         재무
       </div>
       <div class="nav-item" onclick="setPanel('upgrades')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
         업그레이드
       </div>
+
+      <div class="nav-item" onclick="setPanel('alliance')">
+        <div class="nav-icon"><i class="fa-solid fa-handshake"></i></div>
+        항공 동맹
+      </div>
       <div class="nav-item" onclick="setPanel('oil')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-gas-pump"></i></div>
         석유 구매
       </div>
       <div class="nav-section-title">정보</div>
       <div class="nav-item" onclick="setPanel('news')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a4 4 0 01-4-4V6"/><path d="M8 6h8M8 10h8M8 14h4"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-newspaper"></i></div>
         뉴스
       </div>
       <div class="nav-item" onclick="setPanel('reputation')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-medal"></i></div>
         평판 관리
       </div>
       <div class="nav-item" onclick="setPanel('social')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-comments"></i></div>
         SkySocial
       </div>
       <div class="nav-item" onclick="setPanel('settings')">
-        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg></div>
+        <div class="nav-icon"><i class="fa-solid fa-gear"></i></div>
         설정
       </div>
     </div>
@@ -1256,7 +1261,7 @@
                 letter-spacing:2px;
                 text-transform:uppercase;
                 white-space:nowrap;
-              ">📡 BREAKING</div>
+              "><i class='fa-solid fa-tower-broadcast' style='margin-right:8px'></i>BREAKING</div>
               <div style="position:relative;flex:1;overflow:hidden;">
                 <div id="map-news-scroll" style="
                   position:absolute;
@@ -1350,6 +1355,13 @@
       </div>
 
       <!-- OIL PANEL -->
+
+      <div class="content-panel" id="panel-alliance">
+        <div class="section-header"><div class="section-title">항공 동맹</div></div>
+        <div id="alliance-info" style="font-size:13px;color:var(--text2)"></div>
+        <div id="alliance-list" class="upgrades-grid"></div>
+      </div>
+
       <div class="content-panel" id="panel-oil">
         <div class="section-header">
           <div class="section-title">석유 구매</div>
@@ -1606,6 +1618,10 @@
       </div>
     </div>
     <div class="livery-preview" id="livery-preview"></div>
+    <div class="form-group">
+      <label class="form-label">항공기 사진 업로드</label>
+      <input type="file" id="cust-photo-file" accept="image/*" onchange="loadAircraftPhoto(this)">
+    </div>
     <input type="hidden" id="cust-aircraft-id">
     <div style="margin-top:20px;display:flex;gap:12px">
       <button class="btn-secondary" style="flex:1" onclick="closeModal('modal-customize')">취소</button>
@@ -1768,6 +1784,19 @@ const AIRPORTS = [
   {code:'ABJ',name:'아비장',city:'아비장',country:'코트디부아르(유전)',lat:5.2613,lng:-3.9263,type:'oil',demand:45},
 ];
 
+const EXTRA_INTERNATIONAL_AIRPORTS = [
+  ['EWR','뉴어크리버티','뉴어크','미국',40.6895,-74.1745],['IAD','워싱턴덜레스','워싱턴DC','미국',38.9531,-77.4565],['DFW','댈러스포트워스','댈러스','미국',32.8998,-97.0403],['DEN','덴버','덴버','미국',39.8561,-104.6737],['LAS','해리리드','라스베이거스','미국',36.084,-115.1537],
+  ['PHX','피닉스스카이하버','피닉스','미국',33.4343,-112.0116],['MCO','올랜도','올랜도','미국',28.4312,-81.3081],['CLT','샬럿더글러스','샬럿','미국',35.214,-80.9431],['MSP','미니애폴리스','미니애폴리스','미국',44.8848,-93.2223],['DTW','디트로이트','디트로이트','미국',42.2162,-83.3554],
+  ['YVR','밴쿠버','밴쿠버','캐나다',49.1951,-123.1779],['YUL','몬트리올트뤼도','몬트리올','캐나다',45.4706,-73.7408],['CUN','칸쿤','칸쿤','멕시코',21.0365,-86.8771],['SCL','아르투로메리노베니테스','산티아고','칠레',-33.3928,-70.7858],['EZE','에세이사','부에노스아이레스','아르헨티나',-34.8222,-58.5358],
+  ['LIM','호르헤차베스','리마','페루',-12.0219,-77.1143],['BOG','엘도라도','보고타','콜롬비아',4.7016,-74.1469],['PTY','토쿠멘','파나마시티','파나마',9.0714,-79.3835],['SVO','셰레메티예보','모스크바','러시아',55.9726,37.4146],['LED','풀코보','상트페테르부르크','러시아',59.8003,30.2625],
+  ['DME','도모데도보','모스크바','러시아',55.4088,37.9063],['GVA','제네바','제네바','스위스',46.2381,6.1089],['MXP','말펜사','밀라노','이탈리아',45.6306,8.7281],['VCE','베네치아마르코폴로','베네치아','이탈리아',45.5053,12.3519],['NAP','나폴리','나폴리','이탈리아',40.886,-14.2908],
+  ['DUS','뒤셀도르프','뒤셀도르프','독일',51.2895,6.7668],['HAM','함부르크','함부르크','독일',53.6304,9.9882],['BER','베를린브란덴부르크','베를린','독일',52.3667,13.5033],['EDI','에든버러','에든버러','영국',55.95,-3.3725],['ZAG','자그레브','자그레브','크로아티아',45.7429,16.0688],
+  ['OTP','오토페니','부쿠레슈티','루마니아',44.5711,26.085],['SOF','소피아','소피아','불가리아',42.6952,23.4062],['TBS','트빌리시','트빌리시','조지아',41.6692,44.9547],['CAK','(확장)국제공항','세계','국제',0,0]
+];
+EXTRA_INTERNATIONAL_AIRPORTS.forEach((a, i) => {
+  if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:52 + (i%22)});
+});
+
 const AIRCRAFT_DATA = [
   // Small
   {id:'CRJ200',name:'CRJ-200',maker:'봄바디에',category:'small',seats:50,range:3150,speed:785,fuelPerHour:1800,price:15000000,opCostPerHour:3200,svg:'small'},
@@ -1826,6 +1855,13 @@ const UPGRADES_DATA = [
   {id:'lounge',name:'VIP 라운지',desc:'공항 라운지 운영으로 프리미엄 승객 유치.',maxLevel:3,costs:[30000000,70000000,150000000],effects:['수익 +5%','수익 +12%','평판 +1']},
   {id:'cargo',name:'화물 사업',desc:'여객 노선에서 화물도 함께 운반.',maxLevel:4,costs:[15000000,35000000,70000000,130000000],effects:['화물수익 +20%','화물수익 +40%','전용화물 노선','화물 허브']},
   {id:'digital',name:'디지털 전환',desc:'모바일 앱 및 AI 예약 시스템 도입.',maxLevel:3,costs:[20000000,45000000,80000000],effects:['비용 -5%','수익 +8%','탑승률 +10%']},
+];
+
+
+const ALLIANCE_DATA = [
+  {id:'global_link',name:'Global Link',joinCost:40000000,desc:'공동 운항 및 환승 연계 강화',paxBonus:0.08,revenueBonus:0.05,costBonus:0},
+  {id:'sky_bridge',name:'Sky Bridge',joinCost:65000000,desc:'허브 슬롯 공유와 공동 마케팅',paxBonus:0.12,revenueBonus:0.07,costBonus:0.03},
+  {id:'aero_union',name:'Aero Union',joinCost:90000000,desc:'정비·조업 협력으로 운영 효율 확대',paxBonus:0.15,revenueBonus:0.1,costBonus:0.05}
 ];
 
 const NEWS_POOL = [
@@ -1920,7 +1956,7 @@ function dist(a, b) {
 
 function starsHTML(rep) {
   let s = '';
-  for (let i = 1; i <= 5; i++) s += i <= Math.floor(rep) ? '★' : '☆';
+  for (let i = 1; i <= 5; i++) s += i <= Math.floor(rep) ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
   return s;
 }
 
@@ -1979,28 +2015,30 @@ function loadLogoSettings(input) {
   reader.readAsDataURL(file);
 }
 
+function loadAircraftPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('livery-preview');
+    prev.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+    G._custPhotoData = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function filterAC(cat, btn) {
   document.querySelectorAll('#ac-tabs .tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   G.renderMarket(cat);
 }
 
-function acCategoryIcon(cat) {
-  if (cat === 'cargo')    return 'fa-box';
-  if (cat === 'widebody') return 'fa-plane-circle-check';
-  if (cat === 'large')    return 'fa-plane-departure';
-  if (cat === 'medium')   return 'fa-plane';
-  return 'fa-plane-up'; // small
+function acCategoryIcon() {
+  return 'fa-plane';
 }
 
 function renderAircraftSVG(type, color = '#1565C0', w=80, h=50) {
-  const c = color;
-  if (type === 'small') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="28" ry="8" fill="${c}"/><polygon points="12,25 2,18 2,32" fill="${c}"/><polygon points="68,25 78,20 78,30" fill="${c}"/><polygon points="30,17 40,8 50,17" fill="${c}80"/><polygon points="15,33 22,25 29,33" fill="${c}60"/><circle cx="40" cy="25" r="4" fill="white" opacity="0.6"/></svg>`;
-  if (type === 'medium') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="30" ry="9" fill="${c}"/><polygon points="10,25 0,16 0,34" fill="${c}"/><polygon points="70,25 80,19 80,31" fill="${c}"/><polygon points="25,16 40,5 55,16" fill="${c}80"/><polygon points="12,36 20,27 28,36" fill="${c}60"/><ellipse cx="40" cy="22" rx="8" ry="3" fill="white" opacity="0.5"/></svg>`;
-  if (type === 'large') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="32" ry="10" fill="${c}"/><polygon points="8,25 -2,14 -2,36" fill="${c}"/><polygon points="72,25 82,17 82,33" fill="${c}"/><polygon points="22,15 40,3 58,15" fill="${c}80"/><polygon points="20,35 28,26 36,35" fill="${c}60"/><polygon points="44,35 52,26 60,35" fill="${c}60"/><ellipse cx="40" cy="21" rx="10" ry="4" fill="white" opacity="0.5"/></svg>`;
-  if (type === 'widebody') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="33" ry="13" fill="${c}"/><polygon points="7,25 -3,12 -3,38" fill="${c}"/><polygon points="73,25 83,16 83,34" fill="${c}"/><polygon points="20,12 40,1 60,12" fill="${c}80"/><polygon points="18,38 28,27 38,38" fill="${c}60"/><polygon points="42,38 52,27 62,38" fill="${c}60"/><ellipse cx="40" cy="20" rx="14" ry="6" fill="white" opacity="0.5"/><ellipse cx="40" cy="30" rx="14" ry="6" fill="white" opacity="0.2"/></svg>`;
-  if (type === 'cargo') return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><rect x="8" y="18" width="58" height="18" rx="5" fill="${c}"/><polygon points="66,27 78,22 78,32" fill="${c}"/><polygon points="8,27 0,22 0,32" fill="${c}80"/><polygon points="20,18 38,6 56,18" fill="${c}70"/><rect x="15" y="21" width="12" height="10" rx="2" fill="white" opacity="0.4"/><rect x="32" y="21" width="12" height="10" rx="2" fill="white" opacity="0.4"/><rect x="49" y="21" width="12" height="10" rx="2" fill="white" opacity="0.4"/></svg>`;
-  return `<svg viewBox="0 0 80 50" width="${w}" height="${h}"><ellipse cx="40" cy="25" rx="28" ry="8" fill="${c}"/></svg>`;
+  return `<i class="fa-solid fa-plane" style="color:${color};font-size:${Math.max(16, Math.round(Math.min(w,h)*0.7))}px;transform:rotate(-20deg)"></i>`;
 }
 
 // ============================================================
@@ -2009,6 +2047,7 @@ function renderAircraftSVG(type, color = '#1565C0', w=80, h=50) {
 const G = {
   game: null,
   gameInterval: null,
+  mapAnimInterval: null,
   paused: false,
   leafletMap: null,
   mapMarkers: {},
@@ -2045,6 +2084,8 @@ const G = {
       oilPrices: OIL_COUNTRIES.map(o => ({...o})),
       lastOilBought: {},
       weeklyProfit: 0,
+      allianceId: null,
+      ticketMarketIndex: 1,
     };
   },
 
@@ -2142,12 +2183,15 @@ const G = {
     G.renderSocial();
     G.renderNews();
     G.renderReputation();
+    G.renderAlliance();
     G.initMap();
     G.updateSettings();
     if (G.gameInterval) clearInterval(G.gameInterval);
+    if (G.mapAnimInterval) clearInterval(G.mapAnimInterval);
     G.paused = false;
     document.getElementById('speed-btn').textContent = '일시정지';
     G.gameInterval = setInterval(() => { if (!G.paused) G.tick(); }, 7000);
+    G.mapAnimInterval = setInterval(() => { if (!G.paused) G.updateMapPlanes(); }, 80);
     G.notify(`${G.game.airlineName} 운항 시작!`, 'success');
   },
 
@@ -2211,6 +2255,7 @@ const G = {
   },
 
   processRoutes() {
+    G.game.ticketMarketIndex = Math.max(0.82, Math.min(1.25, (G.game.ticketMarketIndex || 1) + (Math.random()-0.5)*0.05));
     const fuelOk = G.game.fuel > 10;
     G.game.routes.forEach(r => {
       if (!fuelOk) { r.active = false; return; }
@@ -2229,8 +2274,13 @@ const G = {
       const upgrService = G.game.upgrades['service'] || 0;
       const upgrMileage = G.game.upgrades['mileage'] || 0;
       const upgrDigital = G.game.upgrades['digital'] || 0;
-      const loadBonus = 1 + upgrService*0.03 + upgrMileage*0.05 + upgrDigital*0.03;
-      r.loadFactor = Math.min(0.98, avgDemand * loadBonus);
+      const alliance = ALLIANCE_DATA.find(a => a.id === G.game.allianceId);
+      const alliancePaxBonus = alliance ? alliance.paxBonus : 0;
+      const allianceRevBonus = alliance ? alliance.revenueBonus : 0;
+      const allianceCostBonus = alliance ? alliance.costBonus : 0;
+      const loadBonus = 1 + upgrService*0.03 + upgrMileage*0.05 + upgrDigital*0.03 + alliancePaxBonus;
+      const fareElasticity = Math.max(0.7, 1.12 - (G.game.ticketMarketIndex - 1) * 1.6);
+      r.loadFactor = Math.min(0.98, avgDemand * loadBonus * fareElasticity);
 
       const weeklyFlights = 14;
       if (ac.category === 'cargo') {
@@ -2239,9 +2289,9 @@ const G = {
         r.weeklyPax = 0;
       } else {
         r.weeklyPax = Math.round(ac.seats * r.loadFactor * weeklyFlights);
-        const ticketPrice = 0.12 * d + 80;
+        const ticketPrice = (0.12 * d + 80) * G.game.ticketMarketIndex;
         const upgrLounge = G.game.upgrades['lounge'] || 0;
-        const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06;
+        const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
         r.weeklyRevenue = r.weeklyPax * ticketPrice * revBonus;
         G.game.totalPax += r.weeklyPax;
       }
@@ -2250,7 +2300,7 @@ const G = {
       const upgrFuel = G.game.upgrades['fuel'] || 0;
       const costMult = G.costMultiplier * (1 - upgrMaint*0.03) * (1 - upgrFuel*0.04);
       const fuelEff = G.fuelEfficiency * (1 + upgrFuel*0.04);
-      r.weeklyCost = (ac.opCostPerHour * flightHours + ac.fuelPerHour * flightHours * 0.001 * 1000) * weeklyFlights * costMult / fuelEff;
+      r.weeklyCost = (ac.opCostPerHour * flightHours + ac.fuelPerHour * flightHours * 0.001 * 1000) * weeklyFlights * costMult * (1 - allianceCostBonus) / fuelEff;
 
       r.weeklyProfit = r.weeklyRevenue - r.weeklyCost;
       G.weeklyRevenue += r.weeklyRevenue;
@@ -2296,7 +2346,7 @@ const G = {
     const isNegative = item.type === 'negative';
     const bgColor    = isPositive ? 'rgba(0,105,55,0.92)' : isNegative ? 'rgba(140,20,20,0.92)' : 'rgba(20,60,120,0.92)';
     const labelBg    = isPositive ? 'rgba(0,180,80,0.95)'  : isNegative ? 'rgba(220,40,40,0.95)'  : 'rgba(30,100,200,0.95)';
-    const icon       = isPositive ? '📈' : isNegative ? '⚠️' : '📡';
+    const iconClass  = isPositive ? 'fa-arrow-trend-up' : isNegative ? 'fa-triangle-exclamation' : 'fa-tower-broadcast';
     const ticker = document.getElementById('map-news-ticker');
     const bar    = document.getElementById('map-news-bar');
     const label  = document.getElementById('map-news-label');
@@ -2305,7 +2355,7 @@ const G = {
     bar.style.background    = bgColor;
     label.style.background  = labelBg;
     label.style.color       = 'white';
-    label.textContent       = `${icon}  ${item.type === 'positive' ? '호재' : item.type === 'negative' ? '악재' : '속보'}`;
+    label.innerHTML         = `<i class="fa-solid ${iconClass}" style="margin-right:8px"></i>${item.type === 'positive' ? '호재' : item.type === 'negative' ? '악재' : '속보'}`;
     scroll.style.color      = 'white';
     scroll.textContent      = `${item.title}  ·  ${item.body}`;
 
@@ -2419,7 +2469,7 @@ const G = {
       const midLng = (dep.lng + arr.lng) / 2;
       const planeIcon = L.divIcon({
         className: '',
-        html: `<div style="width:16px;height:16px;transform:rotate(${Math.atan2(arr.lat-dep.lat,arr.lng-dep.lng)*180/Math.PI}deg)"><svg viewBox='0 0 24 24' fill='#1565C0' width='16' height='16'><path d='M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z'/></svg></div>`,
+        html: `<div style="width:16px;height:16px;transform:rotate(${Math.atan2(arr.lat-dep.lat,arr.lng-dep.lng)*180/Math.PI}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#1565C0;font-size:14px'></i></div>`,
         iconSize: [16,16], iconAnchor: [8,8]
       });
       const plane = L.marker([midLat, midLng], {icon: planeIcon}).addTo(G.leafletMap);
@@ -2429,13 +2479,16 @@ const G = {
 
   updateMapPlanes() {
     if (!G.leafletMap) return;
+    const now = Date.now() / 1000;
     G.game.routes.forEach((r, idx) => {
       const dep = AIRPORTS.find(a => a.code === r.dep);
       const arr = AIRPORTS.find(a => a.code === r.arr);
       if (!dep || !arr || !G.mapPlanes[idx]) return;
-      const t = ((G.game.week * 0.3) % 1);
-      const lat = dep.lat + (arr.lat - dep.lat) * t;
-      const lng = dep.lng + (arr.lng - dep.lng) * t;
+      const speedFactor = Math.max(0.05, Math.min(0.3, 1200 / Math.max(3000, dist(dep, arr))));
+      const t = ((now * speedFactor) + idx * 0.17) % 1;
+      const arc = Math.sin(Math.PI * t) * 0.12;
+      const lat = dep.lat + (arr.lat - dep.lat) * t + arc * (arr.lng - dep.lng) / 10;
+      const lng = dep.lng + (arr.lng - dep.lng) * t - arc * (arr.lat - dep.lat) / 10;
       G.mapPlanes[idx].setLatLng([lat, lng]);
     });
   },
@@ -2500,7 +2553,7 @@ const G = {
     if (!ac) return;
     const d = dist(dep, arrAp);
     const hours = d / ac.speed;
-    const ticketPrice = 0.12 * d + 80;
+    const ticketPrice = (0.12 * d + 80) * (G.game.ticketMarketIndex || 1);
     const loadFactor = Math.min(0.95, (dep.demand + arrAp.demand) / 200 * G.demandMultiplier);
     const weeklyPax = Math.round(ac.seats * loadFactor * 14);
     const rev = weeklyPax * ticketPrice;
@@ -2561,7 +2614,7 @@ const G = {
     document.getElementById('tb-pax').textContent = fmtN(g.totalPax);
     document.getElementById('tb-routes').textContent = g.routes.length;
     document.getElementById('tb-fleet').textContent = g.fleet.length;
-    document.getElementById('tb-week').textContent = g.week + '주차';
+    document.getElementById('tb-week').textContent = `${g.week}주차 | 운임지수 ${Math.round((g.ticketMarketIndex||1)*100)}%`;
     document.getElementById('tb-fuel').textContent = Math.round(g.fuel) + '%';
     document.getElementById('tb-airline-name').textContent = g.airlineName;
     if (g.logoData) document.getElementById('tb-logo').src = g.logoData;
@@ -2630,7 +2683,7 @@ const G = {
       div.className = 'fleet-card';
       div.innerHTML = `
         <div class="fleet-card-header" style="background:linear-gradient(135deg,${f.color||G.game.brandColor}22,${f.color||G.game.brandColor}44)">
-          ${renderAircraftSVG(ac.svg, f.color||G.game.brandColor, 60, 38)}
+          ${f.photoData ? `<img src="${f.photoData}" style="width:60px;height:38px;object-fit:cover;border-radius:8px">` : renderAircraftSVG(ac.svg, f.color||G.game.brandColor, 60, 38)}
           <div>
             <div class="fleet-ac-name">${ac.name}</div>
             <div class="fleet-ac-reg">${f.reg}</div>
@@ -2680,7 +2733,12 @@ const G = {
       s.classList.toggle('selected', s.dataset.color === custColor);
     });
     document.getElementById('cust-aircraft-id').value = id;
-    updateLiveryPreview();
+    G._custPhotoData = f.photoData || null;
+    if (f.photoData) {
+      document.getElementById('livery-preview').innerHTML = `<img src="${f.photoData}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+    } else {
+      updateLiveryPreview();
+    }
     openModal('modal-customize');
   },
 
@@ -2691,9 +2749,42 @@ const G = {
     f.reg = document.getElementById('cust-reg').value;
     f.nickname = document.getElementById('cust-nick').value;
     f.color = custColor;
+    if (G._custPhotoData) f.photoData = G._custPhotoData;
     closeModal('modal-customize');
     G.renderFleet();
     G.notify('항공기 커스텀 저장됨', 'success');
+  },
+
+
+  renderAlliance() {
+    const info = document.getElementById('alliance-info');
+    const list = document.getElementById('alliance-list');
+    if (!info || !list) return;
+    const joined = ALLIANCE_DATA.find(a => a.id === G.game.allianceId);
+    info.textContent = joined ? `현재 가입: ${joined.name} | 탑승객 +${Math.round(joined.paxBonus*100)}%, 수익 +${Math.round(joined.revenueBonus*100)}%, 비용 -${Math.round(joined.costBonus*100)}%` : '현재 미가입 상태입니다. 항공 동맹 가입 시 수요·수익·비용 보너스를 받을 수 있습니다.';
+    list.innerHTML = '';
+    ALLIANCE_DATA.forEach(a => {
+      const joinedNow = G.game.allianceId === a.id;
+      const card = document.createElement('div');
+      card.className = 'upgrade-card';
+      card.innerHTML = `<div class="upgrade-header"><div><div class="upgrade-name">${a.name}</div><div class="upgrade-desc">${a.desc}</div></div></div>
+      <div style="font-size:12px;color:var(--text2);margin:8px 0">가입비 ${fmt(a.joinCost)} · 탑승객 +${Math.round(a.paxBonus*100)}% · 수익 +${Math.round(a.revenueBonus*100)}% · 비용 -${Math.round(a.costBonus*100)}%</div>
+      <button class="btn-primary" style="width:100%;padding:10px" ${joinedNow?'disabled':''} onclick="G.joinAlliance('${a.id}')">${joinedNow?'가입 완료':'가입하기'}</button>`;
+      list.appendChild(card);
+    });
+  },
+
+  joinAlliance(id) {
+    const a = ALLIANCE_DATA.find(x => x.id === id);
+    if (!a) return;
+    if (G.game.allianceId === id) return;
+    if (G.game.balance < a.joinCost) { G.notify('가입비가 부족합니다', 'error'); return; }
+    G.game.balance -= a.joinCost;
+    G.game.allianceId = id;
+    G.game.transactions.unshift({week:G.game.week,type:'항공 동맹 가입',desc:a.name,amount:-a.joinCost});
+    G.updateTopbar();
+    G.renderAlliance();
+    G.notify(`${a.name} 동맹에 가입했습니다`, 'success');
   },
 
   renderRoutes() {
@@ -2953,8 +3044,8 @@ const G = {
         </div>
         <div class="sns-body">${p.text}</div>
         <div class="sns-actions">
-          <div class="sns-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> ${p.likes}</div>
-          <div class="sns-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> ${p.comments}</div>
+          <div class="sns-action"><i class="fa-regular fa-heart"></i> ${p.likes}</div>
+          <div class="sns-action"><i class="fa-regular fa-comment"></i> ${p.comments}</div>
           <div class="sns-action" style="margin-left:auto;color:${p.positive===true?'var(--green)':p.positive===false?'var(--red)':'var(--text3)'}">${p.positive===true?'긍정':p.positive===false?'부정':'중립'}</div>
         </div>
       </div>`).join('');
