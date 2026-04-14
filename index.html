@@ -2267,19 +2267,91 @@ const OPERATION_EVENTS = [
   {
     id:'protest_delay',
     title:'공항 시위 발생',
-    body:'핵심 공항에서 시위가 발생했습니다. 운항 지연이 예상됩니다.',
+    body:'핵심 공항에서 노동자 시위가 발생했습니다. 당일 운항 지연이 예상됩니다.',
     choices:[
-      {label:'보상 쿠폰 지급',desc:'비용 증가, 평판 보호',apply:(g)=>{ g.costMultiplier *= 1.06; g.reputation=Math.min(5,(g.reputation||1)+0.2);} },
-      {label:'강행 운항',desc:'비용 유지, 평판 하락',apply:(g)=>{ g.reputation=Math.max(1,(g.reputation||1)-0.3);} }
+      {label:'보상 쿠폰 지급',desc:'비용 +6%, 평판 소폭 상승. 단기 손실이지만 브랜드 이미지 보호.',apply:(g)=>{ g.costMultiplier *= 1.06; g.reputation=Math.min(5,(g.reputation||1)+0.2);} },
+      {label:'강행 운항',desc:'비용 유지, 평판 -0.3. 당장 절약되지만 SNS 여론 악화 위험.',apply:(g)=>{ g.reputation=Math.max(1,(g.reputation||1)-0.3);} }
     ]
   },
   {
     id:'cargo_contract',
     title:'대형 화물 계약 제안',
-    body:'글로벌 전자상거래 업체가 단기 화물 계약을 제안했습니다.',
+    body:'글로벌 전자상거래 업체가 12주 단기 화물 계약을 제안했습니다. 수익성은 좋지만 여객 공간을 일부 양보해야 합니다.',
     choices:[
-      {label:'계약 수락',desc:'12주간 화물 수익 증가',apply:(g)=>{ g.demandMultiplier*=1.18; g.costMultiplier*=1.02; }},
-      {label:'계약 거절',desc:'현상 유지',apply:(g)=>{}}
+      {label:'계약 수락',desc:'12주간 수요 +18%, 비용 +2%. 이익은 크나 여객 서비스 품질 소폭 저하.',apply:(g)=>{ g.demandMultiplier*=1.18; g.costMultiplier*=1.02; }},
+      {label:'계약 거절',desc:'현상 유지. 안정적이지만 단기 수익 기회 포기.',apply:(g)=>{}}
+    ]
+  },
+  {
+    id:'fuel_hedge',
+    title:'연료 헤징 계약 만기',
+    body:'기존 연료 헤징 계약이 만료됩니다. 유가 변동성이 높은 시점입니다.',
+    choices:[
+      {label:'고정가 재계약',desc:'비용 +4% 고정, 유가 급등 시 보호. 예측 가능한 비용 구조.',apply:(g)=>{ g.costMultiplier*=1.04; g.oilPriceMultiplier=Math.max(0.8, (g.oilPriceMultiplier||1)*0.85); }},
+      {label:'변동가 유지',desc:'유가 하락 시 이익, 급등 시 손실 위험. 고위험 고수익.',apply:(g)=>{ const roll=Math.random(); if(roll>0.5){g.costMultiplier*=0.95;}else{g.costMultiplier*=1.12;} }}
+    ]
+  },
+  {
+    id:'pilot_shortage',
+    title:'조종사 인력 부족',
+    body:'업계 전반의 조종사 부족으로 인건비가 급등했습니다. 노선 일부 축소 또는 임금 인상 중 선택해야 합니다.',
+    choices:[
+      {label:'임금 인상 수용',desc:'비용 +10%, 조종사 이탈 방지. 장기적으로 운항 안정성 확보.',apply:(g)=>{ g.costMultiplier*=1.10; g.reputation=Math.min(5,(g.reputation||1)+0.15); }},
+      {label:'일부 노선 임시 중단',desc:'단기 수익 -15%, 비용 절감. 단 평판 소폭 하락.',apply:(g)=>{ g.demandMultiplier*=0.85; g.costMultiplier*=0.93; g.reputation=Math.max(1,(g.reputation||1)-0.2); }}
+    ]
+  },
+  {
+    id:'new_alliance_offer',
+    title:'신규 항공사 코드쉐어 제안',
+    body:'중견 항공사가 코드쉐어 파트너십을 요청했습니다. 네트워크 확장 기회지만 수익을 분배해야 합니다.',
+    choices:[
+      {label:'파트너십 수락',desc:'수요 +12%, 수익 분배로 실제 이익 +5%만 증가. 장기 네트워크 강화.',apply:(g)=>{ g.demandMultiplier*=1.12; g.costMultiplier*=1.07; g.reputation=Math.min(5,(g.reputation||1)+0.25); }},
+      {label:'독자 노선 유지',desc:'현상 유지, 수익 독점. 단 네트워크 성장 기회 포기.',apply:(g)=>{ g.costMultiplier*=0.97; }}
+    ]
+  },
+  {
+    id:'weather_disruption',
+    title:'대규모 기상 이변',
+    body:'태풍/눈보라로 주요 허브 공항이 폐쇄될 위험이 있습니다. 사전 대응이 필요합니다.',
+    choices:[
+      {label:'대체 노선 긴급 편성',desc:'비용 +8%, 승객 이탈 방지. 평판 +0.2 상승.',apply:(g)=>{ g.costMultiplier*=1.08; g.reputation=Math.min(5,(g.reputation||1)+0.2); }},
+      {label:'결항 처리',desc:'비용 절감, 평판 -0.4 하락. 환불 민원 급증 위험.',apply:(g)=>{ g.costMultiplier*=0.97; g.reputation=Math.max(1,(g.reputation||1)-0.4); }}
+    ]
+  },
+  {
+    id:'cabin_upgrade',
+    title:'기내 서비스 업그레이드 기회',
+    body:'기내 엔터테인먼트·식음료를 대폭 개선할 기회입니다. 초기 비용이 발생하지만 고객 만족도를 높일 수 있습니다.',
+    choices:[
+      {label:'전면 업그레이드 도입',desc:'비용 +7%, 수요 +10%, 평판 +0.3. 장기 수익성 향상.',apply:(g)=>{ g.costMultiplier*=1.07; g.demandMultiplier*=1.10; g.reputation=Math.min(5,(g.reputation||1)+0.3); }},
+      {label:'현행 유지',desc:'비용 절감, 단기 안정. 경쟁사 대비 서비스 격차 발생 위험.',apply:(g)=>{ g.costMultiplier*=0.99; }}
+    ]
+  },
+  {
+    id:'regulatory_audit',
+    title:'항공 당국 안전 감사',
+    body:'항공 당국의 불시 안전 감사가 예고되었습니다. 정비 강화 여부를 결정해야 합니다.',
+    choices:[
+      {label:'정비 전면 강화',desc:'비용 +9%, 감사 통과 확실. 평판 +0.25, 사고 위험 감소.',apply:(g)=>{ g.costMultiplier*=1.09; g.reputation=Math.min(5,(g.reputation||1)+0.25); }},
+      {label:'현행 정비 수준 유지',desc:'비용 절감. 단 감사 결과에 따라 과징금 위험 50%.',apply:(g)=>{ if(Math.random()>0.5){ g.cash=(g.cash||0)-5000000; g.reputation=Math.max(1,(g.reputation||1)-0.3); G.notify('안전 감사 과징금 500만원 부과!','error'); }else{ G.notify('안전 감사 통과!','success'); } }}
+    ]
+  },
+  {
+    id:'fleet_sale',
+    title:'중고 항공기 긴급 매각 기회',
+    body:'경쟁사가 파산하면서 고품질 중고 항공기가 시장에 나왔습니다. 즉시 구매 여부를 결정해야 합니다.',
+    choices:[
+      {label:'즉시 매입 (1,500만원)',desc:'함대 능력 강화 기회, 단 초기 비용 지출. 장기 수익성 향상.',apply:(g)=>{ if((g.cash||0)>=15000000){ g.cash-=15000000; g.demandMultiplier*=1.08; G.notify('중고 항공기 매입 완료! 수요 +8%','success'); }else{ G.notify('현금 부족으로 매입 실패.','error'); } }},
+      {label:'관망',desc:'현금 보존, 기회 포기. 재정 안정성 유지.',apply:(g)=>{ g.costMultiplier*=0.98; }}
+    ]
+  },
+  {
+    id:'sustainability_pressure',
+    title:'친환경 운항 압박',
+    body:'환경단체와 정부가 탄소 배출 감축을 요구하고 있습니다. 친환경 전환 여부를 결정하세요.',
+    choices:[
+      {label:'SAF 연료 도입',desc:'비용 +12%, 평판 +0.4, 탄소 크레딧 수혜. 미래 규제 선제 대응.',apply:(g)=>{ g.costMultiplier*=1.12; g.reputation=Math.min(5,(g.reputation||1)+0.4); g.demandMultiplier*=1.05; }},
+      {label:'현행 유지',desc:'비용 절감. 단 환경 이슈 평판 -0.2, 규제 강화 시 리스크.',apply:(g)=>{ g.reputation=Math.max(1,(g.reputation||1)-0.2); g.costMultiplier*=0.96; }}
     ]
   }
 ];
@@ -3064,17 +3136,48 @@ const G = {
     G.mapPlanes = {};
     G.mapPlaneMeta = {};
 
+    // Great Circle path generator: returns an array of [lat,lng] points
+    function greatCirclePoints(lat1, lng1, lat2, lng2, numPoints) {
+      const toRad = d => d * Math.PI / 180;
+      const toDeg = r => r * 180 / Math.PI;
+      const φ1 = toRad(lat1), λ1 = toRad(lng1);
+      const φ2 = toRad(lat2), λ2 = toRad(lng2);
+      const pts = [];
+      for (let i = 0; i <= numPoints; i++) {
+        const f = i / numPoints;
+        const δ = 2 * Math.asin(Math.sqrt(
+          Math.sin((φ2 - φ1) / 2) ** 2 +
+          Math.cos(φ1) * Math.cos(φ2) * Math.sin((λ2 - λ1) / 2) ** 2
+        ));
+        if (δ < 0.0001) { pts.push([lat1, lng1]); continue; }
+        const A = Math.sin((1 - f) * δ) / Math.sin(δ);
+        const B = Math.sin(f * δ) / Math.sin(δ);
+        const x = A * Math.cos(φ1) * Math.cos(λ1) + B * Math.cos(φ2) * Math.cos(λ2);
+        const y = A * Math.cos(φ1) * Math.sin(λ1) + B * Math.cos(φ2) * Math.sin(λ2);
+        const z = A * Math.sin(φ1) + B * Math.sin(φ2);
+        const φ = Math.atan2(z, Math.sqrt(x * x + y * y));
+        const λ = Math.atan2(y, x);
+        pts.push([toDeg(φ), toDeg(λ)]);
+      }
+      return pts;
+    }
+
     G.game.routes.forEach((r, idx) => {
       const dep = AIRPORTS.find(a => a.code === r.dep);
       const arr = AIRPORTS.find(a => a.code === r.arr);
       if (!dep || !arr) return;
-      const deltaLng = arr.lng - dep.lng;
-      const targetLng = deltaLng > 180 ? arr.lng - 360 : (deltaLng < -180 ? arr.lng + 360 : arr.lng);
-      const line = L.polyline([[dep.lat, dep.lng],[arr.lat, targetLng]], {
+
+      // Generate great circle path (60 segments for smooth curve)
+      const gcPoints = greatCirclePoints(dep.lat, dep.lng, arr.lat, arr.lng, 60);
+
+      // Leaflet antimeridian wrapping: split if needed
+      const line = L.polyline(gcPoints, {
         color: '#1565C0', weight: 1.5, opacity: 0.5, dashArray: '6,4'
       }).addTo(G.leafletMap);
       G.mapRouteLines[idx] = line;
-      G.mapPlaneMeta[idx] = {depLat: dep.lat, depLng: dep.lng, arrLat: arr.lat, arrLng: targetLng};
+
+      // Store great circle points for plane animation
+      G.mapPlaneMeta[idx] = {gcPoints, depLat: dep.lat, depLng: dep.lng, arrLat: arr.lat, arrLng: arr.lng};
 
       // Animated plane
       const midLat = (dep.lat + arr.lat) / 2;
@@ -3097,13 +3200,19 @@ const G = {
     const now = Date.now() / 1000;
     G.game.routes.forEach((r, idx) => {
       const meta = G.mapPlaneMeta[idx];
-      if (!meta || !G.mapPlanes[idx]) return;
+      if (!meta || !G.mapPlanes[idx] || !meta.gcPoints || meta.gcPoints.length < 2) return;
+
       const pseudoDist = Math.max(3000, Math.hypot(meta.arrLat - meta.depLat, meta.arrLng - meta.depLng) * 111);
       const speedFactor = Math.max(0.05, Math.min(0.3, 1200 / pseudoDist));
       const t = ((now * speedFactor) + idx * 0.17) % 1;
-      const lat = meta.depLat + (meta.arrLat - meta.depLat) * t;
-      const lngRaw = meta.depLng + (meta.arrLng - meta.depLng) * t;
-      const lng = ((lngRaw + 540) % 360) - 180;
+
+      // Interpolate along great circle points
+      const pts = meta.gcPoints;
+      const pos = t * (pts.length - 1);
+      const i = Math.min(Math.floor(pos), pts.length - 2);
+      const frac = pos - i;
+      const lat = pts[i][0] + (pts[i + 1][0] - pts[i][0]) * frac;
+      const lng = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * frac;
       G.mapPlanes[idx].setLatLng([lat, lng]);
     });
   },
@@ -3399,11 +3508,13 @@ const G = {
     document.getElementById('speed-btn').textContent = '이벤트 대기중';
     document.getElementById('op-event-title').textContent = ev.title;
     document.getElementById('op-event-body').textContent = ev.body;
-    document.getElementById('op-event-effect').textContent = '선택에 따라 1~2주 동안 비용/수요/평판에 영향이 발생합니다.';
+    document.getElementById('op-event-effect').textContent = '⚠️ 선택에 따라 비용·수요·평판에 즉시 영향이 발생합니다.';
     const btnA = document.getElementById('op-event-choice-a');
     const btnB = document.getElementById('op-event-choice-b');
-    btnA.textContent = ev.choices[0].label;
-    btnB.textContent = ev.choices[1].label;
+    btnA.innerHTML = `<strong>${ev.choices[0].label}</strong><br><span style="font-size:11px;font-weight:400;opacity:0.85">${ev.choices[0].desc}</span>`;
+    btnB.innerHTML = `<strong>${ev.choices[1].label}</strong><br><span style="font-size:11px;font-weight:400;opacity:0.85">${ev.choices[1].desc}</span>`;
+    btnA.style.cssText = 'line-height:1.4; padding:14px 18px; text-align:left; white-space:normal;';
+    btnB.style.cssText = 'line-height:1.4; padding:14px 18px; text-align:left; white-space:normal;';
     btnA.onclick = () => G.applyOperationalChoice(ev, 0);
     btnB.onclick = () => G.applyOperationalChoice(ev, 1);
     openModal('modal-op-event');
