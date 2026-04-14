@@ -1261,7 +1261,6 @@
       <div class="stat-pill"><span class="label">기단</span><span id="tb-fleet">0</span></div>
       <div class="stat-pill"><span class="label">연료</span><span id="tb-fuel">100%</span></div>
     </div>
-    <div class="week-display" id="tb-week">1주차</div>
     <div class="topbar-actions">
       <button class="speed-btn" id="speed-btn" onclick="G.togglePause()">일시정지</button>
       <button class="speed-btn" style="background:var(--text2)" onclick="G.showSaveGame()">저장</button>
@@ -1310,7 +1309,7 @@
         석유 구매
       </div>
       <div class="nav-section-title">정보</div>
-      <div class="nav-item" onclick="setPanel('news')">
+      <div class="nav-item" id="nav-news-item" onclick="setPanel('news')">
         <div class="nav-icon"><i class="fa-solid fa-newspaper"></i></div>
         뉴스
       </div>
@@ -1343,6 +1342,24 @@
             <div class="fuel-warn" id="fuel-warn-map">연료 부족! 노선 일부 중단 중</div>
             <button id="free-airport-btn" class="btn-secondary" style="display:none;margin-top:8px;padding:8px 12px" onclick="G.toggleFreeAirportBuild()">프리 공항 건설: OFF</button>
           </div>
+          <!-- 주차 표시 (지도 좌하단) -->
+          <div id="map-week-display" style="
+            position: absolute;
+            bottom: 48px;
+            left: 12px;
+            z-index: 1000;
+            background: rgba(255,255,255,0.92);
+            border: 1.5px solid var(--sky-mid);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--sky);
+            box-shadow: 0 2px 8px rgba(21,101,192,0.13);
+            pointer-events: none;
+            white-space: nowrap;
+          ">1주차</div>
           <!-- 뉴스 티커 -->
           <div id="map-news-ticker" style="
             display:none;
@@ -1445,7 +1462,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin-top:12px">
+        <div class="card" id="fin-loan-challenge-card" style="margin-top:12px">
           <div class="section-title" style="font-size:15px;margin-bottom:12px">대출 센터</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
             <div style="border:1px solid #E3EEF9;border-radius:14px;padding:14px;background:linear-gradient(135deg,#F7FBFF,#EEF5FF)">
@@ -2572,6 +2589,7 @@ const G = {
       allianceId: null,
       ticketMarketIndex: 1,
       loanDebt: 0,
+      loanTakenWeek: 0,
       claimedChallenges: [],
       autoSaveSlot: 'auto',
     };
@@ -2814,6 +2832,11 @@ const G = {
     document.getElementById('speed-btn').textContent = '일시정지';
     G.gameInterval = setInterval(() => { if (!G.paused) G.tick(); }, 7000);
     G.mapAnimInterval = setInterval(() => { if (!G.paused) G.updateMapPlanes(); }, 80);
+
+    // 프리 모드: 뉴스 탭 숨기기
+    const newsNavItem = document.getElementById('nav-news-item');
+    if (newsNavItem) newsNavItem.style.display = G.game.mode === 'free' ? 'none' : '';
+
     G.notify(`${G.game.airlineName} 운항 시작!`, 'success');
   },
 
@@ -2833,6 +2856,7 @@ const G = {
     if (!Array.isArray(G.game.pendingEvents)) G.game.pendingEvents = [];
     selectedColorSettings = G.game.brandColor;
     G.game.loanDebt = Number(G.game.loanDebt || 0);
+    if (typeof G.game.loanTakenWeek === 'undefined') G.game.loanTakenWeek = 0;
     if (typeof G.game.autoSaveSlot === 'undefined') G.game.autoSaveSlot = 'auto';
     G.game.routes = G.game.routes
       .filter(r => r && r.dep && r.arr && r.fleetId && r.aircraftId)
@@ -2865,15 +2889,28 @@ const G = {
     // Oil price fluctuation
     G.fluctuateOilPrices();
 
-    // Random news
-    if (G.game.week % 4 === 0) G.generateNews();
-    if (G.game.week % 12 === 0) G.triggerOperationalEvent();
+    // Random news & operational events (프리 모드 제외)
+    if (G.game.mode !== 'free') {
+      if (G.game.week % 4 === 0) G.generateNews();
+      if (G.game.week % 12 === 0) G.triggerOperationalEvent();
+    }
 
     // Reputation changes
     G.checkReputation();
 
-    // Loan interest
-    G.applyLoanInterest();
+    // Loan interest (프리 모드 제외)
+    if (G.game.mode !== 'free') G.applyLoanInterest();
+
+    // 프리 모드: 24주 후 대출 자동 소멸
+    if (G.game.mode === 'free' && G.game.loanDebt > 0) {
+      if (!G.game.loanTakenWeek) G.game.loanTakenWeek = G.game.week;
+      if (G.game.week - G.game.loanTakenWeek >= 24) {
+        G.game.transactions.unshift({week:G.game.week,type:'대출 소멸',desc:'프리 모드 24주 자동 소멸',amount:G.game.loanDebt});
+        G.game.loanDebt = 0;
+        G.game.loanTakenWeek = 0;
+        G.notify('대출금이 24주 경과로 자동 소멸되었습니다.', 'info');
+      }
+    }
 
     G.game.weeklyProfit = G.weeklyRevenue - G.weeklyCost;
     G.game.totalRevenue += G.weeklyRevenue;
@@ -3338,7 +3375,9 @@ const G = {
     document.getElementById('tb-pax').textContent = fmtN(g.totalPax);
     document.getElementById('tb-routes').textContent = g.routes.length;
     document.getElementById('tb-fleet').textContent = g.fleet.length;
-    document.getElementById('tb-week').textContent = `${g.week}주차 | 운임지수 ${Math.round((g.ticketMarketIndex||1)*100)}%`;
+    document.getElementById('tb-week') && (document.getElementById('tb-week').textContent = `${g.week}주차 | 운임지수 ${Math.round((g.ticketMarketIndex||1)*100)}%`);
+    const mapWeek = document.getElementById('map-week-display');
+    if (mapWeek) mapWeek.textContent = `${g.week}주차 | 운임지수 ${Math.round((g.ticketMarketIndex||1)*100)}%`;
     document.getElementById('tb-fuel').textContent = Math.round(g.fuel) + '%';
     document.getElementById('tb-airline-name').textContent = g.airlineName;
     document.getElementById('tb-airline-name').style.color = g.brandColor || 'var(--sky)';
@@ -3636,6 +3675,7 @@ const G = {
     if (debt + amount > limit) { G.notify('대출 한도를 초과했습니다', 'error'); return; }
     G.game.loanDebt = debt + amount;
     G.game.balance += amount;
+    if (G.game.mode === 'free' && !G.game.loanTakenWeek) G.game.loanTakenWeek = G.game.week;
     G.game.transactions.unshift({week:G.game.week,type:'대출 실행',desc:'운영자금 대출',amount:amount});
     if (G.game.transactions.length > 100) G.game.transactions.pop();
     G.renderFinance();
@@ -3688,6 +3728,7 @@ const G = {
 
   renderFinance() {
     const g = G.game;
+    const isFree = g.mode === 'free';
     document.getElementById('fin-assets').textContent = fmt(g.balance);
     const wp = g.weeklyProfit || 0;
     const wpEl = document.getElementById('fin-weekly');
@@ -3695,6 +3736,10 @@ const G = {
     wpEl.className = 'fc-value ' + (wp >= 0 ? 'positive' : 'negative');
     document.getElementById('fin-revenue').textContent = fmt(g.totalRevenue);
     document.getElementById('fin-cost').textContent = fmt(g.totalCost);
+
+    // 프리 모드에서 대출 센터 & 도전 과제 카드 숨기기
+    const loanCard = document.getElementById('fin-loan-challenge-card');
+    if (loanCard) loanCard.style.display = isFree ? 'none' : '';
 
     const debt = Number(g.loanDebt || 0);
     const limit = G.getLoanLimit();
