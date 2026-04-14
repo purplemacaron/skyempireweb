@@ -1200,15 +1200,11 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">브랜드 색상</label>
-      <div class="color-row" id="color-row">
-        <div class="color-swatch selected" style="background:#1565C0" data-color="#1565C0" onclick="selectColor(this)"></div>
-        <div class="color-swatch" style="background:#00897B" data-color="#00897B" onclick="selectColor(this)"></div>
-        <div class="color-swatch" style="background:#E53935" data-color="#E53935" onclick="selectColor(this)"></div>
-        <div class="color-swatch" style="background:#F9A825" data-color="#F9A825" onclick="selectColor(this)"></div>
-        <div class="color-swatch" style="background:#6A1B9A" data-color="#6A1B9A" onclick="selectColor(this)"></div>
-        <div class="color-swatch" style="background:#212121" data-color="#212121" onclick="selectColor(this)"></div>
-      </div>
+      <label class="form-label">게임 모드</label>
+      <select class="form-input" id="setup-mode">
+        <option value="normal">일반 모드</option>
+        <option value="free">프리 모드 (무한 자금 + 공항 생성)</option>
+      </select>
     </div>
 
     <div class="form-group">
@@ -1345,6 +1341,7 @@
           <div id="leaflet-map"></div>
           <div class="map-overlay">
             <div class="fuel-warn" id="fuel-warn-map">연료 부족! 노선 일부 중단 중</div>
+            <button id="free-airport-btn" class="btn-secondary" style="display:none;margin-top:8px;padding:8px 12px" onclick="G.toggleFreeAirportBuild()">프리 공항 건설: OFF</button>
           </div>
           <!-- 뉴스 티커 -->
           <div id="map-news-ticker" style="
@@ -1478,8 +1475,8 @@
             <div style="border:1px solid #F0E7D4;border-radius:14px;padding:14px;background:linear-gradient(135deg,#FFFDF8,#FFF7E8)">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px">
                 <div>
-                  <div class="section-title" style="font-size:15px;margin-bottom:4px">고난도 도전 과제</div>
-                  <div style="font-size:12px;color:var(--text2)">달성 후 직접 보상을 수령하면 난이도에 따라 100만~200만 달러를 즉시 받습니다.</div>
+                  <div class="section-title" style="font-size:15px;margin-bottom:4px">도전 과제</div>
+                  <div style="font-size:12px;color:var(--text2)">달성 후 직접 보상을 수령하면 자금과 특별 항공기 보상을 받습니다.</div>
                 </div>
                 <div id="fin-challenge-summary" style="font-size:12px;font-weight:700;color:var(--sky)">0 / 0 수령</div>
               </div>
@@ -1830,16 +1827,6 @@
       <label class="form-label">닉네임</label>
       <input class="form-input" id="cust-nick" placeholder="Spirit of Seoul">
     </div>
-    <div class="form-group">
-      <label class="form-label">도장 색상</label>
-      <div class="color-row" id="cust-color-row">
-        <div class="color-swatch selected" style="background:#1565C0" data-color="#1565C0" onclick="selectColorCust(this)"></div>
-        <div class="color-swatch" style="background:#00897B" data-color="#00897B" onclick="selectColorCust(this)"></div>
-        <div class="color-swatch" style="background:#E53935" data-color="#E53935" onclick="selectColorCust(this)"></div>
-        <div class="color-swatch" style="background:#F9A825" data-color="#F9A825" onclick="selectColorCust(this)"></div>
-        <div class="color-swatch" style="background:#212121" data-color="#212121" onclick="selectColorCust(this)"></div>
-      </div>
-    </div>
     <div class="livery-preview" id="livery-preview"></div>
     <div class="form-group">
       <label class="form-label">항공기 사진 업로드</label>
@@ -1849,6 +1836,20 @@
     <div style="margin-top:20px;display:flex;gap:12px">
       <button class="btn-secondary" style="flex:1" onclick="closeModal('modal-customize')">취소</button>
       <button class="btn-primary" style="flex:2" onclick="G.saveCustomize()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== OPERATION EVENT MODAL ===== -->
+<div class="modal-overlay" id="modal-op-event">
+  <div class="modal-box" style="width:560px">
+    <div class="modal-title">실무 이벤트</div>
+    <div id="op-event-title" style="font-weight:800;font-size:18px;margin-bottom:8px"></div>
+    <div id="op-event-body" style="font-size:14px;line-height:1.7;color:var(--text2);margin-bottom:16px"></div>
+    <div id="op-event-effect" style="font-size:12px;color:var(--text3);margin-bottom:14px"></div>
+    <div style="display:flex;gap:10px">
+      <button id="op-event-choice-a" class="btn-secondary" style="flex:1"></button>
+      <button id="op-event-choice-b" class="btn-primary" style="flex:1"></button>
     </div>
   </div>
 </div>
@@ -1921,6 +1922,7 @@ function updateAuthUI(user) {
 const AIRPORTS = [
   // Hub airports
   {code:'ICN',name:'인천국제',city:'서울',country:'한국',lat:37.4602,lng:126.4407,type:'hub',demand:95},
+  {code:'ANCF',name:'테드스티븐스 화물허브',city:'앵커리지',country:'미국',lat:61.1743,lng:-149.9985,type:'cargo_hub',demand:88},
   {code:'JFK',name:'존F케네디',city:'뉴욕',country:'미국',lat:40.6413,lng:-73.7781,type:'hub',demand:90},
   {code:'LHR',name:'히드로',city:'런던',country:'영국',lat:51.4700,lng:-0.4543,type:'hub',demand:92},
   {code:'CDG',name:'샤를드골',city:'파리',country:'프랑스',lat:49.0097,lng:2.5479,type:'hub',demand:88},
@@ -2058,6 +2060,26 @@ EXTRA_INTERNATIONAL_AIRPORTS.forEach((a, i) => {
   if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:52 + (i%22)});
 });
 
+const COUNTRY_MINIMUM_AIRPORTS = [
+  ['KTM','트리부반','카트만두','네팔',27.6966,85.3591],['DAC','샤잘랄','다카','방글라데시',23.8433,90.3978],['ULN','칭기즈칸','울란바토르','몽골',47.8431,106.7666],
+  ['ALA','알마티','알마티','카자흐스탄',43.3521,77.0405],['TAS','타슈켄트','타슈켄트','우즈베키스탄',41.2579,69.2812],['FRU','마나스','비슈케크','키르기스스탄',43.0613,74.4776],
+  ['DUSH','두샨베','두샨베','타지키스탄',38.5433,68.8248],['ASB','아슈하바트','아슈하바트','투르크메니스탄',37.9868,58.3610],['IKA','이맘호메이니','테헤란','이란',35.4161,51.1522],
+  ['BEY','라픽하리리','베이루트','레바논',33.8209,35.4884],['BGW','바그다드국제','바그다드','이라크',33.2625,44.2346],['DAM','다마스쿠스','다마스쿠스','시리아',33.4115,36.5156],
+  ['KBL','하미드카르자이','카불','아프가니스탄',34.5659,69.2123],['MLE','벨라나','말레','몰디브',4.1918,73.5291],['CMB','반다라나이케','콜롬보','스리랑카',7.1808,79.8841],
+  ['MCT2','무스카트2','무스카트','오만',23.5932,58.2844],['DMM','킹파드','담맘','사우디아라비아',26.4712,49.7979],['SZX2','선전2','선전','중국',22.6393,113.8107],
+  ['HNL','호놀룰루','호놀룰루','미국(하와이)',21.3187,-157.9225],['GUM','안토니오완팻','하갓냐','괌',13.4839,144.7960],['PPT','파아','파페에테','프랑스령폴리네시아',-17.5537,-149.6063],
+  ['HAV','호세마르티','아바나','쿠바',22.9892,-82.4091],['SJU','루이스무뇨스마린','산후안','푸에르토리코',18.4394,-66.0018],['KIN','노먼맨리','킹스턴','자메이카',17.9357,-76.7875],
+  ['NAS','린든핀들링','나소','바하마',25.0390,-77.4662],['POS','피아르코','포트오브스페인','트리니다드토바고',10.5954,-61.3372],['SDQ','라스아메리카스','산토도밍고','도미니카공화국',18.4297,-69.6689],
+  ['GUA','라아우로라','과테말라시티','과테말라',14.5833,-90.5275],['SJO','후안산타마리아','산호세','코스타리카',9.9939,-84.2088],['MGA','아우구스토세사르산디노','마나과','니카라과',12.1415,-86.1682],
+  ['SAL','엘살바도르국제','산살바도르','엘살바도르',13.4409,-89.0557],['TGU','톤콘틴','테구시갈파','온두라스',14.0609,-87.2172],['BZE','필립골드슨','벨리즈시티','벨리즈',17.5391,-88.3082],
+  ['LFW','뇨팅','로메','토고',6.1656,1.2545],['OUA','와가두구','와가두구','부르키나파소',12.3532,-1.5124],['NIM','디오리하마니','니아메','니제르',13.4815,2.1836],
+  ['BKO','모디보케이타','바마코','말리',12.5335,-7.9499],['KRT','하르툼국제','하르툼','수단',15.5895,32.5532],['JUB','주바국제','주바','남수단',4.8720,31.6011],
+  ['GCM','오웬로버츠','조지타운','케이맨제도',19.2928,-81.3577],['VLI','바우어필드','포트빌라','바누아투',-17.6993,168.3200],['APW','파갈리이','아피아','사모아',-13.8299,-171.9984]
+];
+COUNTRY_MINIMUM_AIRPORTS.forEach((a, i) => {
+  if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:50 + (i%20)});
+});
+
 const AIRCRAFT_DATA = [
   // Small
   {id:'CRJ200',name:'CRJ-200',maker:'봄바디에',category:'small',seats:50,range:3150,speed:785,fuelPerHour:1800,price:15000000,opCostPerHour:3200,svg:'small'},
@@ -2174,6 +2196,57 @@ const CHALLENGE_DATA = [
     reward:2000000,
     condition:(g)=>(g.totalRevenue||0) >= 300000000 && !!g.allianceId,
     progress:(g)=>`누적 수익 ${fmt(g.totalRevenue||0)} / 목표 ${fmt(300000000)}${g.allianceId ? ' · 동맹 가입 완료' : ' · 동맹 미가입'}`
+  },
+  {
+    id:'cargo_king',
+    name:'화물 왕국',
+    desc:'화물 노선 4개 이상 + 화물 허브 노선 1개 이상',
+    reward:2500000,
+    rewardAircraft:'B777F',
+    condition:(g)=>(g.routes||[]).filter(r => {
+      const ac = AIRCRAFT_DATA.find(a => a.id === r.aircraftId);
+      return ac && ac.category === 'cargo';
+    }).length >= 4 && (g.routes||[]).some(r => {
+      const dep = AIRPORTS.find(a => a.code === r.dep);
+      const arr = AIRPORTS.find(a => a.code === r.arr);
+      return dep?.type === 'cargo_hub' || arr?.type === 'cargo_hub';
+    }),
+    progress:(g)=>{
+      const cargoRoutes = (g.routes||[]).filter(r => {
+        const ac = AIRCRAFT_DATA.find(a => a.id === r.aircraftId);
+        return ac && ac.category === 'cargo';
+      }).length;
+      const hasHub = (g.routes||[]).some(r => {
+        const dep = AIRPORTS.find(a => a.code === r.dep);
+        const arr = AIRPORTS.find(a => a.code === r.arr);
+        return dep?.type === 'cargo_hub' || arr?.type === 'cargo_hub';
+      });
+      return `화물노선 ${cargoRoutes}/4 · 화물허브 연계 ${hasHub?'완료':'미완료'}`;
+    }
+  },
+  {
+    id:'global_coverage',
+    name:'월드 커버리지',
+    desc:'국가 40개 이상 연결',
+    reward:1800000,
+    condition:(g)=>{
+      const countries = new Set();
+      (g.routes||[]).forEach(r=>{
+        const d=AIRPORTS.find(a=>a.code===r.dep), a=AIRPORTS.find(a=>a.code===r.arr);
+        if(d?.country) countries.add(d.country);
+        if(a?.country) countries.add(a.country);
+      });
+      return countries.size >= 40;
+    },
+    progress:(g)=>{
+      const countries = new Set();
+      (g.routes||[]).forEach(r=>{
+        const d=AIRPORTS.find(a=>a.code===r.dep), a=AIRPORTS.find(a=>a.code===r.arr);
+        if(d?.country) countries.add(d.country);
+        if(a?.country) countries.add(a.country);
+      });
+      return `현재 ${countries.size}개국 / 목표 40개국`;
+    }
   }
 ];
 
@@ -2181,13 +2254,34 @@ const NEWS_POOL = [
   {title:'국제 유가 급등',body:'중동 지역 분쟁으로 국제 유가가 급등하였습니다. 연료비가 증가합니다.',type:'negative',effect:(g)=>{g.oilPriceMultiplier=1.3; g.notify('유가 급등! 연료비 +30%','warning');}},
   {title:'항공 수요 증가',body:'여름 성수기로 항공 수요가 크게 증가하였습니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.2; g.notify('수요 증가! 탑승률 +20%','success');}},
   {title:'태풍 주의보',body:'동아시아 지역에 태풍이 접근하고 있습니다. 일부 노선이 영향을 받을 수 있습니다.',type:'negative',effect:(g)=>{g.notify('태풍 주의보 발령','warning');}},
-  {title:'새 국제 협약',body:'한국이 10개국과 새로운 항공 협약을 체결하였습니다. 노선 수요가 증가합니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.15;}},
+  {title:'새 국제 협약',body:'다수 국가가 새로운 항공 협약을 체결했습니다. 노선 수요가 증가합니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.15;}},
   {title:'경쟁 항공사 파산',body:'경쟁 항공사 중 한 곳이 파산하였습니다. 수요가 일부 이전될 것으로 보입니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.1; g.reputation=Math.min(5,g.reputation+0.1);}},
   {title:'공항 혼잡',body:'인천공항이 혼잡으로 인해 지연이 발생하고 있습니다.',type:'event',effect:(g)=>{}},
   {title:'환경 규제 강화',body:'국제 환경 규제로 탄소 비용이 추가됩니다.',type:'negative',effect:(g)=>{g.costMultiplier=1.05;}},
-  {title:'관광 붐',body:'한국 관광 붐으로 인바운드 수요가 급증하였습니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.25;}},
+  {title:'관광 붐',body:'글로벌 관광 수요가 급증했습니다.',type:'positive',effect:(g)=>{g.demandMultiplier=1.25;}},
   {title:'기술 혁신',body:'새로운 항공기 기술이 연료 효율을 높입니다.',type:'positive',effect:(g)=>{g.fuelEfficiency=Math.min(1.4,g.fuelEfficiency+0.05);}},
   {title:'파업 경고',body:'공항 노동자들이 파업을 예고했습니다. 운영에 영향을 줄 수 있습니다.',type:'negative',effect:(g)=>{g.costMultiplier=1.03;}},
+];
+
+const OPERATION_EVENTS = [
+  {
+    id:'protest_delay',
+    title:'공항 시위 발생',
+    body:'핵심 공항에서 시위가 발생했습니다. 운항 지연이 예상됩니다.',
+    choices:[
+      {label:'보상 쿠폰 지급',desc:'비용 증가, 평판 보호',apply:(g)=>{ g.costMultiplier *= 1.06; g.reputation=Math.min(5,(g.reputation||1)+0.2);} },
+      {label:'강행 운항',desc:'비용 유지, 평판 하락',apply:(g)=>{ g.reputation=Math.max(1,(g.reputation||1)-0.3);} }
+    ]
+  },
+  {
+    id:'cargo_contract',
+    title:'대형 화물 계약 제안',
+    body:'글로벌 전자상거래 업체가 단기 화물 계약을 제안했습니다.',
+    choices:[
+      {label:'계약 수락',desc:'12주간 화물 수익 증가',apply:(g)=>{ g.demandMultiplier*=1.18; g.costMultiplier*=1.02; }},
+      {label:'계약 거절',desc:'현상 유지',apply:(g)=>{}}
+    ]
+  }
 ];
 
 const SOCIAL_POSTS_POSITIVE = [
@@ -2278,13 +2372,6 @@ function defaultAirlineLogo(color = '#1565C0') {
   return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><rect width='28' height='28' rx='6' fill='${safe}'/><path d='M6 14 L22 14 M14 6 L14 22' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>`;
 }
 
-let selectedColor = '#1565C0';
-function selectColor(el) {
-  document.querySelectorAll('#color-row .color-swatch').forEach(s => s.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedColor = el.dataset.color;
-}
-
 let selectedColorSettings = '#1565C0';
 function syncBrandColorSwatches(color) {
   ['#set-color-row .color-swatch', '#brand-color-row .color-swatch'].forEach(selector => {
@@ -2302,16 +2389,8 @@ function selectColorSettings(el, source = 'settings') {
   G.updateSettings();
 }
 
-let custColor = '#1565C0';
-function selectColorCust(el) {
-  document.querySelectorAll('#cust-color-row .color-swatch').forEach(s => s.classList.remove('selected'));
-  el.classList.add('selected');
-  custColor = el.dataset.color;
-  updateLiveryPreview();
-}
-
 function updateLiveryPreview() {
-  document.getElementById('livery-preview').innerHTML = renderAircraftSVG('medium', custColor, 100, 60);
+  document.getElementById('livery-preview').innerHTML = renderAircraftSVG('medium', '#1565C0', 100, 60);
 }
 
 function loadLogo(input) {
@@ -2357,7 +2436,8 @@ function filterAC(cat, btn) {
   G.renderMarket(cat);
 }
 
-function acCategoryIcon() {
+function acCategoryIcon(category='passenger') {
+  if (category === 'cargo') return 'fa-boxes-stacked';
   return 'fa-plane';
 }
 
@@ -2398,6 +2478,10 @@ const G = {
       brandColor: '#1565C0',
       logoData: null,
       balance: 50000000,
+      mode: 'normal',
+      freeBuildEnabled: false,
+      customAirports: [],
+      pendingEvents: [],
       week: 1,
       fleet: [],
       routes: [],
@@ -2437,7 +2521,7 @@ const G = {
       const div = document.createElement('div');
       div.className = 'save-slot' + (save ? '' : ' empty');
       if (save) {
-        div.innerHTML = `<div><div class="slot-name">${save.airlineName}</div><div class="slot-info">${save.week}주차 | 잔고: ${fmt(save.balance)}</div></div><button class="slot-delete" onclick="G.deleteSlot(${i},event)">삭제</button>`;
+        div.innerHTML = `<div><div class="slot-name">${save.airlineName}</div><div class="slot-info">${save.mode==='free'?'프리 모드 | ':''}${save.week}주차 | 잔고: ${fmt(save.balance)}</div></div><button class="slot-delete" onclick="G.deleteSlot(${i},event)">삭제</button>`;
         div.addEventListener('click', e => { if (!e.target.classList.contains('slot-delete')) G.loadGame(i); });
       } else {
         div.innerHTML = `<div><div class="slot-name" style="color:var(--text3)">빈 슬롯 ${i+1}</div></div>`;
@@ -2448,7 +2532,7 @@ const G = {
     const autoDiv = document.createElement('div');
     autoDiv.className = 'save-slot' + (autoSave ? '' : ' empty');
     if (autoSave) {
-      autoDiv.innerHTML = `<div><div class="slot-name">자동저장 전용 슬롯</div><div class="slot-info">${autoSave.week}주차 | 잔고: ${fmt(autoSave.balance)}</div></div><button class="slot-delete" onclick="G.deleteSlot('auto',event)">삭제</button>`;
+      autoDiv.innerHTML = `<div><div class="slot-name">자동저장 전용 슬롯</div><div class="slot-info">${autoSave.mode==='free'?'프리 모드 | ':''}${autoSave.week}주차 | 잔고: ${fmt(autoSave.balance)}</div></div><button class="slot-delete" onclick="G.deleteSlot('auto',event)">삭제</button>`;
       autoDiv.addEventListener('click', e => { if (!e.target.classList.contains('slot-delete')) G.loadGame('auto'); });
     } else {
       autoDiv.innerHTML = `<div><div class="slot-name" style="color:var(--text3)">자동저장 전용 슬롯 (비어 있음)</div></div>`;
@@ -2590,10 +2674,16 @@ const G = {
   startNewGame() {
     const name = document.getElementById('setup-name').value.trim() || 'SkyEmpire Airlines';
     const slogan = document.getElementById('setup-slogan').value.trim() || '하늘을 연결합니다';
+    const mode = document.getElementById('setup-mode').value || 'normal';
     G.game = G.defaultGame();
     G.game.airlineName = name;
     G.game.slogan = slogan;
-    G.game.brandColor = selectedColor;
+    G.game.mode = mode;
+    G.game.brandColor = '#1565C0';
+    if (mode === 'free') {
+      G.game.balance = 999999999999;
+      G.game.fuel = 100;
+    }
     if (G._setupLogoData) G.game.logoData = G._setupLogoData;
     G.oilPriceMultiplier = 1;
     G.demandMultiplier = 1;
@@ -2665,6 +2755,10 @@ const G = {
     if (!G.game.slogan || !String(G.game.slogan).trim()) G.game.slogan = '하늘을 연결합니다';
     if (!G.game.brandColor) G.game.brandColor = '#1565C0';
     if (typeof G.game.logoData === 'undefined') G.game.logoData = null;
+    if (!G.game.mode) G.game.mode = 'normal';
+    if (typeof G.game.freeBuildEnabled === 'undefined') G.game.freeBuildEnabled = false;
+    if (!Array.isArray(G.game.customAirports)) G.game.customAirports = [];
+    if (!Array.isArray(G.game.pendingEvents)) G.game.pendingEvents = [];
     selectedColorSettings = G.game.brandColor;
     G.game.loanDebt = Number(G.game.loanDebt || 0);
     if (typeof G.game.autoSaveSlot === 'undefined') G.game.autoSaveSlot = 'auto';
@@ -2701,6 +2795,7 @@ const G = {
 
     // Random news
     if (G.game.week % 4 === 0) G.generateNews();
+    if (G.game.week % 12 === 0) G.triggerOperationalEvent();
 
     // Reputation changes
     G.checkReputation();
@@ -2712,6 +2807,7 @@ const G = {
     G.game.totalRevenue += G.weeklyRevenue;
     G.game.totalCost += G.weeklyCost;
     G.game.balance += G.game.weeklyProfit;
+    if (G.game.mode === 'free') G.game.balance = 999999999999;
 
     if (G.weeklyRevenue > 0 || G.weeklyCost > 0) {
       G.game.transactions.unshift({week:G.game.week, type:'주간 운항', desc:'노선 수익/비용', amount: G.game.weeklyProfit});
@@ -2777,12 +2873,15 @@ const G = {
 
       const weeklyFlights = 14;
       if (ac.category === 'cargo') {
-        const cargoRev = ac.cargo * 0.008 * weeklyFlights * G.demandMultiplier;
+        const depCargo = depAp.type === 'cargo_hub';
+        const arrCargo = arrAp.type === 'cargo_hub';
+        const cargoHubBonus = (depCargo || arrCargo) ? 1.8 : 1;
+        const cargoRev = ac.cargo * 0.008 * weeklyFlights * G.demandMultiplier * cargoHubBonus;
         r.weeklyRevenue = cargoRev;
         r.weeklyPax = 0;
       } else {
         const estimatedPax = Math.round((ac.seats || 0) * Math.max(0, r.loadFactor || 0) * weeklyFlights);
-        r.weeklyPax = Math.max(1, estimatedPax);
+        r.weeklyPax = Math.max(0, estimatedPax);
         const ticketPrice = (0.12 * d + 80) * G.game.ticketMarketIndex;
         const upgrLounge = G.game.upgrades['lounge'] || 0;
         const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
@@ -2908,9 +3007,13 @@ const G = {
     G.mapRouteLines = {};
     G.mapPlanes = {};
 
+    G.leafletMap.on('click', (e) => {
+      if (G.game?.mode === 'free' && G.game.freeBuildEnabled) G.createCustomAirportAt(e.latlng);
+    });
+
     AIRPORTS.forEach(ap => {
-      const color = ap.type === 'hub' ? '#1565C0' : ap.type === 'oil' ? '#F9A825' : '#00897B';
-      const size = ap.type === 'hub' ? 12 : ap.type === 'oil' ? 10 : 8;
+      const color = ap.type === 'oil' ? '#F9A825' : ap.type === 'cargo_hub' ? '#6A1B9A' : '#FFFFFF';
+      const size = ap.type === 'hub' ? 12 : ap.type === 'oil' ? 10 : ap.type === 'cargo_hub' ? 12 : 8;
       const icon = L.divIcon({
         className: '',
         html: `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer"></div>`,
@@ -2939,8 +3042,8 @@ const G = {
   },
 
   showAirportPopup(ap, marker) {
-    const typeLabel = ap.type === 'hub' ? '허브 공항' : ap.type === 'oil' ? '산유국 공항' : '일반 공항';
-    const typeClass = ap.type === 'hub' ? 'hub' : ap.type === 'oil' ? '' : 'regular';
+    const typeLabel = ap.type === 'hub' ? '허브 공항' : ap.type === 'cargo_hub' ? '화물 허브' : ap.type === 'oil' ? '산유국 공항' : '일반 공항';
+    const typeClass = ap.type === 'hub' ? 'hub' : ap.type === 'cargo_hub' ? 'hub' : ap.type === 'oil' ? '' : 'regular';
     const hasRoute = G.game.routes.some(r => (r.dep===ap.code||r.arr===ap.code));
     const html = `
       <div class="airport-popup">
@@ -2981,7 +3084,7 @@ const G = {
       const angle = -Math.atan2(arr.lat - dep.lat, targetLng - dep.lng) * 180 / Math.PI;
       const planeIcon = L.divIcon({
         className: '',
-        html: `<div style="width:20px;height:20px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#1565C0;font-size:15px'></i></div>`,
+        html: `<div style="width:20px;height:20px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px'></i></div>`,
         iconSize: [20,20], iconAnchor: [10,10]
       });
       const plane = L.marker([midLat, midLng], {icon: planeIcon}).addTo(G.leafletMap);
@@ -3131,6 +3234,11 @@ const G = {
     document.getElementById('tb-airline-name').textContent = g.airlineName;
     document.getElementById('tb-airline-name').style.color = g.brandColor || 'var(--sky)';
     document.getElementById('tb-logo').src = g.logoData || defaultAirlineLogo(g.brandColor);
+    const freeBtn = document.getElementById('free-airport-btn');
+    if (freeBtn) {
+      freeBtn.style.display = g.mode === 'free' ? 'inline-flex' : 'none';
+      freeBtn.textContent = `프리 공항 건설: ${g.freeBuildEnabled ? 'ON' : 'OFF'}`;
+    }
   },
 
   renderMarket(cat) {
@@ -3142,7 +3250,7 @@ const G = {
       const div = document.createElement('div');
       div.className = 'aircraft-card';
       div.innerHTML = `
-        <div class="ac-visual" style="display:flex;align-items:center;justify-content:center;padding:12px 0;font-size:52px;color:${G.game.brandColor}"><i class="fa-solid ${acCategoryIcon(ac.category)}"></i></div>
+        <div class="ac-visual" style="display:flex;align-items:center;justify-content:center;padding:12px 0;font-size:52px;color:#1565C0"><i class="fa-solid ${acCategoryIcon(ac.category)}"></i></div>
         <div class="ac-body">
           <div class="ac-name">${ac.name}</div>
           <div class="ac-maker">${ac.maker}</div>
@@ -3241,10 +3349,6 @@ const G = {
     if (!f) return;
     document.getElementById('cust-reg').value = f.reg || '';
     document.getElementById('cust-nick').value = f.nickname || '';
-    custColor = f.color || G.game.brandColor;
-    document.querySelectorAll('#cust-color-row .color-swatch').forEach(s => {
-      s.classList.toggle('selected', s.dataset.color === custColor);
-    });
     document.getElementById('cust-aircraft-id').value = id;
     G._custPhotoData = f.photoData || null;
     if (f.photoData) {
@@ -3261,11 +3365,60 @@ const G = {
     if (!f) return;
     f.reg = document.getElementById('cust-reg').value;
     f.nickname = document.getElementById('cust-nick').value;
-    f.color = custColor;
     if (G._custPhotoData) f.photoData = G._custPhotoData;
     closeModal('modal-customize');
     G.renderFleet();
     G.notify('항공기 커스텀 저장됨', 'success');
+  },
+
+  toggleFreeAirportBuild() {
+    if (G.game.mode !== 'free') return;
+    G.game.freeBuildEnabled = !G.game.freeBuildEnabled;
+    const btn = document.getElementById('free-airport-btn');
+    if (btn) btn.textContent = `프리 공항 건설: ${G.game.freeBuildEnabled ? 'ON' : 'OFF'}`;
+  },
+
+  createCustomAirportAt(latlng) {
+    const name = prompt('새 공항 이름을 입력하세요');
+    if (!name) return;
+    const code = (prompt('공항 약칭(3~4자)을 입력하세요','NEW') || 'NEW').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
+    if (!code || AIRPORTS.some(a => a.code === code)) { G.notify('약칭이 비어있거나 이미 존재합니다', 'error'); return; }
+    const country = prompt('국가명을 입력하세요','Custom');
+    const demand = Math.max(45, Math.min(99, Math.round(55 + Math.abs(latlng.lat)/2)));
+    const ap = {code,name,city:name,country:country||'Custom',lat:latlng.lat,lng:latlng.lng,type:'regular',demand,custom:true};
+    AIRPORTS.push(ap);
+    G.game.customAirports.push(ap);
+    G.initMap();
+    G.notify(`${code} 공항이 생성되었습니다`, 'success');
+  },
+
+  triggerOperationalEvent() {
+    const ev = OPERATION_EVENTS[Math.floor(Math.random() * OPERATION_EVENTS.length)];
+    if (!ev) return;
+    G.paused = true;
+    document.getElementById('speed-btn').textContent = '이벤트 대기중';
+    document.getElementById('op-event-title').textContent = ev.title;
+    document.getElementById('op-event-body').textContent = ev.body;
+    document.getElementById('op-event-effect').textContent = '선택에 따라 1~2주 동안 비용/수요/평판에 영향이 발생합니다.';
+    const btnA = document.getElementById('op-event-choice-a');
+    const btnB = document.getElementById('op-event-choice-b');
+    btnA.textContent = ev.choices[0].label;
+    btnB.textContent = ev.choices[1].label;
+    btnA.onclick = () => G.applyOperationalChoice(ev, 0);
+    btnB.onclick = () => G.applyOperationalChoice(ev, 1);
+    openModal('modal-op-event');
+  },
+
+  applyOperationalChoice(ev, idx) {
+    const choice = ev.choices[idx];
+    if (!choice) return;
+    try { choice.apply(G.game); } catch(e) {}
+    G.game.news.unshift({title:`실무 이벤트: ${ev.title}`, body:`선택: ${choice.label} · ${choice.desc}`, type:'event', week:G.game.week});
+    closeModal('modal-op-event');
+    G.paused = false;
+    document.getElementById('speed-btn').textContent = '일시정지';
+    G.renderNews();
+    G.notify(`이벤트 선택 완료: ${choice.label}`, 'success');
   },
 
 
@@ -3403,6 +3556,19 @@ const G = {
     G.game.claimedChallenges.push(id);
     G.game.balance += ch.reward;
     G.game.transactions.unshift({week:G.game.week,type:'업적 보상',desc:ch.name,amount:ch.reward});
+    if (ch.rewardAircraft) {
+      const ac = AIRCRAFT_DATA.find(a => a.id === ch.rewardAircraft);
+      if (ac) {
+        G.game.fleet.push({
+          id: Date.now() + Math.random(),
+          aircraftId: ac.id,
+          purchasedWeek: G.game.week,
+          nickname: `[보상] ${ac.name}`,
+          reg: `RW${Math.floor(Math.random()*9000+1000)}`
+        });
+        G.notify(`보상 항공기 지급: ${ac.name}`, 'success');
+      }
+    }
     if (G.game.transactions.length > 100) G.game.transactions.pop();
     G.renderFinance();
     G.updateTopbar();
@@ -3450,7 +3616,7 @@ const G = {
                 <div style="font-size:12px;color:${completed ? 'var(--green)' : 'var(--text3)'}">${ch.progress(g)}</div>
               </div>
               <div style="text-align:right;flex:0 0 auto">
-                <div style="font-size:13px;font-weight:800;color:var(--sky);margin-bottom:8px">${fmt(ch.reward)}</div>
+                <div style="font-size:13px;font-weight:800;color:var(--sky);margin-bottom:8px">${fmt(ch.reward)}${ch.rewardAircraft ? ` + ${ch.rewardAircraft}` : ''}</div>
                 <button class="${claimed || !completed ? 'btn-secondary' : 'btn-primary'}" style="padding:7px 10px;white-space:nowrap;opacity:${btnDisabled ? '0.72' : '1'}" ${btnDisabled ? 'disabled' : ''} onclick="G.claimChallenge('${ch.id}')">${btnLabel}</button>
               </div>
             </div>
@@ -3625,7 +3791,7 @@ const G = {
 
     // 부정 포스트
     if (rep < 3) posts.push({user:USERS[3], text:`${airline} 오늘 또 연착... 제발 정시 운항 좀 해주세요. 벌써 세 번째예요.`, likes:Math.floor(Math.random()*80+10), comments:Math.floor(Math.random()*20+5), time:`${week}주차`, positive:false});
-    if (routes < 5) posts.push({user:USERS[4], text:`${airline} 노선이 너무 적어요. 제주도 노선은 언제 생기나요?`, likes:Math.floor(Math.random()*60+10), comments:Math.floor(Math.random()*10+2), time:`${Math.max(1,week-2)}주차`, positive:false});
+    if (routes < 5) posts.push({user:USERS[4], text:`${airline} 노선이 아직 적네요. 국제선 확장이 기대됩니다.`, likes:Math.floor(Math.random()*60+10), comments:Math.floor(Math.random()*10+2), time:`${Math.max(1,week-2)}주차`, positive:false});
     if (G.game.fuel < 30) posts.push({user:USERS[7], text:`${airline} 연료 관리 문제로 일부 노선 운항 중단 소식. 경영진의 빠른 조치가 필요해 보입니다.`, likes:Math.floor(Math.random()*120+30), comments:Math.floor(Math.random()*25+8), time:`${week}주차`, positive:false});
 
     // 중립/정보
@@ -3882,7 +4048,7 @@ const G = {
       div.className = 'save-slot' + (save ? '' : ' empty');
       const isCurrent = (i === G.currentSlot);
       if (save) {
-        div.innerHTML = `<div><div class="slot-name">슬롯 ${i+1}</div><div class="slot-info">${save.airlineName} | ${save.week}주차 | 잔고: ${fmt(save.balance)}</div></div>`;
+        div.innerHTML = `<div><div class="slot-name">슬롯 ${i+1}</div><div class="slot-info">${save.airlineName} | ${save.mode==='free'?'프리 모드 | ':''}${save.week}주차 | 잔고: ${fmt(save.balance)}</div></div>`;
       } else {
         div.innerHTML = `<div><div class="slot-name" style="color:var(--text3)">빈 슬롯 ${i+1}</div><div class="slot-info" style="color:var(--text3)">비어 있음</div></div>`;
       }
