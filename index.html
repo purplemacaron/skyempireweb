@@ -3173,55 +3173,40 @@ const G = {
     G.mapPlanes = {};
     G.mapPlaneMeta = {};
 
-    // Great Circle path generator: returns an array of [lat,lng] points
-    function greatCirclePoints(lat1, lng1, lat2, lng2, numPoints) {
-      const toRad = d => d * Math.PI / 180;
-      const toDeg = r => r * 180 / Math.PI;
-      const φ1 = toRad(lat1), λ1 = toRad(lng1);
-      const φ2 = toRad(lat2), λ2 = toRad(lng2);
-      const pts = [];
-      for (let i = 0; i <= numPoints; i++) {
-        const f = i / numPoints;
-        const δ = 2 * Math.asin(Math.sqrt(
-          Math.sin((φ2 - φ1) / 2) ** 2 +
-          Math.cos(φ1) * Math.cos(φ2) * Math.sin((λ2 - λ1) / 2) ** 2
-        ));
-        if (δ < 0.0001) { pts.push([lat1, lng1]); continue; }
-        const A = Math.sin((1 - f) * δ) / Math.sin(δ);
-        const B = Math.sin(f * δ) / Math.sin(δ);
-        const x = A * Math.cos(φ1) * Math.cos(λ1) + B * Math.cos(φ2) * Math.cos(λ2);
-        const y = A * Math.cos(φ1) * Math.sin(λ1) + B * Math.cos(φ2) * Math.sin(λ2);
-        const z = A * Math.sin(φ1) + B * Math.sin(φ2);
-        const φ = Math.atan2(z, Math.sqrt(x * x + y * y));
-        const λ = Math.atan2(y, x);
-        pts.push([toDeg(φ), toDeg(λ)]);
-      }
-      return pts;
-    }
-
     G.game.routes.forEach((r, idx) => {
       const dep = AIRPORTS.find(a => a.code === r.dep);
       const arr = AIRPORTS.find(a => a.code === r.arr);
       if (!dep || !arr) return;
 
-      // Generate great circle path (60 segments for smooth curve)
-      const gcPoints = greatCirclePoints(dep.lat, dep.lng, arr.lat, arr.lng, 60);
+      // 경도 차이를 고려한 직선 경로 (날짜변경선 처리)
+      let arrLng = arr.lng;
+      const lngDiff = arr.lng - dep.lng;
+      if (lngDiff > 180) arrLng = arr.lng - 360;
+      else if (lngDiff < -180) arrLng = arr.lng + 360;
 
-      // Leaflet antimeridian wrapping: split if needed
-      const line = L.polyline(gcPoints, {
-        color: '#1565C0', weight: 1.5, opacity: 0.5, dashArray: '6,4'
+      // 직선 경로: 출발지 → 도착지 직선 (좌표 2점)
+      const straightPoints = [
+        [dep.lat, dep.lng],
+        [arr.lat, arrLng]
+      ];
+
+      const line = L.polyline(straightPoints, {
+        color: '#1565C0', weight: 1.5, opacity: 0.6, dashArray: '6,4'
       }).addTo(G.leafletMap);
       G.mapRouteLines[idx] = line;
 
-      // Store great circle points for plane animation
-      G.mapPlaneMeta[idx] = {gcPoints, depLat: dep.lat, depLng: dep.lng, arrLat: arr.lat, arrLng: arr.lng};
+      // 비행기 애니메이션을 위한 직선 경로 저장
+      G.mapPlaneMeta[idx] = {
+        straightPoints,
+        depLat: dep.lat, depLng: dep.lng,
+        arrLat: arr.lat, arrLng: arrLng
+      };
 
-      // Animated plane
+      // 비행기 아이콘 (중간점에 배치)
       const midLat = (dep.lat + arr.lat) / 2;
-      const midLngRaw = (dep.lng + targetLng) / 2;
-      const midLng = ((midLngRaw + 540) % 360) - 180;
+      const midLng = (dep.lng + arrLng) / 2;
       // fa-plane 기본 방향은 오른쪽(동쪽). atan2는 반시계(CCW), CSS rotate는 시계(CW)이므로 부호 반전
-      const angle = -Math.atan2(arr.lat - dep.lat, targetLng - dep.lng) * 180 / Math.PI;
+      const angle = -Math.atan2(arr.lat - dep.lat, arrLng - dep.lng) * 180 / Math.PI;
       const planeIcon = L.divIcon({
         className: '',
         html: `<div style="width:20px;height:20px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px'></i></div>`,
@@ -3237,19 +3222,15 @@ const G = {
     const now = Date.now() / 1000;
     G.game.routes.forEach((r, idx) => {
       const meta = G.mapPlaneMeta[idx];
-      if (!meta || !G.mapPlanes[idx] || !meta.gcPoints || meta.gcPoints.length < 2) return;
+      if (!meta || !G.mapPlanes[idx] || !meta.straightPoints) return;
 
       const pseudoDist = Math.max(3000, Math.hypot(meta.arrLat - meta.depLat, meta.arrLng - meta.depLng) * 111);
       const speedFactor = Math.max(0.05, Math.min(0.3, 1200 / pseudoDist));
       const t = ((now * speedFactor) + idx * 0.17) % 1;
 
-      // Interpolate along great circle points
-      const pts = meta.gcPoints;
-      const pos = t * (pts.length - 1);
-      const i = Math.min(Math.floor(pos), pts.length - 2);
-      const frac = pos - i;
-      const lat = pts[i][0] + (pts[i + 1][0] - pts[i][0]) * frac;
-      const lng = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * frac;
+      // 직선 보간: 출발지 → 도착지
+      const lat = meta.depLat + (meta.arrLat - meta.depLat) * t;
+      const lng = meta.depLng + (meta.arrLng - meta.depLng) * t;
       G.mapPlanes[idx].setLatLng([lat, lng]);
     });
   },
