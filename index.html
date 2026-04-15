@@ -2455,6 +2455,20 @@ function setPanel(name) {
   document.querySelectorAll('.nav-item').forEach(n => {
     if (n.getAttribute('onclick') === `setPanel('${name}')`) n.classList.add('active');
   });
+
+  if (typeof G !== 'undefined') {
+    if (name === 'market' && G.renderMarket) G.renderMarket('all');
+    if (name === 'fleet' && G.renderFleet) G.renderFleet();
+    if (name === 'routes' && G.renderRoutes) G.renderRoutes();
+    if (name === 'finance' && G.renderFinance) G.renderFinance();
+    if (name === 'upgrades' && G.renderUpgrades) G.renderUpgrades();
+    if (name === 'oil' && G.renderOil) G.renderOil();
+    if (name === 'social' && G.renderSocial) G.renderSocial();
+    if (name === 'news' && G.renderNews) G.renderNews();
+    if (name === 'reputation' && G.renderReputation) G.renderReputation();
+    if (name === 'alliance' && G.renderAlliance) G.renderAlliance();
+  }
+
   if (name === 'map' && G.leafletMap) {
     setTimeout(() => G.leafletMap.invalidateSize(), 100);
   }
@@ -2479,6 +2493,11 @@ function dist(a, b) {
   const dLng = (b.lng - a.lng) * Math.PI / 180;
   const x = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+}
+
+function routeFlightsPerWeek(hours) {
+  const safeHours = Math.max(0.5, Number(hours || 0));
+  return Math.max(2, Math.min(14, Math.floor(84 / Math.max(2.5, safeHours + 2))));
 }
 
 function starsHTML(rep) {
@@ -3012,6 +3031,16 @@ const G = {
       if (!ac) return;
 
       const d = dist(depAp, arrAp);
+      if (d > ac.range) {
+        r.active = false;
+        r.weeklyRevenue = 0;
+        r.weeklyCost = 0;
+        r.weeklyPax = 0;
+        r.weeklyCargo = 0;
+        r.weeklyCargoRevenue = 0;
+        r.weeklyProfit = 0;
+        return;
+      }
       const flightHours = d / ac.speed;
 
       // Demand factor
@@ -3027,7 +3056,7 @@ const G = {
       const fareElasticity = Math.max(0.7, 1.12 - (G.game.ticketMarketIndex - 1) * 1.6);
       r.loadFactor = Math.min(0.98, avgDemand * loadBonus * fareElasticity);
 
-      const weeklyFlights = 14;
+      const weeklyFlights = routeFlightsPerWeek(flightHours);
       const cargoUpgrade = G.game.upgrades['cargo'] || 0;
       const cargoHubLinked = depAp.type === 'cargo_hub' || arrAp.type === 'cargo_hub';
       const cargoHubBonus = cargoHubLinked ? (1.15 + cargoUpgrade * 0.05) : 1;
@@ -3287,6 +3316,60 @@ const G = {
     });
   },
 
+  refreshRouteAircraftGrid() {
+    const acGrid = document.getElementById('route-ac-grid');
+    if (!acGrid) return;
+
+    const depCode = document.getElementById('route-dep')?.value || '';
+    const arrCode = document.getElementById('route-arr')?.value || '';
+    const depAp = AIRPORTS.find(a => a.code === depCode);
+    const arrAp = AIRPORTS.find(a => a.code === arrCode);
+    const routeDistance = depAp && arrAp ? dist(depAp, arrAp) : null;
+
+    acGrid.innerHTML = '';
+    if (G.game.fleet.length === 0) {
+      G._selectedFleetId = null;
+      acGrid.innerHTML = '<div style="color:var(--text3);font-size:13px">항공기가 없습니다. 먼저 구매하세요.</div>';
+      G.updateRoutePreview();
+      return;
+    }
+
+    const assignedFleetIds = new Set((G.game.routes || []).map(r => r.fleetId));
+    let selectableCount = 0;
+    G.game.fleet.forEach(f => {
+      const ac = AIRCRAFT_DATA.find(a => a.id === f.aircraftId);
+      if (!ac) return;
+      const isAssigned = assignedFleetIds.has(f.id);
+      const isOutOfRange = routeDistance !== null ? routeDistance > ac.range : false;
+      const isDisabled = isAssigned || isOutOfRange;
+      if (!isDisabled) selectableCount++;
+      if (isDisabled && G._selectedFleetId === f.id) G._selectedFleetId = null;
+
+      const statusText = isAssigned ? '이미 노선 배정됨' : isOutOfRange ? `항속거리 부족 (${Math.round(routeDistance).toLocaleString()}km)` : '배정 가능';
+      const statusColor = isAssigned || isOutOfRange ? 'var(--red)' : 'var(--green)';
+      const div = document.createElement('div');
+      div.className = `select-ac-item${isDisabled ? ' disabled' : ''}`;
+      if (!isDisabled && G._selectedFleetId === f.id) div.classList.add('selected');
+      div.dataset.fid = f.id;
+      div.innerHTML = `<div style="font-size:11px;color:var(--text3)">${renderAircraftSVG(ac.svg, G.game.brandColor, 40, 24)}</div><div>${f.nickname||ac.name}</div><div style="font-size:10px;color:var(--text3)">${f.reg||''}</div><div style="font-size:10px;color:var(--text3)">항속 ${Math.round(ac.range).toLocaleString()}km</div><div style="font-size:10px;margin-top:4px;color:${statusColor}">${statusText}</div>`;
+      if (!isDisabled) {
+        div.onclick = () => {
+          document.querySelectorAll('.select-ac-item').forEach(i => i.classList.remove('selected'));
+          div.classList.add('selected');
+          G._selectedFleetId = f.id;
+          G.updateRoutePreview();
+        };
+      }
+      acGrid.appendChild(div);
+    });
+
+    if (selectableCount === 0) {
+      acGrid.insertAdjacentHTML('beforeend', '<div style="grid-column:1 / -1;color:var(--text3);font-size:12px;text-align:center;padding-top:8px">현재 새 노선에 배정 가능한 항공기가 없습니다.<br>운항 중 여부 또는 항속거리를 확인하세요.</div>');
+    }
+
+    G.updateRoutePreview();
+  },
+
   openRouteModal(arrCode) {
     const depSel = document.getElementById('route-dep');
     const arrSel = document.getElementById('route-arr');
@@ -3306,42 +3389,12 @@ const G = {
       if (a.code === arrCode) optArr.selected = true;
       arrSel.appendChild(optArr);
     });
-    depSel.onchange = G.updateRoutePreview;
 
-    const acGrid = document.getElementById('route-ac-grid');
-    acGrid.innerHTML = '';
-    if (G.game.fleet.length === 0) {
-      acGrid.innerHTML = '<div style="color:var(--text3);font-size:13px">항공기가 없습니다. 먼저 구매하세요.</div>';
-    } else {
-      const assignedFleetIds = new Set((G.game.routes || []).map(r => r.fleetId));
-      let selectableCount = 0;
-      G.game.fleet.forEach(f => {
-        const ac = AIRCRAFT_DATA.find(a => a.id === f.aircraftId);
-        if (!ac) return;
-        const isAssigned = assignedFleetIds.has(f.id);
-        if (!isAssigned) selectableCount++;
-        const div = document.createElement('div');
-        div.className = `select-ac-item${isAssigned ? ' disabled' : ''}`;
-        div.dataset.fid = f.id;
-        div.innerHTML = `<div style="font-size:11px;color:var(--text3)">${renderAircraftSVG(ac.svg, G.game.brandColor, 40, 24)}</div><div>${f.nickname||ac.name}</div><div style="font-size:10px;color:var(--text3)">${f.reg||''}</div><div style="font-size:10px;margin-top:4px;color:${isAssigned ? 'var(--red)' : 'var(--green)'}">${isAssigned ? '이미 노선 배정됨' : '배정 가능'}</div>`;
-        if (!isAssigned) {
-          div.onclick = () => {
-            document.querySelectorAll('.select-ac-item').forEach(i => i.classList.remove('selected'));
-            div.classList.add('selected');
-            G._selectedFleetId = f.id;
-            G.updateRoutePreview();
-          };
-        }
-        acGrid.appendChild(div);
-      });
-      if (selectableCount === 0) {
-        acGrid.insertAdjacentHTML('beforeend', '<div style="grid-column:1 / -1;color:var(--text3);font-size:12px;text-align:center;padding-top:8px">현재 새 노선에 배정 가능한 항공기가 없습니다.<br>운항 중인 기체는 중복 배정할 수 없습니다.</div>');
-      }
-    }
-
-    arrSel.onchange = G.updateRoutePreview;
+    depSel.onchange = () => G.refreshRouteAircraftGrid();
+    arrSel.onchange = () => G.refreshRouteAircraftGrid();
     G._selectedFleetId = null;
     document.getElementById('route-preview').style.display = 'none';
+    G.refreshRouteAircraftGrid();
     openModal('modal-route');
   },
 
@@ -3358,32 +3411,60 @@ const G = {
     if (!ac) return;
     const d = dist(dep, arrAp);
     const hours = d / ac.speed;
+    const weeklyFlights = routeFlightsPerWeek(hours);
     const cargoUpgrade = G.game.upgrades['cargo'] || 0;
     const cargoHubLinked = dep.type === 'cargo_hub' || arrAp.type === 'cargo_hub';
     const cargoHubBonus = cargoHubLinked ? (1.15 + cargoUpgrade * 0.05) : 1;
-    const cargoRevBonus = 1 + cargoUpgrade * 0.25;
-    const loadFactor = Math.min(0.95, (dep.demand + arrAp.demand) / 200 * G.demandMultiplier);
-    let rev = 0;
-    let loadText = Math.round(loadFactor*100) + '%';
+    const alliance = ALLIANCE_DATA.find(a => a.id === G.game.allianceId);
+    const alliancePaxBonus = alliance ? alliance.paxBonus : 0;
+    const allianceRevBonus = alliance ? alliance.revenueBonus : 0;
+    const allianceCostBonus = alliance ? alliance.costBonus : 0;
+    const cargoRevBonus = 1 + cargoUpgrade * 0.25 + allianceRevBonus * 0.5;
+    const upgrService = G.game.upgrades['service'] || 0;
+    const upgrMileage = G.game.upgrades['mileage'] || 0;
+    const upgrDigital = G.game.upgrades['digital'] || 0;
+    const upgrLounge = G.game.upgrades['lounge'] || 0;
+    const upgrMaint = G.game.upgrades['maintenance'] || 0;
+    const upgrFuel = G.game.upgrades['fuel'] || 0;
+    const avgDemand = ((dep.demand + arrAp.demand) / 200) * G.demandMultiplier;
+    const loadBonus = 1 + upgrService*0.03 + upgrMileage*0.05 + upgrDigital*0.03 + alliancePaxBonus;
+    const fareElasticity = Math.max(0.7, 1.12 - ((G.game.ticketMarketIndex || 1) - 1) * 1.6);
+    const loadFactor = Math.min(0.98, avgDemand * loadBonus * fareElasticity);
     const loadLabel = document.getElementById('rp-load-label');
+
+    if (d > ac.range) {
+      if (loadLabel) loadLabel.textContent = '항속 상태';
+      document.getElementById('rp-revenue').textContent = '-';
+      document.getElementById('rp-cost').textContent = '-';
+      document.getElementById('rp-load').textContent = `항속거리 부족 · 필요 ${Math.round(d).toLocaleString()}km / 가능 ${Math.round(ac.range).toLocaleString()}km`;
+      document.getElementById('route-preview').style.display = 'block';
+      return;
+    }
+
+    let rev = 0;
+    let loadText = `${Math.round(loadFactor*100)}% · 주 ${weeklyFlights}회`;
     if (ac.category === 'cargo') {
-      const weeklyCargo = Math.round((ac.cargo || 0) * 14 * Math.max(0.85, G.demandMultiplier) * cargoHubBonus);
+      const weeklyCargo = Math.round((ac.cargo || 0) * weeklyFlights * Math.max(0.85, G.demandMultiplier) * cargoHubBonus);
       const cargoYield = 1.8 + Math.min(1.4, d / 7000);
       rev = weeklyCargo * cargoYield * cargoRevBonus;
-      if (loadLabel) loadLabel.textContent = '주간 적재량';
-      loadText = `${fmtN(Math.round(weeklyCargo / 1000))}톤`;
+      if (loadLabel) loadLabel.textContent = '주간 적재량 / 회전수';
+      loadText = `${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyFlights}회`;
     } else {
       const ticketPrice = (0.12 * d + 80) * (G.game.ticketMarketIndex || 1);
-      const weeklyPax = Math.round(ac.seats * loadFactor * 14);
+      const weeklyPax = Math.round((ac.seats || 0) * Math.max(0, loadFactor || 0) * weeklyFlights);
       const bellyCargoPerFlight = cargoUpgrade > 0 ? Math.round((ac.seats || 0) * (20 + cargoUpgrade * 10)) : 0;
-      const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * 14 * Math.max(0.72, loadFactor) * cargoHubBonus) : 0;
+      const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * weeklyFlights * Math.max(0.72, loadFactor || 0.72) * cargoHubBonus) : 0;
       const cargoYield = 0.22 + Math.min(0.35, d / 15000);
       const cargoRevenue = weeklyCargo * cargoYield * cargoRevBonus;
-      rev = weeklyPax * ticketPrice + cargoRevenue;
-      if (loadLabel) loadLabel.textContent = weeklyCargo > 0 ? '탑승률 / 화물' : '탑승률';
-      loadText = weeklyCargo > 0 ? `${Math.round(loadFactor*100)}% · ${fmtN(Math.round(weeklyCargo / 1000))}톤` : `${Math.round(loadFactor*100)}%`;
+      const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
+      rev = weeklyPax * ticketPrice * revBonus + cargoRevenue;
+      if (loadLabel) loadLabel.textContent = weeklyCargo > 0 ? '탑승률 / 화물 / 회전수' : '탑승률 / 회전수';
+      loadText = weeklyCargo > 0 ? `${Math.round(loadFactor*100)}% · ${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyFlights}회` : `${Math.round(loadFactor*100)}% · 주 ${weeklyFlights}회`;
     }
-    const cost = (ac.opCostPerHour * hours + ac.fuelPerHour * hours * 20) * 14;
+
+    const costMult = G.costMultiplier * (1 - upgrMaint*0.03) * (1 - upgrFuel*0.04);
+    const fuelEff = G.fuelEfficiency * (1 + upgrFuel*0.04);
+    const cost = (ac.opCostPerHour * hours + ac.fuelPerHour * hours) * weeklyFlights * costMult * (1 - allianceCostBonus) / fuelEff;
     document.getElementById('rp-revenue').textContent = fmt(rev);
     document.getElementById('rp-cost').textContent = fmt(cost);
     document.getElementById('rp-load').textContent = loadText;
@@ -3404,8 +3485,18 @@ const G = {
     if (G.game.routes.some(r => r.dep===dep && r.arr===arr && r.fleetId===fid)) {
       G.notify('이미 동일 노선/항공기 조합이 있습니다', 'error'); return;
     }
+    const depAp = AIRPORTS.find(a => a.code === dep);
+    const arrAp = AIRPORTS.find(a => a.code === arr);
     const fleet = G.game.fleet.find(f => f.id === fid);
-    if (!fleet) return;
+    if (!depAp || !arrAp || !fleet) return;
+    const ac = AIRCRAFT_DATA.find(a => a.id === fleet.aircraftId);
+    if (!ac) return;
+    const d = dist(depAp, arrAp);
+    if (d > ac.range) {
+      G.notify(`항속거리 부족: 필요 ${Math.round(d).toLocaleString()}km / 가능 ${Math.round(ac.range).toLocaleString()}km`, 'error');
+      G.refreshRouteAircraftGrid();
+      return;
+    }
     G.game.routes.push({
       id: Date.now(),
       dep, arr,
@@ -3432,6 +3523,7 @@ const G = {
     G.drawRouteLines();
     G.renderRoutes();
     G.updateTopbar();
+    if (document.getElementById('modal-route')?.classList.contains('open')) G.refreshRouteAircraftGrid();
     G.notify('노선이 폐쇄되었습니다', 'warning');
   },
 
@@ -3502,6 +3594,7 @@ const G = {
     G.game.transactions.unshift({week:G.game.week,type:'항공기 구매',desc:ac.name,amount:-ac.price});
     G.renderMarket('all');
     G.renderFleet();
+    if (document.getElementById('modal-route')?.classList.contains('open')) G.refreshRouteAircraftGrid();
     G.updateTopbar();
     G.notify(`${ac.name} 구매 완료! 잔고: ${fmt(G.game.balance)}`, 'success');
   },
@@ -3558,6 +3651,7 @@ const G = {
     G.game.transactions.unshift({week:G.game.week,type:'항공기 매각',desc:ac.name,amount:price});
     G.renderFleet();
     G.renderRoutes();
+    if (document.getElementById('modal-route')?.classList.contains('open')) G.refreshRouteAircraftGrid();
     G.updateTopbar();
     G.drawRouteLines();
     G.notify(`${ac.name} 매각 완료`, 'success');
