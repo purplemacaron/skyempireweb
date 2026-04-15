@@ -973,6 +973,8 @@
   .select-ac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; }
   .select-ac-item { padding: 8px; border: 2px solid var(--border); border-radius: var(--radius-sm); text-align: center; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text2); }
   .select-ac-item:hover, .select-ac-item.selected { border-color: var(--sky); color: var(--sky); background: var(--sky-pale); }
+  .select-ac-item.disabled { opacity: 0.55; cursor: not-allowed; background: #F5F7FA; color: var(--text3); }
+  .select-ac-item.disabled:hover { border-color: var(--border); color: var(--text3); background: #F5F7FA; }
 
   /* CUSTOM LIVERY */
   .livery-preview {
@@ -3311,21 +3313,30 @@ const G = {
     if (G.game.fleet.length === 0) {
       acGrid.innerHTML = '<div style="color:var(--text3);font-size:13px">항공기가 없습니다. 먼저 구매하세요.</div>';
     } else {
+      const assignedFleetIds = new Set((G.game.routes || []).map(r => r.fleetId));
+      let selectableCount = 0;
       G.game.fleet.forEach(f => {
         const ac = AIRCRAFT_DATA.find(a => a.id === f.aircraftId);
         if (!ac) return;
+        const isAssigned = assignedFleetIds.has(f.id);
+        if (!isAssigned) selectableCount++;
         const div = document.createElement('div');
-        div.className = 'select-ac-item';
+        div.className = `select-ac-item${isAssigned ? ' disabled' : ''}`;
         div.dataset.fid = f.id;
-        div.innerHTML = `<div style="font-size:11px;color:var(--text3)">${renderAircraftSVG(ac.svg, G.game.brandColor, 40, 24)}</div><div>${f.nickname||ac.name}</div><div style="font-size:10px;color:var(--text3)">${f.reg||''}</div>`;
-        div.onclick = () => {
-          document.querySelectorAll('.select-ac-item').forEach(i => i.classList.remove('selected'));
-          div.classList.add('selected');
-          G._selectedFleetId = f.id;
-          G.updateRoutePreview();
-        };
+        div.innerHTML = `<div style="font-size:11px;color:var(--text3)">${renderAircraftSVG(ac.svg, G.game.brandColor, 40, 24)}</div><div>${f.nickname||ac.name}</div><div style="font-size:10px;color:var(--text3)">${f.reg||''}</div><div style="font-size:10px;margin-top:4px;color:${isAssigned ? 'var(--red)' : 'var(--green)'}">${isAssigned ? '이미 노선 배정됨' : '배정 가능'}</div>`;
+        if (!isAssigned) {
+          div.onclick = () => {
+            document.querySelectorAll('.select-ac-item').forEach(i => i.classList.remove('selected'));
+            div.classList.add('selected');
+            G._selectedFleetId = f.id;
+            G.updateRoutePreview();
+          };
+        }
         acGrid.appendChild(div);
       });
+      if (selectableCount === 0) {
+        acGrid.insertAdjacentHTML('beforeend', '<div style="grid-column:1 / -1;color:var(--text3);font-size:12px;text-align:center;padding-top:8px">현재 새 노선에 배정 가능한 항공기가 없습니다.<br>운항 중인 기체는 중복 배정할 수 없습니다.</div>');
+      }
     }
 
     arrSel.onchange = G.updateRoutePreview;
@@ -3387,6 +3398,9 @@ const G = {
     if (!arr) { G.notify('도착 공항을 선택하세요', 'error'); return; }
     if (dep === arr) { G.notify('출발과 도착 공항이 같습니다', 'error'); return; }
     if (!fid) { G.notify('항공기를 선택하세요', 'error'); return; }
+    if (G.game.routes.some(r => r.fleetId === fid)) {
+      G.notify('이미 다른 노선에 배정된 항공기입니다', 'error'); return;
+    }
     if (G.game.routes.some(r => r.dep===dep && r.arr===arr && r.fleetId===fid)) {
       G.notify('이미 동일 노선/항공기 조합이 있습니다', 'error'); return;
     }
