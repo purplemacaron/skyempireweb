@@ -970,6 +970,69 @@
   /* ROUTE MODAL */
   .route-modal-airports { display: flex; gap: 12px; margin-bottom: 16px; }
   .route-modal-ap { flex: 1; }
+
+  /* 출발 공항 고정 표시 */
+  .dep-airport-display {
+    background: var(--sky-pale);
+    border: 2px solid var(--sky);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--sky);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+  }
+  .dep-airport-display .dep-code { font-size: 18px; font-weight: 900; }
+  .dep-airport-display .dep-name { font-size: 11px; color: var(--text2); font-weight: 500; }
+
+  /* 도착 공항 검색 */
+  .arr-search-wrap { position: relative; }
+  .arr-search-wrap input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text);
+    background: var(--white);
+    outline: none;
+    transition: border-color .2s;
+  }
+  .arr-search-wrap input:focus { border-color: var(--sky); }
+  .arr-search-wrap input.selected { border-color: var(--green); background: #E8F5E9; font-weight: 700; color: var(--green); }
+  .arr-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--white);
+    border: 1.5px solid var(--sky);
+    border-radius: var(--radius-sm);
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 9999;
+    box-shadow: var(--shadow-lg);
+    display: none;
+  }
+  .arr-dropdown.open { display: block; }
+  .arr-dropdown-item {
+    padding: 9px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .arr-dropdown-item:last-child { border-bottom: none; }
+  .arr-dropdown-item:hover, .arr-dropdown-item.focused { background: var(--sky-pale); }
+  .arr-dropdown-item .arr-code { font-weight: 800; color: var(--sky); font-size: 14px; min-width: 38px; }
+  .arr-dropdown-item .arr-info { font-size: 12px; color: var(--text2); }
+  .arr-dropdown-empty { padding: 12px; text-align: center; color: var(--text3); font-size: 13px; }
   .select-ac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; }
   .select-ac-item { padding: 8px; border: 2px solid var(--border); border-radius: var(--radius-sm); text-align: center; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text2); }
   .select-ac-item:hover, .select-ac-item.selected { border-color: var(--sky); color: var(--sky); background: var(--sky-pale); }
@@ -1790,16 +1853,26 @@
     <div class="route-modal-airports">
       <div class="route-modal-ap">
         <div class="form-label">출발 공항</div>
-        <select class="form-input" id="route-dep" style="font-weight:600">
-          <option value="">공항 선택...</option>
-        </select>
+        <div class="dep-airport-display" id="dep-airport-display">
+          <span class="dep-code" id="dep-display-code">-</span>
+          <div>
+            <div id="dep-display-name" class="dep-name">공항을 클릭하세요</div>
+          </div>
+        </div>
+        <!-- hidden value holder -->
+        <input type="hidden" id="route-dep" value="">
       </div>
       <div style="display:flex;align-items:flex-end;padding-bottom:8px;font-size:20px;color:var(--text3)">→</div>
       <div class="route-modal-ap">
         <div class="form-label">도착 공항</div>
-        <select class="form-input" id="route-arr" style="font-weight:600">
-          <option value="">공항 선택...</option>
-        </select>
+        <div class="arr-search-wrap">
+          <input type="text" id="route-arr-input" placeholder="공항명 또는 코드 검색..." autocomplete="off"
+            oninput="G.filterArrDropdown(this.value)"
+            onfocus="G.openArrDropdown()"
+            onkeydown="G.arrDropdownKeydown(event)">
+          <input type="hidden" id="route-arr" value="">
+          <div class="arr-dropdown" id="arr-dropdown"></div>
+        </div>
       </div>
     </div>
     <div class="form-group">
@@ -3485,32 +3558,96 @@ const G = {
     G.updateRoutePreview();
   },
 
-  openRouteModal(arrCode) {
-    const depSel = document.getElementById('route-dep');
-    const arrSel = document.getElementById('route-arr');
-    depSel.innerHTML = '<option value="">공항 선택...</option>';
-    arrSel.innerHTML = '<option value="">공항 선택...</option>';
-    const sortedAirports = sortAirportsKo(AIRPORTS);
-    sortedAirports.forEach(a => {
-      const label = airportLabel(a);
-      const optDep = document.createElement('option');
-      optDep.value = a.code;
-      optDep.textContent = label;
-      depSel.appendChild(optDep);
+  openRouteModal(depCode) {
+    // 출발 공항 = 클릭한 공항 (고정)
+    const depAp = AIRPORTS.find(a => a.code === depCode);
+    document.getElementById('route-dep').value = depCode;
+    document.getElementById('dep-display-code').textContent = depCode;
+    document.getElementById('dep-display-name').textContent = depAp ? depAp.name : depCode;
 
-      const optArr = document.createElement('option');
-      optArr.value = a.code;
-      optArr.textContent = label;
-      if (a.code === arrCode) optArr.selected = true;
-      arrSel.appendChild(optArr);
-    });
+    // 도착 공항 초기화
+    document.getElementById('route-arr').value = '';
+    const arrInput = document.getElementById('route-arr-input');
+    arrInput.value = '';
+    arrInput.classList.remove('selected');
 
-    depSel.onchange = () => G.refreshRouteAircraftGrid();
-    arrSel.onchange = () => G.refreshRouteAircraftGrid();
+    // 드롭다운 목록 빌드 (출발 공항 제외)
+    G._arrAirports = sortAirportsKo(AIRPORTS).filter(a => a.code !== depCode);
+    G._arrFocusIdx = -1;
+    G.filterArrDropdown('');
+
     G._selectedFleetId = null;
     document.getElementById('route-preview').style.display = 'none';
     G.refreshRouteAircraftGrid();
     openModal('modal-route');
+  },
+
+  filterArrDropdown(query) {
+    const dropdown = document.getElementById('arr-dropdown');
+    const q = query.trim().toLowerCase();
+    const list = G._arrAirports || [];
+    const filtered = q
+      ? list.filter(a =>
+          a.code.toLowerCase().includes(q) ||
+          a.name.toLowerCase().includes(q) ||
+          (a.country||'').toLowerCase().includes(q)
+        ).slice(0, 30)
+      : list.slice(0, 30);
+
+    if (filtered.length === 0) {
+      dropdown.innerHTML = '<div class="arr-dropdown-empty">검색 결과가 없습니다</div>';
+    } else {
+      dropdown.innerHTML = filtered.map((a, i) =>
+        `<div class="arr-dropdown-item" data-code="${a.code}" data-idx="${i}"
+          onmousedown="G.selectArrAirport('${a.code}','${a.name.replace(/'/g,"\\'")}')">
+          <span class="arr-code">${a.code}</span>
+          <span class="arr-info">${a.name}${a.country ? ' · ' + a.country : ''}</span>
+        </div>`
+      ).join('');
+    }
+    G._arrFiltered = filtered;
+    G._arrFocusIdx = -1;
+    dropdown.classList.add('open');
+  },
+
+  openArrDropdown() {
+    const q = document.getElementById('route-arr-input').value;
+    G.filterArrDropdown(q);
+  },
+
+  selectArrAirport(code, name) {
+    document.getElementById('route-arr').value = code;
+    const arrInput = document.getElementById('route-arr-input');
+    arrInput.value = `${code} — ${name}`;
+    arrInput.classList.add('selected');
+    document.getElementById('arr-dropdown').classList.remove('open');
+    G._arrFocusIdx = -1;
+    G.refreshRouteAircraftGrid();
+  },
+
+  arrDropdownKeydown(e) {
+    const dropdown = document.getElementById('arr-dropdown');
+    const items = dropdown.querySelectorAll('.arr-dropdown-item');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      G._arrFocusIdx = Math.min((G._arrFocusIdx||0) + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      G._arrFocusIdx = Math.max((G._arrFocusIdx||0) - 1, 0);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const idx = G._arrFocusIdx >= 0 ? G._arrFocusIdx : 0;
+      const item = items[idx];
+      if (item) { const ap = (G._arrFiltered||[])[idx]; if(ap) G.selectArrAirport(ap.code, ap.name); }
+      return;
+    } else if (e.key === 'Escape') {
+      dropdown.classList.remove('open');
+      return;
+    }
+    items.forEach((el, i) => el.classList.toggle('focused', i === G._arrFocusIdx));
+    const focused = items[G._arrFocusIdx];
+    if (focused) focused.scrollIntoView({ block: 'nearest' });
   },
 
   updateRoutePreview() {
@@ -4679,6 +4816,14 @@ const G = {
 // INIT
 // ============================================================
 window.addEventListener('load', () => {
+  // 도착 공항 검색 드롭다운 외부 클릭 시 닫기
+  document.addEventListener('click', (e) => {
+    const wrap = document.querySelector('.arr-search-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      const dd = document.getElementById('arr-dropdown');
+      if (dd) dd.classList.remove('open');
+    }
+  });
   // Firebase onAuthStateChanged 완료 후 로딩 해제 (최대 3초)
   let loaded = false;
   const hideLoad = () => {
