@@ -1477,7 +1477,8 @@
                   <div class="fc-value" id="fin-loan-available" style="font-size:24px">$0</div>
                 </div>
               </div>
-              <div style="font-size:12px;color:var(--text2);margin-bottom:12px">주차가 넘어갈 때마다 미상환 대출금에 이자 5%가 붙습니다. 현재 총 한도: <span id="fin-loan-limit">$0</span></div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:6px">주차가 넘어갈 때마다 미상환 대출금에 이자 5%가 붙으며, 대출 후 24주가 지나면 이자 포함 잔액이 자동 상환됩니다. 현재 총 한도: <span id="fin-loan-limit">$0</span></div>
+              <div id="fin-loan-status" style="font-size:12px;color:var(--sky);font-weight:700;margin-bottom:12px">대출 없음</div>
               <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
                 <button class="btn-primary" style="padding:8px 12px" onclick="G.takeLoan(5000000)">500만 달러 대출</button>
                 <button class="btn-primary" style="padding:8px 12px" onclick="G.takeLoan(10000000)">1,000만 달러 대출</button>
@@ -1821,7 +1822,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:13px">
         <div><div style="color:var(--text3);font-size:11px">주간 수익</div><div id="rp-revenue" style="font-weight:700">-</div></div>
         <div><div style="color:var(--text3);font-size:11px">주간 비용</div><div id="rp-cost" style="font-weight:700">-</div></div>
-        <div><div style="color:var(--text3);font-size:11px">탑승률</div><div id="rp-load" style="font-weight:700">-</div></div>
+        <div><div id="rp-load-label" style="color:var(--text3);font-size:11px">운항 지표</div><div id="rp-load" style="font-weight:700">-</div></div>
       </div>
     </div>
     <div style="margin-top:20px;display:flex;gap:12px">
@@ -2153,7 +2154,7 @@ const UPGRADES_DATA = [
   {id:'fuel',name:'연료 관리',desc:'효율적 연료 관리로 항공기 연비 개선.',maxLevel:4,costs:[12000000,25000000,50000000,80000000],effects:['연비 +5%','연비 +10%','연비 +15%','연비 +22%']},
   {id:'slots',name:'공항 슬롯',desc:'주요 허브 공항 슬롯 확보로 운항 편의 증가.',maxLevel:3,costs:[20000000,50000000,100000000],effects:['허브 수요 +5%','허브 수요 +10%','프리미엄 슬롯']},
   {id:'lounge',name:'VIP 라운지',desc:'공항 라운지 운영으로 프리미엄 승객 유치.',maxLevel:3,costs:[30000000,70000000,150000000],effects:['수익 +5%','수익 +12%','평판 +1']},
-  {id:'cargo',name:'화물 사업',desc:'여객 노선에서 화물도 함께 운반.',maxLevel:4,costs:[15000000,35000000,70000000,130000000],effects:['화물수익 +20%','화물수익 +40%','전용화물 노선','화물 허브']},
+  {id:'cargo',name:'화물 사업',desc:'여객기 벨리카고와 전용 화물 노선을 동시에 강화.',maxLevel:4,costs:[15000000,35000000,70000000,130000000],effects:['벨리카고 개방','화물수익 +25%','화물수익 +50%','허브 연계 보너스']},
   {id:'digital',name:'디지털 전환',desc:'모바일 앱 및 AI 예약 시스템 도입.',maxLevel:3,costs:[20000000,45000000,80000000],effects:['비용 -5%','수익 +8%','탑승률 +10%']},
 ];
 
@@ -2869,6 +2870,8 @@ const G = {
         weeklyRevenue: Number(r.weeklyRevenue || 0),
         weeklyCost: Number(r.weeklyCost || 0),
         weeklyPax: Number(r.weeklyPax || 0),
+        weeklyCargo: Number(r.weeklyCargo || 0),
+        weeklyCargoRevenue: Number(r.weeklyCargoRevenue || 0),
         weeklyProfit: Number(r.weeklyProfit || 0),
         loadFactor: Number(r.loadFactor || 0),
         active: r.active !== false,
@@ -2892,25 +2895,16 @@ const G = {
     // Random news & operational events (프리 모드 제외)
     if (G.game.mode !== 'free') {
       if (G.game.week % 4 === 0) G.generateNews();
-      if (G.game.week % 12 === 0) G.triggerOperationalEvent();
+      if (G.game.week % 24 === 0) G.triggerOperationalEvent();
     }
 
     // Reputation changes
     G.checkReputation();
-
     // Loan interest (프리 모드 제외)
     if (G.game.mode !== 'free') G.applyLoanInterest();
 
-    // 프리 모드: 24주 후 대출 자동 소멸
-    if (G.game.mode === 'free' && G.game.loanDebt > 0) {
-      if (!G.game.loanTakenWeek) G.game.loanTakenWeek = G.game.week;
-      if (G.game.week - G.game.loanTakenWeek >= 24) {
-        G.game.transactions.unshift({week:G.game.week,type:'대출 소멸',desc:'프리 모드 24주 자동 소멸',amount:G.game.loanDebt});
-        G.game.loanDebt = 0;
-        G.game.loanTakenWeek = 0;
-        G.notify('대출금이 24주 경과로 자동 소멸되었습니다.', 'info');
-      }
-    }
+    // 24주 만기 자동 상환
+    G.processLoanMaturity();
 
     G.game.weeklyProfit = G.weeklyRevenue - G.weeklyCost;
     G.game.totalRevenue += G.weeklyRevenue;
@@ -2956,7 +2950,16 @@ const G = {
     G.game.ticketMarketIndex = Math.max(0.82, Math.min(1.25, (G.game.ticketMarketIndex || 1) + (Math.random()-0.5)*0.05));
     const fuelOk = G.game.fuel > 10;
     G.game.routes.forEach(r => {
-      if (!fuelOk) { r.active = false; return; }
+      if (!fuelOk) {
+        r.active = false;
+        r.weeklyRevenue = 0;
+        r.weeklyCost = 0;
+        r.weeklyPax = 0;
+        r.weeklyCargo = 0;
+        r.weeklyCargoRevenue = 0;
+        r.weeklyProfit = 0;
+        return;
+      }
       r.active = true;
       const depAp = AIRPORTS.find(a => a.code === r.dep);
       const arrAp = AIRPORTS.find(a => a.code === r.arr);
@@ -2981,20 +2984,33 @@ const G = {
       r.loadFactor = Math.min(0.98, avgDemand * loadBonus * fareElasticity);
 
       const weeklyFlights = 14;
+      const cargoUpgrade = G.game.upgrades['cargo'] || 0;
+      const cargoHubLinked = depAp.type === 'cargo_hub' || arrAp.type === 'cargo_hub';
+      const cargoHubBonus = cargoHubLinked ? (1.15 + cargoUpgrade * 0.05) : 1;
+      const cargoRevBonus = 1 + cargoUpgrade * 0.25 + allianceRevBonus * 0.5;
       if (ac.category === 'cargo') {
-        const depCargo = depAp.type === 'cargo_hub';
-        const arrCargo = arrAp.type === 'cargo_hub';
-        const cargoHubBonus = (depCargo || arrCargo) ? 1.8 : 1;
-        const cargoRev = ac.cargo * 0.008 * weeklyFlights * G.demandMultiplier * cargoHubBonus;
+        const cargoYield = 1.8 + Math.min(1.4, d / 7000);
+        const weeklyCargo = Math.round((ac.cargo || 0) * weeklyFlights * Math.max(0.85, G.demandMultiplier) * cargoHubBonus);
+        const cargoRev = weeklyCargo * cargoYield * cargoRevBonus;
+        r.weeklyCargo = weeklyCargo;
+        r.weeklyCargoRevenue = cargoRev;
         r.weeklyRevenue = cargoRev;
         r.weeklyPax = 0;
+        r.loadFactor = Math.min(0.98, 0.74 + cargoUpgrade * 0.05 + (cargoHubLinked ? 0.08 : 0));
       } else {
         const estimatedPax = Math.round((ac.seats || 0) * Math.max(0, r.loadFactor || 0) * weeklyFlights);
         r.weeklyPax = Math.max(0, estimatedPax);
         const ticketPrice = (0.12 * d + 80) * G.game.ticketMarketIndex;
         const upgrLounge = G.game.upgrades['lounge'] || 0;
         const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
-        r.weeklyRevenue = r.weeklyPax * ticketPrice * revBonus;
+        const paxRevenue = r.weeklyPax * ticketPrice * revBonus;
+        const bellyCargoPerFlight = cargoUpgrade > 0 ? Math.round((ac.seats || 0) * (20 + cargoUpgrade * 10)) : 0;
+        const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * weeklyFlights * Math.max(0.72, r.loadFactor || 0.72) * cargoHubBonus) : 0;
+        const cargoYield = 0.22 + Math.min(0.35, d / 15000);
+        const cargoRevenue = weeklyCargo * cargoYield * cargoRevBonus;
+        r.weeklyCargo = weeklyCargo;
+        r.weeklyCargoRevenue = cargoRevenue;
+        r.weeklyRevenue = paxRevenue + cargoRevenue;
         G.game.totalPax += r.weeklyPax;
       }
 
@@ -3121,8 +3137,8 @@ const G = {
     });
 
     AIRPORTS.forEach(ap => {
-      const color = ap.type === 'oil' ? '#F9A825' : ap.type === 'cargo_hub' ? '#6A1B9A' : '#FFFFFF';
-      const size = ap.type === 'hub' ? 12 : ap.type === 'oil' ? 10 : ap.type === 'cargo_hub' ? 12 : 8;
+      const color = '#FFFFFF';
+      const size = 9;
       const icon = L.divIcon({
         className: '',
         html: `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer"></div>`,
@@ -3151,13 +3167,10 @@ const G = {
   },
 
   showAirportPopup(ap, marker) {
-    const typeLabel = ap.type === 'hub' ? '허브 공항' : ap.type === 'cargo_hub' ? '화물 허브' : ap.type === 'oil' ? '산유국 공항' : '일반 공항';
-    const typeClass = ap.type === 'hub' ? 'hub' : ap.type === 'cargo_hub' ? 'hub' : ap.type === 'oil' ? '' : 'regular';
     const hasRoute = G.game.routes.some(r => (r.dep===ap.code||r.arr===ap.code));
     const html = `
       <div class="airport-popup">
         <h3>${ap.name} (${ap.code})</h3>
-        <span class="ap-type ${typeClass}">${typeLabel}</span>
         <div class="ap-info">${ap.city}, ${ap.country}</div>
         <div class="ap-demand">수요 지수: ${ap.demand}</div>
         <button class="ap-route-btn" onclick="G.openRouteModal('${ap.code}')">${hasRoute?'추가 노선 개설':'노선 개설'}</button>
@@ -3178,16 +3191,10 @@ const G = {
       const arr = AIRPORTS.find(a => a.code === r.arr);
       if (!dep || !arr) return;
 
-      // 경도 차이를 고려한 직선 경로 (날짜변경선 처리)
-      let arrLng = arr.lng;
-      const lngDiff = arr.lng - dep.lng;
-      if (lngDiff > 180) arrLng = arr.lng - 360;
-      else if (lngDiff < -180) arrLng = arr.lng + 360;
-
-      // 직선 경로: 출발지 → 도착지 직선 (좌표 2점)
+      // 날짜변경선 우회 없이 실제 마커 간 직선 연결 (대서양 횡단 표시)
       const straightPoints = [
         [dep.lat, dep.lng],
-        [arr.lat, arrLng]
+        [arr.lat, arr.lng]
       ];
 
       const line = L.polyline(straightPoints, {
@@ -3199,14 +3206,14 @@ const G = {
       G.mapPlaneMeta[idx] = {
         straightPoints,
         depLat: dep.lat, depLng: dep.lng,
-        arrLat: arr.lat, arrLng: arrLng
+        arrLat: arr.lat, arrLng: arr.lng
       };
 
       // 비행기 아이콘 (중간점에 배치)
       const midLat = (dep.lat + arr.lat) / 2;
-      const midLng = (dep.lng + arrLng) / 2;
+      const midLng = (dep.lng + arr.lng) / 2;
       // fa-plane 기본 방향은 오른쪽(동쪽). atan2는 반시계(CCW), CSS rotate는 시계(CW)이므로 부호 반전
-      const angle = -Math.atan2(arr.lat - dep.lat, arrLng - dep.lng) * 180 / Math.PI;
+      const angle = -Math.atan2(arr.lat - dep.lat, arr.lng - dep.lng) * 180 / Math.PI;
       const planeIcon = L.divIcon({
         className: '',
         html: `<div style="width:20px;height:20px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px'></i></div>`,
@@ -3295,14 +3302,35 @@ const G = {
     if (!ac) return;
     const d = dist(dep, arrAp);
     const hours = d / ac.speed;
-    const ticketPrice = (0.12 * d + 80) * (G.game.ticketMarketIndex || 1);
+    const cargoUpgrade = G.game.upgrades['cargo'] || 0;
+    const cargoHubLinked = dep.type === 'cargo_hub' || arrAp.type === 'cargo_hub';
+    const cargoHubBonus = cargoHubLinked ? (1.15 + cargoUpgrade * 0.05) : 1;
+    const cargoRevBonus = 1 + cargoUpgrade * 0.25;
     const loadFactor = Math.min(0.95, (dep.demand + arrAp.demand) / 200 * G.demandMultiplier);
-    const weeklyPax = Math.round(ac.seats * loadFactor * 14);
-    const rev = weeklyPax * ticketPrice;
+    let rev = 0;
+    let loadText = Math.round(loadFactor*100) + '%';
+    const loadLabel = document.getElementById('rp-load-label');
+    if (ac.category === 'cargo') {
+      const weeklyCargo = Math.round((ac.cargo || 0) * 14 * Math.max(0.85, G.demandMultiplier) * cargoHubBonus);
+      const cargoYield = 1.8 + Math.min(1.4, d / 7000);
+      rev = weeklyCargo * cargoYield * cargoRevBonus;
+      if (loadLabel) loadLabel.textContent = '주간 적재량';
+      loadText = `${fmtN(Math.round(weeklyCargo / 1000))}톤`;
+    } else {
+      const ticketPrice = (0.12 * d + 80) * (G.game.ticketMarketIndex || 1);
+      const weeklyPax = Math.round(ac.seats * loadFactor * 14);
+      const bellyCargoPerFlight = cargoUpgrade > 0 ? Math.round((ac.seats || 0) * (20 + cargoUpgrade * 10)) : 0;
+      const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * 14 * Math.max(0.72, loadFactor) * cargoHubBonus) : 0;
+      const cargoYield = 0.22 + Math.min(0.35, d / 15000);
+      const cargoRevenue = weeklyCargo * cargoYield * cargoRevBonus;
+      rev = weeklyPax * ticketPrice + cargoRevenue;
+      if (loadLabel) loadLabel.textContent = weeklyCargo > 0 ? '탑승률 / 화물' : '탑승률';
+      loadText = weeklyCargo > 0 ? `${Math.round(loadFactor*100)}% · ${fmtN(Math.round(weeklyCargo / 1000))}톤` : `${Math.round(loadFactor*100)}%`;
+    }
     const cost = (ac.opCostPerHour * hours + ac.fuelPerHour * hours * 20) * 14;
     document.getElementById('rp-revenue').textContent = fmt(rev);
     document.getElementById('rp-cost').textContent = fmt(cost);
-    document.getElementById('rp-load').textContent = Math.round(loadFactor*100) + '%';
+    document.getElementById('rp-load').textContent = loadText;
     document.getElementById('route-preview').style.display = 'block';
   },
 
@@ -3327,6 +3355,8 @@ const G = {
       weeklyRevenue: 0,
       weeklyCost: 0,
       weeklyPax: 0,
+      weeklyCargo: 0,
+      weeklyCargoRevenue: 0,
       weeklyProfit: 0,
       loadFactor: 0,
       active: true,
@@ -3384,7 +3414,7 @@ const G = {
           <div class="ac-name">${ac.name}</div>
           <div class="ac-maker">${ac.maker}</div>
           <div class="ac-specs">
-            <div class="ac-spec"><div class="ac-spec-label">좌석</div><div class="ac-spec-val">${ac.seats||'화물'}</div></div>
+            <div class="ac-spec"><div class="ac-spec-label">${ac.category==='cargo' ? '적재량' : '좌석'}</div><div class="ac-spec-val">${ac.category==='cargo' ? `${fmtN(Math.round((ac.cargo||0)/1000))}톤` : ac.seats}</div></div>
             <div class="ac-spec"><div class="ac-spec-label">항속거리</div><div class="ac-spec-val">${(ac.range/1000).toFixed(1)}K km</div></div>
             <div class="ac-spec"><div class="ac-spec-label">속도</div><div class="ac-spec-val">${ac.speed} km/h</div></div>
             <div class="ac-spec"><div class="ac-spec-label">연료소비</div><div class="ac-spec-val">${(ac.fuelPerHour/1000).toFixed(1)}K/h</div></div>
@@ -3445,7 +3475,7 @@ const G = {
             <span style="font-size:11px;color:var(--text3)">${f.nickname||'닉네임 없음'}</span>
           </div>
           <div style="font-size:12px;color:var(--text2);margin-bottom:10px">
-            좌석: ${ac.seats||'화물'} | 항속: ${(ac.range/1000).toFixed(0)}K km
+            ${ac.category==='cargo' ? `적재량: ${fmtN(Math.round((ac.cargo||0)/1000))}톤` : `좌석: ${ac.seats}`} | 항속: ${(ac.range/1000).toFixed(0)}K km
           </div>
           <div style="display:flex;gap:8px">
             <button style="flex:1;padding:7px;border:1.5px solid var(--sky);border-radius:var(--radius-sm);color:var(--sky);background:none;font-size:12px;font-weight:600;cursor:pointer" onclick="G.openCustomize('${f.id}')">커스텀</button>
@@ -3598,6 +3628,12 @@ const G = {
       const ac = AIRCRAFT_DATA.find(a => a.id === r.aircraftId);
       if (!depAp || !arrAp || !ac) return;
       const profitClass = r.weeklyProfit >= 0 ? 'profit-positive' : 'profit-negative';
+      const cargoTons = Math.round((r.weeklyCargo || 0) / 1000);
+      const primaryMetricLabel = ac.category === 'cargo' ? '적재율' : '탑승률';
+      const primaryMetricValue = `${Math.round((r.loadFactor||0)*100)}%`;
+      const volumeLabel = ac.category === 'cargo' ? '주간 화물' : '주간 탑승객';
+      const volumeValue = ac.category === 'cargo' ? `${fmtN(cargoTons)}톤` : fmtN(r.weeklyPax||0);
+      const cargoInfo = (r.weeklyCargo || 0) > 0 ? `<div style="font-size:11px;color:var(--text2);margin-top:8px">화물: ${fmtN(cargoTons)}톤 · 화물 수익 ${fmt(r.weeklyCargoRevenue||0)}</div>` : '';
       const div = document.createElement('div');
       div.className = 'route-card';
       div.innerHTML = `
@@ -3615,11 +3651,12 @@ const G = {
         <div>
           <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${ac.name} ${fleet?`(${fleet.reg})`:''}</div>
           <div class="route-stats">
-            <div class="route-stat"><div class="route-stat-val">${Math.round((r.loadFactor||0)*100)}%</div><div class="route-stat-label">탑승률</div></div>
-            <div class="route-stat"><div class="route-stat-val">${fmtN(r.weeklyPax||0)}</div><div class="route-stat-label">주간 탑승객</div></div>
+            <div class="route-stat"><div class="route-stat-val">${primaryMetricValue}</div><div class="route-stat-label">${primaryMetricLabel}</div></div>
+            <div class="route-stat"><div class="route-stat-val">${volumeValue}</div><div class="route-stat-label">${volumeLabel}</div></div>
             <div class="route-stat"><div class="route-stat-val" style="color:var(--green)">${fmt(r.weeklyRevenue||0)}</div><div class="route-stat-label">수익</div></div>
             <div class="route-stat"><div class="route-stat-val ${profitClass}">${fmt(r.weeklyProfit||0)}</div><div class="route-stat-label">순이익</div></div>
           </div>
+          ${cargoInfo}
         </div>
         <div class="route-actions">
           <button class="route-close-btn" onclick="G.closeRoute(${r.id})">노선 폐쇄</button>
@@ -3628,6 +3665,26 @@ const G = {
     });
   },
 
+
+  getLoanWeeksRemaining() {
+    const takenWeek = Number(G.game.loanTakenWeek || 0);
+    const debt = Number(G.game.loanDebt || 0);
+    if (debt <= 0 || !takenWeek) return null;
+    return Math.max(0, 24 - (G.game.week - takenWeek));
+  },
+
+  processLoanMaturity() {
+    const debt = Number(G.game.loanDebt || 0);
+    if (debt <= 0) return;
+    if (!G.game.loanTakenWeek) G.game.loanTakenWeek = G.game.week;
+    if (G.game.week - G.game.loanTakenWeek < 24) return;
+    G.game.balance -= debt;
+    G.game.transactions.unshift({week:G.game.week,type:'대출 자동상환',desc:'24주 만기 일괄 상환',amount:-debt});
+    if (G.game.transactions.length > 100) G.game.transactions.pop();
+    G.game.loanDebt = 0;
+    G.game.loanTakenWeek = 0;
+    G.notify(`대출 만기 도래로 ${fmt(debt)} 자동 상환되었습니다`, G.game.balance >= 0 ? 'info' : 'warning');
+  },
 
   getLoanLimit() {
     const repBonus = Math.max(0, Math.floor(Math.max(0, (G.game.reputation || 1) - 1)) * 5000000);
@@ -3656,7 +3713,7 @@ const G = {
     if (debt + amount > limit) { G.notify('대출 한도를 초과했습니다', 'error'); return; }
     G.game.loanDebt = debt + amount;
     G.game.balance += amount;
-    if (G.game.mode === 'free' && !G.game.loanTakenWeek) G.game.loanTakenWeek = G.game.week;
+    if (debt <= 0) G.game.loanTakenWeek = G.game.week;
     G.game.transactions.unshift({week:G.game.week,type:'대출 실행',desc:'운영자금 대출',amount:amount});
     if (G.game.transactions.length > 100) G.game.transactions.pop();
     G.renderFinance();
@@ -3673,6 +3730,7 @@ const G = {
     if (G.game.balance < amount) { G.notify('잔고가 부족해 상환할 수 없습니다', 'error'); return; }
     G.game.loanDebt = Math.max(0, debt - amount);
     G.game.balance -= amount;
+    if (G.game.loanDebt <= 0) G.game.loanTakenWeek = 0;
     G.game.transactions.unshift({week:G.game.week,type:'대출 상환',desc:'운영자금 상환',amount:-amount});
     if (G.game.transactions.length > 100) G.game.transactions.pop();
     G.renderFinance();
@@ -3728,9 +3786,16 @@ const G = {
     const debtEl = document.getElementById('fin-loan-debt');
     const availableEl = document.getElementById('fin-loan-available');
     const limitEl = document.getElementById('fin-loan-limit');
+    const loanStatusEl = document.getElementById('fin-loan-status');
     if (debtEl) debtEl.textContent = fmt(debt);
     if (availableEl) availableEl.textContent = fmt(available);
     if (limitEl) limitEl.textContent = fmt(limit);
+    if (loanStatusEl) {
+      const weeksLeft = G.getLoanWeeksRemaining();
+      loanStatusEl.textContent = debt > 0 && weeksLeft !== null
+        ? `자동상환까지 ${weeksLeft}주 · 만기 예상 ${fmt(debt)}`
+        : '대출 없음';
+    }
 
     const challengeList = document.getElementById('fin-challenge-list');
     const challengeSummary = document.getElementById('fin-challenge-summary');
