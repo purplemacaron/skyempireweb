@@ -2502,19 +2502,38 @@ function routeFlightsPerWeek(hours) {
 
 function routeDemandDistanceFactor(distanceKm, depDemand, arrDemand) {
   const d = Math.max(0, Number(distanceKm || 0));
-  const marketDemand = Math.max(0.35, Math.min(1.3, ((Number(depDemand || 0) + Number(arrDemand || 0)) / 150)));
+  const dep = Number(depDemand || 0);
+  const arr = Number(arrDemand || 0);
+  // 수요 중심 계산: 공항 수요의 영향력을 가장 크게 두고, 거리는 보조 가중치만 적용
+  const marketDemand = Math.max(0.42, Math.min(1.55, Math.pow((dep + arr) / 170, 1.3)));
 
-  // 초단거리(도심권/인접 도시) 노선은 지상교통 대체효과로 수요를 강하게 제한
   let distanceFactor = 1;
-  if (d < 250) distanceFactor = 0.42;
-  else if (d < 450) distanceFactor = 0.58;
-  else if (d < 800) distanceFactor = 0.74;
-  else if (d < 1600) distanceFactor = 0.90;
-  else if (d < 6000) distanceFactor = 1.00;
-  else if (d < 10000) distanceFactor = 0.88;
-  else distanceFactor = 0.74;
+  if (d < 350) distanceFactor = 0.90;
+  else if (d < 900) distanceFactor = 0.95;
+  else if (d < 2200) distanceFactor = 1.00;
+  else if (d < 5000) distanceFactor = 1.04;
+  else if (d < 9000) distanceFactor = 1.08;
+  else distanceFactor = 1.12;
 
-  return distanceFactor * marketDemand;
+  return Math.max(0.35, Math.min(1.65, marketDemand * distanceFactor));
+}
+
+function routeRevenueProfile(distanceKm, depDemand, arrDemand) {
+  const d = Math.max(0, Number(distanceKm || 0));
+  const dep = Number(depDemand || 0);
+  const arr = Number(arrDemand || 0);
+  const demandIndex = Math.max(0.4, Math.min(1.6, (dep + arr) / 180));
+  const demandImpact = Math.max(0.72, Math.min(1.85, Math.pow(demandIndex, 1.45) * 1.08));
+
+  let longHaulPremium = 1;
+  if (d < 800) longHaulPremium = 0.90;
+  else if (d < 1600) longHaulPremium = 0.96;
+  else if (d < 3500) longHaulPremium = 1.03;
+  else if (d < 7000) longHaulPremium = 1.12;
+  else longHaulPremium = 1.22;
+
+  const shortHaulDrag = d < 450 ? 0.84 : d < 900 ? 0.92 : 1;
+  return { demandImpact, longHaulPremium, shortHaulDrag };
 }
 
 function starsHTML(rep) {
@@ -3140,6 +3159,7 @@ const G = {
       r.active = true;
 
       const routeDemandFit = routeDemandDistanceFactor(d, depAp.demand, arrAp.demand);
+      const revenueProfile = routeRevenueProfile(d, depAp.demand, arrAp.demand);
       const avgDemand = ((depAp.demand + arrAp.demand) / 200) * G.demandMultiplier * routeDemandFit;
       const upgrService = G.game.upgrades['service'] || 0;
       const upgrMileage = G.game.upgrades['mileage'] || 0;
@@ -3158,8 +3178,8 @@ const G = {
       const cargoHubBonus = cargoHubLinked ? (1.15 + cargoUpgrade * 0.05) : 1;
       const cargoRevBonus = 1 + cargoUpgrade * 0.25 + allianceRevBonus * 0.5;
       if (ac.category === 'cargo') {
-        const cargoYield = 1.8 + Math.min(1.4, d / 7000);
-        const weeklyCargo = Math.round((ac.cargo || 0) * weeklyFlights * Math.max(0.85, G.demandMultiplier) * cargoHubBonus);
+        const cargoYield = (1.8 + Math.min(1.4, d / 7000)) * revenueProfile.longHaulPremium * (0.86 + revenueProfile.demandImpact * 0.42);
+        const weeklyCargo = Math.round((ac.cargo || 0) * weeklyFlights * Math.max(0.85, G.demandMultiplier * revenueProfile.demandImpact) * cargoHubBonus);
         const cargoRev = weeklyCargo * cargoYield * cargoRevBonus;
         r.weeklyCargo = weeklyCargo;
         r.weeklyCargoRevenue = cargoRev;
@@ -3169,14 +3189,13 @@ const G = {
       } else {
         const estimatedPax = Math.round((ac.seats || 0) * Math.max(0, r.loadFactor || 0) * weeklyFlights);
         r.weeklyPax = Math.max(0, estimatedPax);
-        const shortHaulPenalty = d < 500 ? 0.68 : d < 900 ? 0.82 : 1;
-        const ticketPrice = (0.12 * d + 80) * G.game.ticketMarketIndex * shortHaulPenalty;
+        const ticketPrice = (0.105 * d + 95) * G.game.ticketMarketIndex * revenueProfile.longHaulPremium * revenueProfile.shortHaulDrag * revenueProfile.demandImpact;
         const upgrLounge = G.game.upgrades['lounge'] || 0;
         const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
         const paxRevenue = r.weeklyPax * ticketPrice * revBonus;
         const bellyCargoPerFlight = cargoUpgrade > 0 ? Math.round((ac.seats || 0) * (20 + cargoUpgrade * 10)) : 0;
         const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * weeklyFlights * Math.max(0.72, r.loadFactor || 0.72) * cargoHubBonus) : 0;
-        const cargoYield = 0.22 + Math.min(0.35, d / 15000);
+        const cargoYield = (0.22 + Math.min(0.35, d / 15000)) * revenueProfile.longHaulPremium * (0.88 + revenueProfile.demandImpact * 0.35);
         const cargoRevenue = weeklyCargo * cargoYield * cargoRevBonus;
         r.weeklyCargo = weeklyCargo;
         r.weeklyCargoRevenue = cargoRevenue;
@@ -3523,6 +3542,7 @@ const G = {
     const upgrMaint = G.game.upgrades['maintenance'] || 0;
     const upgrFuel = G.game.upgrades['fuel'] || 0;
     const routeDemandFit = routeDemandDistanceFactor(d, dep.demand, arrAp.demand);
+    const revenueProfile = routeRevenueProfile(d, dep.demand, arrAp.demand);
     const avgDemand = ((dep.demand + arrAp.demand) / 200) * G.demandMultiplier * routeDemandFit;
     const loadBonus = 1 + upgrService*0.03 + upgrMileage*0.05 + upgrDigital*0.03 + alliancePaxBonus;
     const fareElasticity = Math.max(0.7, 1.12 - ((G.game.ticketMarketIndex || 1) - 1) * 1.6);
@@ -3542,18 +3562,17 @@ const G = {
     let rev = 0;
     let loadText = `${Math.round(loadFactor*100)}% · 주 ${weeklyFlights}회`;
     if (ac.category === 'cargo') {
-      const weeklyCargo = Math.round((ac.cargo || 0) * weeklyFlights * Math.max(0.85, G.demandMultiplier) * cargoHubBonus);
-      const cargoYield = 1.8 + Math.min(1.4, d / 7000);
+      const weeklyCargo = Math.round((ac.cargo || 0) * weeklyFlights * Math.max(0.85, G.demandMultiplier * revenueProfile.demandImpact) * cargoHubBonus);
+      const cargoYield = (1.8 + Math.min(1.4, d / 7000)) * revenueProfile.longHaulPremium * (0.86 + revenueProfile.demandImpact * 0.42);
       rev = weeklyCargo * cargoYield * cargoRevBonus;
       if (loadLabel) loadLabel.textContent = '주간 적재량 / 회전수';
       loadText = `${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyFlights}회`;
     } else {
-      const shortHaulPenalty = d < 500 ? 0.68 : d < 900 ? 0.82 : 1;
-      const ticketPrice = (0.12 * d + 80) * (G.game.ticketMarketIndex || 1) * shortHaulPenalty;
+      const ticketPrice = (0.105 * d + 95) * (G.game.ticketMarketIndex || 1) * revenueProfile.longHaulPremium * revenueProfile.shortHaulDrag * revenueProfile.demandImpact;
       const weeklyPax = Math.round((ac.seats || 0) * Math.max(0, loadFactor || 0) * weeklyFlights);
       const bellyCargoPerFlight = cargoUpgrade > 0 ? Math.round((ac.seats || 0) * (20 + cargoUpgrade * 10)) : 0;
       const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * weeklyFlights * Math.max(0.72, loadFactor || 0.72) * cargoHubBonus) : 0;
-      const cargoYield = 0.22 + Math.min(0.35, d / 15000);
+      const cargoYield = (0.22 + Math.min(0.35, d / 15000)) * revenueProfile.longHaulPremium * (0.88 + revenueProfile.demandImpact * 0.35);
       const cargoRevenue = weeklyCargo * cargoYield * cargoRevBonus;
       const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
       rev = weeklyPax * ticketPrice * revBonus + cargoRevenue;
