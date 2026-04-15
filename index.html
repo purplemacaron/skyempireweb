@@ -3801,7 +3801,7 @@ const G = {
     }
     const [dep, arr] = normalizeRouteEndpoints(rawDep, rawArr);
     if (G.game.routes.some(r => r.dep === dep && r.arr === arr && r.fleetId === fid)) {
-      G.notify('이미 동일한 왕복 노선/항공기 조합이 있습니다', 'error'); return;
+      G.notify('이 항공기는 이미 해당 노선에 배정되어 있습니다', 'error'); return;
     }
     const depAp = AIRPORTS.find(a => a.code === dep);
     const arrAp = AIRPORTS.find(a => a.code === arr);
