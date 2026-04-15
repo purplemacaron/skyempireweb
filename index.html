@@ -1477,7 +1477,7 @@
         </div>
         <div class="fuel-warn" id="fuel-warn-routes">연료가 부족하여 일부 노선이 중단되었습니다.</div>
         <div id="routes-list" class="routes-grid">
-          <div class="no-route-msg">아직 개설된 노선이 없습니다.<br>세계 지도에서 공항을 클릭하여 노선을 개설하세요.</div>
+          <div class="no-route-msg">아직 개설된 노선이 없습니다.<br>세계 지도에서 공항을 클릭하거나 공항을 검색해 왕복 노선을 개설하세요.</div>
         </div>
       </div>
 
@@ -1852,24 +1852,24 @@
     <div class="modal-title">노선 개설</div>
     <div class="route-modal-airports">
       <div class="route-modal-ap">
-        <div class="form-label">출발 공항</div>
-        <div class="dep-airport-display" id="dep-airport-display">
-          <span class="dep-code" id="dep-display-code">-</span>
-          <div>
-            <div id="dep-display-name" class="dep-name">공항을 클릭하세요</div>
-          </div>
+        <div class="form-label">공항 A</div>
+        <div class="arr-search-wrap">
+          <input type="text" id="route-dep-input" placeholder="공항명 또는 코드 검색..." autocomplete="off"
+            oninput="G.filterAirportDropdown('dep', this.value)"
+            onfocus="G.openAirportDropdown('dep')"
+            onkeydown="G.airportDropdownKeydown('dep', event)">
+          <input type="hidden" id="route-dep" value="">
+          <div class="arr-dropdown" id="dep-dropdown"></div>
         </div>
-        <!-- hidden value holder -->
-        <input type="hidden" id="route-dep" value="">
       </div>
-      <div style="display:flex;align-items:flex-end;padding-bottom:8px;font-size:20px;color:var(--text3)">→</div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:8px;font-size:20px;color:var(--text3)">↔</div>
       <div class="route-modal-ap">
-        <div class="form-label">도착 공항</div>
+        <div class="form-label">공항 B</div>
         <div class="arr-search-wrap">
           <input type="text" id="route-arr-input" placeholder="공항명 또는 코드 검색..." autocomplete="off"
-            oninput="G.filterArrDropdown(this.value)"
-            onfocus="G.openArrDropdown()"
-            onkeydown="G.arrDropdownKeydown(event)">
+            oninput="G.filterAirportDropdown('arr', this.value)"
+            onfocus="G.openAirportDropdown('arr')"
+            onkeydown="G.airportDropdownKeydown('arr', event)">
           <input type="hidden" id="route-arr" value="">
           <div class="arr-dropdown" id="arr-dropdown"></div>
         </div>
@@ -2462,7 +2462,7 @@ const OPERATION_EVENTS = [
     title:'중고 항공기 긴급 매각 기회',
     body:'경쟁사가 파산하면서 고품질 중고 항공기가 시장에 나왔습니다. 즉시 구매 여부를 결정해야 합니다.',
     choices:[
-      {label:'즉시 매입 (1,500만원)',desc:'중고 항공기 1대가 즉시 기단에 추가됩니다. 수요도 소폭 증가합니다.',apply:(g)=>{ if((g.balance||0)>=15000000){ const usedPool = AIRCRAFT_DATA.filter(a => a.category !== 'cargo' && a.price <= 45000000); const ac = usedPool[Math.floor(Math.random() * usedPool.length)] || AIRCRAFT_DATA.find(a => a.id === 'CRJ200') || AIRCRAFT_DATA[0]; g.balance -= 15000000; g.demandMultiplier *= 1.05; if (ac) { g.fleet.push({ id: Date.now() + Math.random(), aircraftId: ac.id, purchasedWeek: g.week, nickname: `[중고] ${ac.name}`, reg: `US${Math.floor(Math.random()*9000+1000)}` }); G.notify(`중고 항공기 매입 완료: ${ac.name}`,'success'); } else { G.notify('중고 항공기 매입 완료','success'); } }else{ G.notify('자금이 부족해 매입에 실패했습니다','error'); } }},
+      {label:'즉시 매입 (1,500만원)',desc:'중고 항공기 1대가 즉시 기단에 추가됩니다. 수요도 소폭 증가합니다.',apply:(g)=>{ if((g.balance||0)>=15000000){ const usedPool = AIRCRAFT_DATA.filter(a => a.category !== 'cargo' && a.price <= 45000000); const ac = usedPool[Math.floor(Math.random() * usedPool.length)] || AIRCRAFT_DATA.find(a => a.id === 'CRJ200') || AIRCRAFT_DATA[0]; g.balance -= 15000000; g.demandMultiplier *= 1.05; if (!Array.isArray(g.transactions)) g.transactions = []; if (ac) { g.fleet.push({ id: Date.now() + Math.random(), aircraftId: ac.id, purchasedWeek: g.week, nickname: `[중고] ${ac.name}`, reg: `US${Math.floor(Math.random()*9000+1000)}` }); g.transactions.unshift({week:g.week,type:'중고 항공기 매입',desc:ac.name,amount:-15000000}); if (g.transactions.length > 100) g.transactions.pop(); G.notify(`중고 항공기 매입 완료: ${ac.name}`,'success'); } else { g.transactions.unshift({week:g.week,type:'중고 항공기 매입',desc:'중고 항공기',amount:-15000000}); if (g.transactions.length > 100) g.transactions.pop(); G.notify('중고 항공기 매입 완료','success'); } }else{ G.notify('자금이 부족해 매입에 실패했습니다','error'); } }},
       {label:'관망',desc:'현금 보존, 기회 포기. 재정 안정성 유지.',apply:(g)=>{ g.costMultiplier*=0.98; }}
     ]
   },
@@ -2569,8 +2569,9 @@ function dist(a, b) {
 }
 
 function routeFlightsPerWeek(hours) {
-  const safeHours = Math.max(0.5, Number(hours || 0));
-  return Math.max(2, Math.min(14, Math.floor(84 / Math.max(2.5, safeHours + 2))));
+  const oneWayHours = Math.max(0.5, Number(hours || 0));
+  const roundTripHours = oneWayHours * 2 + 2;
+  return Math.max(1, Math.min(7, Math.floor(84 / Math.max(4.5, roundTripHours))));
 }
 
 function routeDemandDistanceFactor(distanceKm, depDemand, arrDemand) {
@@ -2623,6 +2624,11 @@ function clampLoanInputAmount(value) {
 
 function airportLabel(a) {
   return `${a.name} (${a.city}) - ${a.code}`;
+}
+
+function normalizeRouteEndpoints(codeA, codeB) {
+  return [String(codeA || '').trim().toUpperCase(), String(codeB || '').trim().toUpperCase()]
+    .sort((a, b) => a.localeCompare(b, 'en'));
 }
 
 function sortAirportsKo(list) {
@@ -3052,23 +3058,30 @@ const G = {
     G.game.loanDebt = Number(G.game.loanDebt || 0);
     if (typeof G.game.loanTakenWeek === 'undefined') G.game.loanTakenWeek = 0;
     if (typeof G.game.autoSaveSlot === 'undefined') G.game.autoSaveSlot = 'auto';
-    G.game.routes = G.game.routes
+    const normalizedRouteMap = new Map();
+    G.game.routes
       .filter(r => r && r.dep && r.arr && r.fleetId && r.aircraftId)
-      .map((r, idx) => ({
-        id: r.id || (Date.now() + idx),
-        dep: r.dep,
-        arr: r.arr,
-        fleetId: r.fleetId,
-        aircraftId: r.aircraftId,
-        weeklyRevenue: Number(r.weeklyRevenue || 0),
-        weeklyCost: Number(r.weeklyCost || 0),
-        weeklyPax: Number(r.weeklyPax || 0),
-        weeklyCargo: Number(r.weeklyCargo || 0),
-        weeklyCargoRevenue: Number(r.weeklyCargoRevenue || 0),
-        weeklyProfit: Number(r.weeklyProfit || 0),
-        loadFactor: Number(r.loadFactor || 0),
-        active: r.active !== false,
-      }));
+      .forEach((r, idx) => {
+        const [dep, arr] = normalizeRouteEndpoints(r.dep, r.arr);
+        const key = `${dep}-${arr}-${r.fleetId}`;
+        if (normalizedRouteMap.has(key)) return;
+        normalizedRouteMap.set(key, {
+          id: r.id || (Date.now() + idx),
+          dep,
+          arr,
+          fleetId: r.fleetId,
+          aircraftId: r.aircraftId,
+          weeklyRevenue: Number(r.weeklyRevenue || 0),
+          weeklyCost: Number(r.weeklyCost || 0),
+          weeklyPax: Number(r.weeklyPax || 0),
+          weeklyCargo: Number(r.weeklyCargo || 0),
+          weeklyCargoRevenue: Number(r.weeklyCargoRevenue || 0),
+          weeklyProfit: Number(r.weeklyProfit || 0),
+          loadFactor: Number(r.loadFactor || 0),
+          active: r.active !== false,
+        });
+      });
+    G.game.routes = Array.from(normalizedRouteMap.values());
   },
 
   tick() {
@@ -3158,8 +3171,9 @@ const G = {
       const d = dist(depAp, arrAp);
       if (d > ac.range) return sum;
       const flightHours = d / ac.speed;
-      const weeklyFlights = routeFlightsPerWeek(flightHours);
-      const routeFuelUse = ac.fuelPerHour * flightHours * weeklyFlights / 50000;
+      const weeklyRoundTrips = routeFlightsPerWeek(flightHours);
+      const weeklySectors = weeklyRoundTrips * 2;
+      const routeFuelUse = ac.fuelPerHour * flightHours * weeklySectors / 50000;
       return sum + Math.max(0, routeFuelUse);
     }, 0);
   },
@@ -3219,8 +3233,9 @@ const G = {
       }
 
       const flightHours = d / ac.speed;
-      const weeklyFlights = routeFlightsPerWeek(flightHours);
-      const routeFuelUse = ac.fuelPerHour * flightHours * weeklyFlights / 50000;
+      const weeklyRoundTrips = routeFlightsPerWeek(flightHours);
+      const weeklySectors = weeklyRoundTrips * 2;
+      const routeFuelUse = ac.fuelPerHour * flightHours * weeklySectors / 50000;
       const currentFuelPct = fuelCapacity > 0 ? ((G.game.fuel || 0) / fuelCapacity) * 100 : 0;
       if (currentFuelPct <= 10 || (G.game.fuel || 0) < routeFuelUse) {
         r.active = false;
@@ -3252,7 +3267,7 @@ const G = {
       const cargoRevBonus = 1 + cargoUpgrade * 0.25 + allianceRevBonus * 0.5;
       if (ac.category === 'cargo') {
         const cargoYield = (1.8 + Math.min(1.4, d / 7000)) * revenueProfile.longHaulPremium * (0.86 + revenueProfile.demandImpact * 0.42);
-        const weeklyCargo = Math.round((ac.cargo || 0) * weeklyFlights * Math.max(0.85, G.demandMultiplier * revenueProfile.demandImpact) * cargoHubBonus);
+        const weeklyCargo = Math.round((ac.cargo || 0) * weeklySectors * Math.max(0.85, G.demandMultiplier * revenueProfile.demandImpact) * cargoHubBonus);
         const cargoRev = weeklyCargo * cargoYield * cargoRevBonus;
         r.weeklyCargo = weeklyCargo;
         r.weeklyCargoRevenue = cargoRev;
@@ -3260,14 +3275,14 @@ const G = {
         r.weeklyPax = 0;
         r.loadFactor = Math.min(0.98, 0.74 + cargoUpgrade * 0.05 + (cargoHubLinked ? 0.08 : 0));
       } else {
-        const estimatedPax = Math.round((ac.seats || 0) * Math.max(0, r.loadFactor || 0) * weeklyFlights);
+        const estimatedPax = Math.round((ac.seats || 0) * Math.max(0, r.loadFactor || 0) * weeklySectors);
         r.weeklyPax = Math.max(0, estimatedPax);
         const ticketPrice = (0.105 * d + 95) * G.game.ticketMarketIndex * revenueProfile.longHaulPremium * revenueProfile.shortHaulDrag * revenueProfile.demandImpact;
         const upgrLounge = G.game.upgrades['lounge'] || 0;
         const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
         const paxRevenue = r.weeklyPax * ticketPrice * revBonus;
         const bellyCargoPerFlight = cargoUpgrade > 0 ? Math.round((ac.seats || 0) * (20 + cargoUpgrade * 10)) : 0;
-        const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * weeklyFlights * Math.max(0.72, r.loadFactor || 0.72) * cargoHubBonus) : 0;
+        const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * weeklySectors * Math.max(0.72, r.loadFactor || 0.72) * cargoHubBonus) : 0;
         const cargoYield = (0.22 + Math.min(0.35, d / 15000)) * revenueProfile.longHaulPremium * (0.88 + revenueProfile.demandImpact * 0.35);
         const cargoRevenue = weeklyCargo * cargoYield * cargoRevBonus;
         r.weeklyCargo = weeklyCargo;
@@ -3280,7 +3295,7 @@ const G = {
       const upgrFuel = G.game.upgrades['fuel'] || 0;
       const costMult = G.costMultiplier * (1 - upgrMaint*0.03) * (1 - upgrFuel*0.04);
       const fuelEff = G.fuelEfficiency * (1 + upgrFuel*0.04);
-      r.weeklyCost = (ac.opCostPerHour * flightHours + ac.fuelPerHour * flightHours * 0.001 * 1000) * weeklyFlights * costMult * (1 - allianceCostBonus) / fuelEff;
+      r.weeklyCost = (ac.opCostPerHour * flightHours + ac.fuelPerHour * flightHours * 0.001 * 1000) * weeklySectors * costMult * (1 - allianceCostBonus) / fuelEff;
 
       r.weeklyProfit = r.weeklyRevenue - r.weeklyCost;
       G.weeklyRevenue += r.weeklyRevenue;
@@ -3465,20 +3480,22 @@ const G = {
       G.mapRouteLines[idx] = line;
 
       // 비행기 애니메이션을 위한 직선 경로 저장
+      const forwardAngle = -Math.atan2(arr.lat - dep.lat, arr.lng - dep.lng) * 180 / Math.PI;
+      const reverseAngle = -Math.atan2(dep.lat - arr.lat, dep.lng - arr.lng) * 180 / Math.PI;
       G.mapPlaneMeta[idx] = {
         straightPoints,
         depLat: dep.lat, depLng: dep.lng,
-        arrLat: arr.lat, arrLng: arr.lng
+        arrLat: arr.lat, arrLng: arr.lng,
+        forwardAngle,
+        reverseAngle
       };
 
       // 비행기 아이콘 (중간점에 배치)
       const midLat = (dep.lat + arr.lat) / 2;
       const midLng = (dep.lng + arr.lng) / 2;
-      // fa-plane 기본 방향은 오른쪽(동쪽). atan2는 반시계(CCW), CSS rotate는 시계(CW)이므로 부호 반전
-      const angle = -Math.atan2(arr.lat - dep.lat, arr.lng - dep.lng) * 180 / Math.PI;
       const planeIcon = L.divIcon({
         className: '',
-        html: `<div style="width:20px;height:20px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px'></i></div>`,
+        html: `<div style="width:20px;height:20px;transform:rotate(${forwardAngle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px'></i></div>`,
         iconSize: [20,20], iconAnchor: [10,10]
       });
       const plane = L.marker([midLat, midLng], {icon: planeIcon}).addTo(G.leafletMap);
@@ -3495,12 +3512,21 @@ const G = {
 
       const pseudoDist = Math.max(3000, Math.hypot(meta.arrLat - meta.depLat, meta.arrLng - meta.depLng) * 111);
       const speedFactor = Math.max(0.05, Math.min(0.3, 1200 / pseudoDist));
-      const t = ((now * speedFactor) + idx * 0.17) % 1;
+      const baseT = ((now * speedFactor) + idx * 0.17) % 2;
+      const goingForward = baseT <= 1;
+      const t = goingForward ? baseT : 2 - baseT;
 
-      // 직선 보간: 출발지 → 도착지
       const lat = meta.depLat + (meta.arrLat - meta.depLat) * t;
       const lng = meta.depLng + (meta.arrLng - meta.depLng) * t;
       G.mapPlanes[idx].setLatLng([lat, lng]);
+
+      const angle = goingForward ? meta.forwardAngle : meta.reverseAngle;
+      const planeIcon = L.divIcon({
+        className: '',
+        html: `<div style="width:20px;height:20px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px'></i></div>`,
+        iconSize: [20,20], iconAnchor: [10,10]
+      });
+      G.mapPlanes[idx].setIcon(planeIcon);
     });
   },
 
@@ -3558,23 +3584,32 @@ const G = {
     G.updateRoutePreview();
   },
 
-  openRouteModal(depCode) {
-    // 출발 공항 = 클릭한 공항 (고정)
-    const depAp = AIRPORTS.find(a => a.code === depCode);
-    document.getElementById('route-dep').value = depCode;
-    document.getElementById('dep-display-code').textContent = depCode;
-    document.getElementById('dep-display-name').textContent = depAp ? depAp.name : depCode;
-
-    // 도착 공항 초기화
-    document.getElementById('route-arr').value = '';
+  openRouteModal(prefillCode) {
+    const depInput = document.getElementById('route-dep-input');
     const arrInput = document.getElementById('route-arr-input');
-    arrInput.value = '';
-    arrInput.classList.remove('selected');
+    document.getElementById('route-dep').value = '';
+    document.getElementById('route-arr').value = '';
+    if (depInput) {
+      depInput.value = '';
+      depInput.classList.remove('selected');
+    }
+    if (arrInput) {
+      arrInput.value = '';
+      arrInput.classList.remove('selected');
+    }
 
-    // 드롭다운 목록 빌드 (출발 공항 제외)
-    G._arrAirports = sortAirportsKo(AIRPORTS).filter(a => a.code !== depCode);
-    G._arrFocusIdx = -1;
-    G.filterArrDropdown('');
+    G._airportFiltered = { dep: [], arr: [] };
+    G._airportFocusIdx = { dep: -1, arr: -1 };
+
+    if (prefillCode) {
+      const ap = AIRPORTS.find(a => a.code === prefillCode);
+      if (ap) G.selectAirport('dep', ap.code, ap.name, true);
+    }
+
+    G.filterAirportDropdown('dep', depInput ? depInput.value : '');
+    G.filterAirportDropdown('arr', arrInput ? arrInput.value : '');
+    document.getElementById('dep-dropdown')?.classList.remove('open');
+    document.getElementById('arr-dropdown')?.classList.remove('open');
 
     G._selectedFleetId = null;
     document.getElementById('route-preview').style.display = 'none';
@@ -3582,71 +3617,97 @@ const G = {
     openModal('modal-route');
   },
 
-  filterArrDropdown(query) {
-    const dropdown = document.getElementById('arr-dropdown');
-    const q = query.trim().toLowerCase();
-    const list = G._arrAirports || [];
+  filterAirportDropdown(kind, query) {
+    const otherKind = kind === 'dep' ? 'arr' : 'dep';
+    const dropdown = document.getElementById(kind === 'dep' ? 'dep-dropdown' : 'arr-dropdown');
+    const otherCode = document.getElementById(otherKind === 'dep' ? 'route-dep' : 'route-arr')?.value || '';
+    const q = String(query || '').trim().toLowerCase();
+    const list = sortAirportsKo(AIRPORTS).filter(a => a.code !== otherCode);
     const filtered = q
       ? list.filter(a =>
           a.code.toLowerCase().includes(q) ||
           a.name.toLowerCase().includes(q) ||
-          (a.country||'').toLowerCase().includes(q)
+          (a.city || '').toLowerCase().includes(q) ||
+          (a.country || '').toLowerCase().includes(q)
         ).slice(0, 30)
       : list.slice(0, 30);
 
+    if (!dropdown) return;
     if (filtered.length === 0) {
       dropdown.innerHTML = '<div class="arr-dropdown-empty">검색 결과가 없습니다</div>';
     } else {
       dropdown.innerHTML = filtered.map((a, i) =>
         `<div class="arr-dropdown-item" data-code="${a.code}" data-idx="${i}"
-          onmousedown="G.selectArrAirport('${a.code}','${a.name.replace(/'/g,"\\'")}')">
+          onmousedown="G.selectAirport('${kind}','${a.code}','${a.name.replace(/'/g,"\\'")}')">
           <span class="arr-code">${a.code}</span>
-          <span class="arr-info">${a.name}${a.country ? ' · ' + a.country : ''}</span>
+          <span class="arr-info">${a.name}${a.city ? ' · ' + a.city : ''}${a.country ? ' · ' + a.country : ''}</span>
         </div>`
       ).join('');
     }
-    G._arrFiltered = filtered;
-    G._arrFocusIdx = -1;
+    if (!G._airportFiltered) G._airportFiltered = { dep: [], arr: [] };
+    if (!G._airportFocusIdx) G._airportFocusIdx = { dep: -1, arr: -1 };
+    G._airportFiltered[kind] = filtered;
+    G._airportFocusIdx[kind] = -1;
     dropdown.classList.add('open');
   },
 
-  openArrDropdown() {
-    const q = document.getElementById('route-arr-input').value;
-    G.filterArrDropdown(q);
+  openAirportDropdown(kind) {
+    const input = document.getElementById(kind === 'dep' ? 'route-dep-input' : 'route-arr-input');
+    G.filterAirportDropdown(kind, input ? input.value : '');
   },
 
-  selectArrAirport(code, name) {
-    document.getElementById('route-arr').value = code;
-    const arrInput = document.getElementById('route-arr-input');
-    arrInput.value = `${code} — ${name}`;
-    arrInput.classList.add('selected');
-    document.getElementById('arr-dropdown').classList.remove('open');
-    G._arrFocusIdx = -1;
+  selectAirport(kind, code, name, silent) {
+    const input = document.getElementById(kind === 'dep' ? 'route-dep-input' : 'route-arr-input');
+    const hidden = document.getElementById(kind === 'dep' ? 'route-dep' : 'route-arr');
+    const dropdown = document.getElementById(kind === 'dep' ? 'dep-dropdown' : 'arr-dropdown');
+    if (hidden) hidden.value = code;
+    if (input) {
+      input.value = `${code} — ${name}`;
+      input.classList.add('selected');
+    }
+    if (dropdown) dropdown.classList.remove('open');
+    if (!G._airportFocusIdx) G._airportFocusIdx = { dep: -1, arr: -1 };
+    G._airportFocusIdx[kind] = -1;
+
+    const otherKind = kind === 'dep' ? 'arr' : 'dep';
+    const otherHidden = document.getElementById(otherKind === 'dep' ? 'route-dep' : 'route-arr');
+    const otherInput = document.getElementById(otherKind === 'dep' ? 'route-dep-input' : 'route-arr-input');
+    if (otherHidden && otherHidden.value === code) {
+      otherHidden.value = '';
+      if (otherInput) {
+        otherInput.value = '';
+        otherInput.classList.remove('selected');
+      }
+    }
+
     G.refreshRouteAircraftGrid();
+    if (!silent) G.filterAirportDropdown(otherKind, otherInput ? otherInput.value : '');
   },
 
-  arrDropdownKeydown(e) {
-    const dropdown = document.getElementById('arr-dropdown');
-    const items = dropdown.querySelectorAll('.arr-dropdown-item');
+  airportDropdownKeydown(kind, e) {
+    const dropdown = document.getElementById(kind === 'dep' ? 'dep-dropdown' : 'arr-dropdown');
+    const items = dropdown ? dropdown.querySelectorAll('.arr-dropdown-item') : [];
     if (!items.length) return;
+    if (!G._airportFocusIdx) G._airportFocusIdx = { dep: -1, arr: -1 };
+    if (!G._airportFiltered) G._airportFiltered = { dep: [], arr: [] };
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      G._arrFocusIdx = Math.min((G._arrFocusIdx||0) + 1, items.length - 1);
+      G._airportFocusIdx[kind] = Math.min((G._airportFocusIdx[kind] ?? -1) + 1, items.length - 1);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      G._arrFocusIdx = Math.max((G._arrFocusIdx||0) - 1, 0);
+      G._airportFocusIdx[kind] = Math.max((G._airportFocusIdx[kind] ?? 0) - 1, 0);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const idx = G._arrFocusIdx >= 0 ? G._arrFocusIdx : 0;
-      const item = items[idx];
-      if (item) { const ap = (G._arrFiltered||[])[idx]; if(ap) G.selectArrAirport(ap.code, ap.name); }
+      const idx = G._airportFocusIdx[kind] >= 0 ? G._airportFocusIdx[kind] : 0;
+      const ap = (G._airportFiltered[kind] || [])[idx];
+      if (ap) G.selectAirport(kind, ap.code, ap.name);
       return;
     } else if (e.key === 'Escape') {
       dropdown.classList.remove('open');
       return;
     }
-    items.forEach((el, i) => el.classList.toggle('focused', i === G._arrFocusIdx));
-    const focused = items[G._arrFocusIdx];
+    items.forEach((el, i) => el.classList.toggle('focused', i === G._airportFocusIdx[kind]));
+    const focused = items[G._airportFocusIdx[kind]];
     if (focused) focused.scrollIntoView({ block: 'nearest' });
   },
 
@@ -3663,7 +3724,8 @@ const G = {
     if (!ac) return;
     const d = dist(dep, arrAp);
     const hours = d / ac.speed;
-    const weeklyFlights = routeFlightsPerWeek(hours);
+    const weeklyRoundTrips = routeFlightsPerWeek(hours);
+    const weeklySectors = weeklyRoundTrips * 2;
     const cargoUpgrade = G.game.upgrades['cargo'] || 0;
     const cargoHubLinked = dep.type === 'cargo_hub' || arrAp.type === 'cargo_hub';
     const cargoHubBonus = cargoHubLinked ? (1.15 + cargoUpgrade * 0.05) : 1;
@@ -3697,29 +3759,29 @@ const G = {
     }
 
     let rev = 0;
-    let loadText = `${Math.round(loadFactor*100)}% · 주 ${weeklyFlights}회`;
+    let loadText = `${Math.round(loadFactor*100)}% · 주 ${weeklyRoundTrips}왕복 (${weeklySectors}편)`;
     if (ac.category === 'cargo') {
-      const weeklyCargo = Math.round((ac.cargo || 0) * weeklyFlights * Math.max(0.85, G.demandMultiplier * revenueProfile.demandImpact) * cargoHubBonus);
+      const weeklyCargo = Math.round((ac.cargo || 0) * weeklySectors * Math.max(0.85, G.demandMultiplier * revenueProfile.demandImpact) * cargoHubBonus);
       const cargoYield = (1.8 + Math.min(1.4, d / 7000)) * revenueProfile.longHaulPremium * (0.86 + revenueProfile.demandImpact * 0.42);
       rev = weeklyCargo * cargoYield * cargoRevBonus;
-      if (loadLabel) loadLabel.textContent = '주간 적재량 / 회전수';
-      loadText = `${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyFlights}회`;
+      if (loadLabel) loadLabel.textContent = '주간 적재량 / 왕복 횟수';
+      loadText = `${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyRoundTrips}왕복`;
     } else {
       const ticketPrice = (0.105 * d + 95) * (G.game.ticketMarketIndex || 1) * revenueProfile.longHaulPremium * revenueProfile.shortHaulDrag * revenueProfile.demandImpact;
-      const weeklyPax = Math.round((ac.seats || 0) * Math.max(0, loadFactor || 0) * weeklyFlights);
+      const weeklyPax = Math.round((ac.seats || 0) * Math.max(0, loadFactor || 0) * weeklySectors);
       const bellyCargoPerFlight = cargoUpgrade > 0 ? Math.round((ac.seats || 0) * (20 + cargoUpgrade * 10)) : 0;
-      const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * weeklyFlights * Math.max(0.72, loadFactor || 0.72) * cargoHubBonus) : 0;
+      const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * weeklySectors * Math.max(0.72, loadFactor || 0.72) * cargoHubBonus) : 0;
       const cargoYield = (0.22 + Math.min(0.35, d / 15000)) * revenueProfile.longHaulPremium * (0.88 + revenueProfile.demandImpact * 0.35);
       const cargoRevenue = weeklyCargo * cargoYield * cargoRevBonus;
       const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
       rev = weeklyPax * ticketPrice * revBonus + cargoRevenue;
-      if (loadLabel) loadLabel.textContent = weeklyCargo > 0 ? '탑승률 / 화물 / 회전수' : '탑승률 / 회전수';
-      loadText = weeklyCargo > 0 ? `${Math.round(loadFactor*100)}% · ${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyFlights}회` : `${Math.round(loadFactor*100)}% · 주 ${weeklyFlights}회`;
+      if (loadLabel) loadLabel.textContent = weeklyCargo > 0 ? '탑승률 / 화물 / 왕복 횟수' : '탑승률 / 왕복 횟수';
+      loadText = weeklyCargo > 0 ? `${Math.round(loadFactor*100)}% · ${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyRoundTrips}왕복` : `${Math.round(loadFactor*100)}% · 주 ${weeklyRoundTrips}왕복`;
     }
 
     const costMult = G.costMultiplier * (1 - upgrMaint*0.03) * (1 - upgrFuel*0.04);
     const fuelEff = G.fuelEfficiency * (1 + upgrFuel*0.04);
-    const cost = (ac.opCostPerHour * hours + ac.fuelPerHour * hours) * weeklyFlights * costMult * (1 - allianceCostBonus) / fuelEff;
+    const cost = (ac.opCostPerHour * hours + ac.fuelPerHour * hours) * weeklySectors * costMult * (1 - allianceCostBonus) / fuelEff;
     document.getElementById('rp-revenue').textContent = fmt(rev);
     document.getElementById('rp-cost').textContent = fmt(cost);
     document.getElementById('rp-load').textContent = loadText;
@@ -3727,18 +3789,19 @@ const G = {
   },
 
   openRoute() {
-    const arr = document.getElementById('route-arr').value;
-    const dep = document.getElementById('route-dep').value;
+    const rawArr = document.getElementById('route-arr').value;
+    const rawDep = document.getElementById('route-dep').value;
     const fid = G._selectedFleetId;
-    if (!dep) { G.notify('출발 공항을 선택하세요', 'error'); return; }
-    if (!arr) { G.notify('도착 공항을 선택하세요', 'error'); return; }
-    if (dep === arr) { G.notify('출발과 도착 공항이 같습니다', 'error'); return; }
+    if (!rawDep) { G.notify('공항 A를 선택하세요', 'error'); return; }
+    if (!rawArr) { G.notify('공항 B를 선택하세요', 'error'); return; }
+    if (rawDep === rawArr) { G.notify('같은 공항끼리는 왕복 노선을 만들 수 없습니다', 'error'); return; }
     if (!fid) { G.notify('항공기를 선택하세요', 'error'); return; }
     if (G.game.routes.some(r => r.fleetId === fid)) {
       G.notify('이미 다른 노선에 배정된 항공기입니다', 'error'); return;
     }
-    if (G.game.routes.some(r => r.dep===dep && r.arr===arr && r.fleetId===fid)) {
-      G.notify('이미 동일 노선/항공기 조합이 있습니다', 'error'); return;
+    const [dep, arr] = normalizeRouteEndpoints(rawDep, rawArr);
+    if (G.game.routes.some(r => r.dep === dep && r.arr === arr && r.fleetId === fid)) {
+      G.notify('이미 동일한 왕복 노선/항공기 조합이 있습니다', 'error'); return;
     }
     const depAp = AIRPORTS.find(a => a.code === dep);
     const arrAp = AIRPORTS.find(a => a.code === arr);
@@ -3770,7 +3833,7 @@ const G = {
     G.drawRouteLines();
     G.renderRoutes();
     G.updateTopbar();
-    G.notify(`${dep} → ${arr} 노선 개설!`, 'success');
+    G.notify(`${dep} ↔ ${arr} 왕복 노선 개설!`, 'success');
   },
 
   closeRoute(id) {
@@ -4032,7 +4095,7 @@ const G = {
   renderRoutes() {
     const list = document.getElementById('routes-list');
     if (G.game.routes.length === 0) {
-      list.innerHTML = '<div class="no-route-msg">아직 개설된 노선이 없습니다.<br>세계 지도에서 공항을 클릭하여 노선을 개설하세요.</div>';
+      list.innerHTML = '<div class="no-route-msg">아직 개설된 노선이 없습니다.<br>세계 지도에서 공항을 클릭하거나 공항을 검색해 왕복 노선을 개설하세요.</div>';
       return;
     }
     list.innerHTML = '';
@@ -4046,7 +4109,7 @@ const G = {
       const cargoTons = Math.round((r.weeklyCargo || 0) / 1000);
       const primaryMetricLabel = ac.category === 'cargo' ? '적재율' : '탑승률';
       const primaryMetricValue = `${Math.round((r.loadFactor||0)*100)}%`;
-      const volumeLabel = ac.category === 'cargo' ? '주간 화물' : '주간 탑승객';
+      const volumeLabel = ac.category === 'cargo' ? '주간 화물(왕복)' : '주간 탑승객(왕복)';
       const volumeValue = ac.category === 'cargo' ? `${fmtN(cargoTons)}톤` : fmtN(r.weeklyPax||0);
       const cargoInfo = (r.weeklyCargo || 0) > 0 ? `<div style="font-size:11px;color:var(--text2);margin-top:8px">화물: ${fmtN(cargoTons)}톤 · 화물 수익 ${fmt(r.weeklyCargoRevenue||0)}</div>` : '';
       const div = document.createElement('div');
@@ -4057,7 +4120,10 @@ const G = {
             <div class="route-ap-code">${r.dep}</div>
             <div class="route-ap-name">${depAp.city}</div>
           </div>
-          <div class="route-line" style="width:60px"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div class="route-line" style="width:60px"></div>
+            <div style="font-size:10px;color:var(--sky);font-weight:800">왕복</div>
+          </div>
           <div class="route-ap">
             <div class="route-ap-code">${r.arr}</div>
             <div class="route-ap-name">${arrAp.city}</div>
@@ -4816,13 +4882,13 @@ const G = {
 // INIT
 // ============================================================
 window.addEventListener('load', () => {
-  // 도착 공항 검색 드롭다운 외부 클릭 시 닫기
+  // 노선 공항 검색 드롭다운 외부 클릭 시 닫기
   document.addEventListener('click', (e) => {
-    const wrap = document.querySelector('.arr-search-wrap');
-    if (wrap && !wrap.contains(e.target)) {
-      const dd = document.getElementById('arr-dropdown');
-      if (dd) dd.classList.remove('open');
-    }
+    document.querySelectorAll('.arr-search-wrap').forEach(wrap => {
+      if (!wrap.contains(e.target)) {
+        wrap.querySelectorAll('.arr-dropdown').forEach(dd => dd.classList.remove('open'));
+      }
+    });
   });
   // Firebase onAuthStateChanged 완료 후 로딩 해제 (최대 3초)
   let loaded = false;
