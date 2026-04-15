@@ -3479,6 +3479,17 @@ const G = {
       }).addTo(G.leafletMap);
       G.mapRouteLines[idx] = line;
 
+      const ac = AIRCRAFT_DATA.find(a => a.id === r.aircraftId);
+      const routeDistanceKm = dist(dep, arr);
+      const cruiseSpeed = Math.max(500, Number(ac?.speed || 820));
+      const flightHours = routeDistanceKm / cruiseSpeed;
+      const weeklyRoundTrips = routeFlightsPerWeek(flightHours);
+      const visualWeekSeconds = 42;
+      const roundTripSeconds = Math.max(6, Math.min(90, visualWeekSeconds / Math.max(1, weeklyRoundTrips)));
+      const dwellSeconds = Math.max(0.6, Math.min(2.1, 0.55 + routeDistanceKm / 5500));
+      const oneWaySeconds = Math.max(1.4, (roundTripSeconds - dwellSeconds * 2) / 2);
+      const cycleSeconds = oneWaySeconds + dwellSeconds + oneWaySeconds + dwellSeconds;
+
       // 비행기 애니메이션을 위한 직선 경로 저장
       const forwardAngle = -Math.atan2(arr.lat - dep.lat, arr.lng - dep.lng) * 180 / Math.PI;
       const reverseAngle = -Math.atan2(dep.lat - arr.lat, dep.lng - arr.lng) * 180 / Math.PI;
@@ -3487,7 +3498,11 @@ const G = {
         depLat: dep.lat, depLng: dep.lng,
         arrLat: arr.lat, arrLng: arr.lng,
         forwardAngle,
-        reverseAngle
+        reverseAngle,
+        oneWaySeconds,
+        dwellSeconds,
+        cycleSeconds,
+        phaseOffset: idx * 0.47,
       };
 
       // 비행기 아이콘 (중간점에 배치)
@@ -3510,17 +3525,36 @@ const G = {
       const meta = G.mapPlaneMeta[idx];
       if (!meta || !G.mapPlanes[idx] || !meta.straightPoints) return;
 
-      const pseudoDist = Math.max(3000, Math.hypot(meta.arrLat - meta.depLat, meta.arrLng - meta.depLng) * 111);
-      const speedFactor = Math.max(0.05, Math.min(0.3, 1200 / pseudoDist));
-      const baseT = ((now * speedFactor) + idx * 0.17) % 2;
-      const goingForward = baseT <= 1;
-      const t = goingForward ? baseT : 2 - baseT;
+      const oneWay = Math.max(1, Number(meta.oneWaySeconds || 6));
+      const dwell = Math.max(0.2, Number(meta.dwellSeconds || 1));
+      const cycle = Math.max(3, Number(meta.cycleSeconds || (oneWay * 2 + dwell * 2)));
+      const phase = (now + Number(meta.phaseOffset || 0)) % cycle;
+      let lat = meta.depLat;
+      let lng = meta.depLng;
+      let angle = meta.forwardAngle;
 
-      const lat = meta.depLat + (meta.arrLat - meta.depLat) * t;
-      const lng = meta.depLng + (meta.arrLng - meta.depLng) * t;
+      if (phase < oneWay) {
+        const t = phase / oneWay;
+        lat = meta.depLat + (meta.arrLat - meta.depLat) * t;
+        lng = meta.depLng + (meta.arrLng - meta.depLng) * t;
+        angle = meta.forwardAngle;
+      } else if (phase < oneWay + dwell) {
+        lat = meta.arrLat;
+        lng = meta.arrLng;
+        angle = meta.forwardAngle;
+      } else if (phase < oneWay + dwell + oneWay) {
+        const backPhase = (phase - oneWay - dwell) / oneWay;
+        lat = meta.arrLat + (meta.depLat - meta.arrLat) * backPhase;
+        lng = meta.arrLng + (meta.depLng - meta.arrLng) * backPhase;
+        angle = meta.reverseAngle;
+      } else {
+        lat = meta.depLat;
+        lng = meta.depLng;
+        angle = meta.reverseAngle;
+      }
+
       G.mapPlanes[idx].setLatLng([lat, lng]);
 
-      const angle = goingForward ? meta.forwardAngle : meta.reverseAngle;
       const planeIcon = L.divIcon({
         className: '',
         html: `<div style="width:20px;height:20px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px'></i></div>`,
