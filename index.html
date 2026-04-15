@@ -2500,6 +2500,23 @@ function routeFlightsPerWeek(hours) {
   return Math.max(2, Math.min(14, Math.floor(84 / Math.max(2.5, safeHours + 2))));
 }
 
+function routeDemandDistanceFactor(distanceKm, depDemand, arrDemand) {
+  const d = Math.max(0, Number(distanceKm || 0));
+  const marketDemand = Math.max(0.35, Math.min(1.3, ((Number(depDemand || 0) + Number(arrDemand || 0)) / 150)));
+
+  // 초단거리(도심권/인접 도시) 노선은 지상교통 대체효과로 수요를 강하게 제한
+  let distanceFactor = 1;
+  if (d < 250) distanceFactor = 0.42;
+  else if (d < 450) distanceFactor = 0.58;
+  else if (d < 800) distanceFactor = 0.74;
+  else if (d < 1600) distanceFactor = 0.90;
+  else if (d < 6000) distanceFactor = 1.00;
+  else if (d < 10000) distanceFactor = 0.88;
+  else distanceFactor = 0.74;
+
+  return distanceFactor * marketDemand;
+}
+
 function starsHTML(rep) {
   let s = '';
   for (let i = 1; i <= 5; i++) s += i <= Math.floor(rep) ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
@@ -2969,6 +2986,7 @@ const G = {
 
     // Oil auto-buy
     G.processOilOrders();
+    G.tryEmergencyFuelTopUp();
 
     // Route income
     G.processRoutes();
@@ -3039,6 +3057,44 @@ const G = {
     });
   },
 
+  estimateWeeklyFuelNeed() {
+    return (G.game.routes || []).reduce((sum, r) => {
+      const depAp = AIRPORTS.find(a => a.code === r.dep);
+      const arrAp = AIRPORTS.find(a => a.code === r.arr);
+      const ac = AIRCRAFT_DATA.find(a => a.id === r.aircraftId);
+      if (!depAp || !arrAp || !ac) return sum;
+      const d = dist(depAp, arrAp);
+      if (d > ac.range) return sum;
+      const flightHours = d / ac.speed;
+      const weeklyFlights = routeFlightsPerWeek(flightHours);
+      const routeFuelUse = ac.fuelPerHour * flightHours * weeklyFlights / 50000;
+      return sum + Math.max(0, routeFuelUse);
+    }, 0);
+  },
+
+  tryEmergencyFuelTopUp() {
+    if (!G.game.oilOrders || Object.keys(G.game.oilOrders).length === 0) return;
+    if (!Array.isArray(G.game.oilPrices) || G.game.oilPrices.length === 0) return;
+    const cap = G.fuelCapacity();
+    if (cap <= 0) return;
+    const need = G.estimateWeeklyFuelNeed();
+    const target = Math.min(cap, Math.ceil(need * 1.08));
+    if ((G.game.fuel || 0) >= target) return;
+
+    const cheapest = [...G.game.oilPrices].sort((a, b) => a.currentPrice - b.currentPrice)[0];
+    if (!cheapest) return;
+    const buyAmount = Math.min(target - (G.game.fuel || 0), cap - (G.game.fuel || 0));
+    if (buyAmount <= 0) return;
+    const cost = buyAmount * cheapest.currentPrice * 1000;
+    if ((G.game.balance || 0) < cost) return;
+
+    G.game.balance -= cost;
+    G.game.fuel += buyAmount;
+    G.clampFuel();
+    G.game.totalCost += cost;
+    G.game.transactions.unshift({week:G.game.week,type:'연료 긴급구매',desc:`${cheapest.country} (자동 보정)`,amount:-cost});
+  },
+
   processRoutes() {
     G.game.ticketMarketIndex = Math.max(0.82, Math.min(1.25, (G.game.ticketMarketIndex || 1) + (Math.random()-0.5)*0.05));
     const fuelCapacity = G.fuelCapacity();
@@ -3083,7 +3139,8 @@ const G = {
 
       r.active = true;
 
-      const avgDemand = ((depAp.demand + arrAp.demand) / 200) * G.demandMultiplier;
+      const routeDemandFit = routeDemandDistanceFactor(d, depAp.demand, arrAp.demand);
+      const avgDemand = ((depAp.demand + arrAp.demand) / 200) * G.demandMultiplier * routeDemandFit;
       const upgrService = G.game.upgrades['service'] || 0;
       const upgrMileage = G.game.upgrades['mileage'] || 0;
       const upgrDigital = G.game.upgrades['digital'] || 0;
@@ -3093,7 +3150,8 @@ const G = {
       const allianceCostBonus = alliance ? alliance.costBonus : 0;
       const loadBonus = 1 + upgrService*0.03 + upgrMileage*0.05 + upgrDigital*0.03 + alliancePaxBonus;
       const fareElasticity = Math.max(0.7, 1.12 - (G.game.ticketMarketIndex - 1) * 1.6);
-      r.loadFactor = Math.min(0.98, avgDemand * loadBonus * fareElasticity);
+      const loadCap = d < 300 ? 0.82 : d < 600 ? 0.87 : d < 1000 ? 0.91 : 0.96;
+      r.loadFactor = Math.min(loadCap, avgDemand * loadBonus * fareElasticity);
 
       const cargoUpgrade = G.game.upgrades['cargo'] || 0;
       const cargoHubLinked = depAp.type === 'cargo_hub' || arrAp.type === 'cargo_hub';
@@ -3111,7 +3169,8 @@ const G = {
       } else {
         const estimatedPax = Math.round((ac.seats || 0) * Math.max(0, r.loadFactor || 0) * weeklyFlights);
         r.weeklyPax = Math.max(0, estimatedPax);
-        const ticketPrice = (0.12 * d + 80) * G.game.ticketMarketIndex;
+        const shortHaulPenalty = d < 500 ? 0.68 : d < 900 ? 0.82 : 1;
+        const ticketPrice = (0.12 * d + 80) * G.game.ticketMarketIndex * shortHaulPenalty;
         const upgrLounge = G.game.upgrades['lounge'] || 0;
         const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
         const paxRevenue = r.weeklyPax * ticketPrice * revBonus;
@@ -3463,10 +3522,12 @@ const G = {
     const upgrLounge = G.game.upgrades['lounge'] || 0;
     const upgrMaint = G.game.upgrades['maintenance'] || 0;
     const upgrFuel = G.game.upgrades['fuel'] || 0;
-    const avgDemand = ((dep.demand + arrAp.demand) / 200) * G.demandMultiplier;
+    const routeDemandFit = routeDemandDistanceFactor(d, dep.demand, arrAp.demand);
+    const avgDemand = ((dep.demand + arrAp.demand) / 200) * G.demandMultiplier * routeDemandFit;
     const loadBonus = 1 + upgrService*0.03 + upgrMileage*0.05 + upgrDigital*0.03 + alliancePaxBonus;
     const fareElasticity = Math.max(0.7, 1.12 - ((G.game.ticketMarketIndex || 1) - 1) * 1.6);
-    const loadFactor = Math.min(0.98, avgDemand * loadBonus * fareElasticity);
+    const loadCap = d < 300 ? 0.82 : d < 600 ? 0.87 : d < 1000 ? 0.91 : 0.96;
+    const loadFactor = Math.min(loadCap, avgDemand * loadBonus * fareElasticity);
     const loadLabel = document.getElementById('rp-load-label');
 
     if (d > ac.range) {
@@ -3487,7 +3548,8 @@ const G = {
       if (loadLabel) loadLabel.textContent = '주간 적재량 / 회전수';
       loadText = `${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyFlights}회`;
     } else {
-      const ticketPrice = (0.12 * d + 80) * (G.game.ticketMarketIndex || 1);
+      const shortHaulPenalty = d < 500 ? 0.68 : d < 900 ? 0.82 : 1;
+      const ticketPrice = (0.12 * d + 80) * (G.game.ticketMarketIndex || 1) * shortHaulPenalty;
       const weeklyPax = Math.round((ac.seats || 0) * Math.max(0, loadFactor || 0) * weeklyFlights);
       const bellyCargoPerFlight = cargoUpgrade > 0 ? Math.round((ac.seats || 0) * (20 + cargoUpgrade * 10)) : 0;
       const weeklyCargo = bellyCargoPerFlight > 0 ? Math.round(bellyCargoPerFlight * weeklyFlights * Math.max(0.72, loadFactor || 0.72) * cargoHubBonus) : 0;
@@ -3769,6 +3831,12 @@ const G = {
     closeModal('modal-op-event');
     G.paused = false;
     document.getElementById('speed-btn').textContent = '일시정지';
+    G.renderFleet();
+    G.renderRoutes();
+    G.renderFinance();
+    G.renderOil();
+    G.updateTopbar();
+    if (G.leafletMap) G.drawRouteLines();
     G.renderNews();
     G.notify(`이벤트 선택 완료: ${choice.label}`, 'success');
   },
