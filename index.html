@@ -2389,7 +2389,7 @@ const OPERATION_EVENTS = [
     title:'중고 항공기 긴급 매각 기회',
     body:'경쟁사가 파산하면서 고품질 중고 항공기가 시장에 나왔습니다. 즉시 구매 여부를 결정해야 합니다.',
     choices:[
-      {label:'즉시 매입 (1,500만원)',desc:'함대 능력 강화 기회, 단 초기 비용 지출. 장기 수익성 향상.',apply:(g)=>{ if((g.balance||0)>=15000000){ g.balance-=15000000; g.demandMultiplier*=1.08; G.notify('중고 항공기 매입 완료. 수요 +8%','success'); }else{ G.notify('자금이 부족해 매입에 실패했습니다','error'); } }},
+      {label:'즉시 매입 (1,500만원)',desc:'중고 항공기 1대가 즉시 기단에 추가됩니다. 수요도 소폭 증가합니다.',apply:(g)=>{ if((g.balance||0)>=15000000){ const usedPool = AIRCRAFT_DATA.filter(a => a.category !== 'cargo' && a.price <= 45000000); const ac = usedPool[Math.floor(Math.random() * usedPool.length)] || AIRCRAFT_DATA.find(a => a.id === 'CRJ200') || AIRCRAFT_DATA[0]; g.balance -= 15000000; g.demandMultiplier *= 1.05; if (ac) { g.fleet.push({ id: Date.now() + Math.random(), aircraftId: ac.id, purchasedWeek: g.week, nickname: `[중고] ${ac.name}`, reg: `US${Math.floor(Math.random()*9000+1000)}` }); G.notify(`중고 항공기 매입 완료: ${ac.name}`,'success'); } else { G.notify('중고 항공기 매입 완료','success'); } }else{ G.notify('자금이 부족해 매입에 실패했습니다','error'); } }},
       {label:'관망',desc:'현금 보존, 기회 포기. 재정 안정성 유지.',apply:(g)=>{ g.costMultiplier*=0.98; }}
     ]
   },
@@ -2640,7 +2640,8 @@ const G = {
       routes: [],
       upgrades: {},
       oilOrders: {},
-      fuel: 100,
+      fuelCapacity: 1000,
+      fuel: 1000,
       totalRevenue: 0,
       totalCost: 0,
       totalPax: 0,
@@ -2657,6 +2658,22 @@ const G = {
       claimedChallenges: [],
       autoSaveSlot: 'auto',
     };
+  },
+
+  fuelCapacity() {
+    return Math.max(100, Number(G.game?.fuelCapacity || 1000));
+  },
+
+  fuelPercent() {
+    const cap = G.fuelCapacity();
+    return Math.max(0, Math.min(100, ((Number(G.game?.fuel || 0) / cap) * 100)));
+  },
+
+  clampFuel() {
+    const cap = G.fuelCapacity();
+    if (!G.game) return cap;
+    G.game.fuel = Math.max(0, Math.min(cap, Number(G.game.fuel || 0)));
+    return G.game.fuel;
   },
 
   showNewGame() {
@@ -2836,7 +2853,7 @@ const G = {
     G.game.brandColor = '#1565C0';
     if (mode === 'free') {
       G.game.balance = 999999999999;
-      G.game.fuel = 100;
+      G.game.fuel = G.game.fuelCapacity;
     }
     if (G._setupLogoData) G.game.logoData = G._setupLogoData;
     G.oilPriceMultiplier = 1;
@@ -2918,6 +2935,10 @@ const G = {
     if (typeof G.game.freeBuildEnabled === 'undefined') G.game.freeBuildEnabled = false;
     if (!Array.isArray(G.game.customAirports)) G.game.customAirports = [];
     if (!Array.isArray(G.game.pendingEvents)) G.game.pendingEvents = [];
+    G.game.fuelCapacity = Math.max(100, Number(G.game.fuelCapacity || 1000));
+    if (typeof G.game.fuel === 'undefined') G.game.fuel = G.game.fuelCapacity;
+    G.game.fuel = Math.max(0, Math.min(G.game.fuelCapacity, Number(G.game.fuel || 0)));
+    if (!G.game.lastOilBought || typeof G.game.lastOilBought !== 'object') G.game.lastOilBought = {};
     selectedColorSettings = G.game.brandColor;
     G.game.loanDebt = Number(G.game.loanDebt || 0);
     if (typeof G.game.loanTakenWeek === 'undefined') G.game.loanTakenWeek = 0;
@@ -2990,15 +3011,24 @@ const G = {
 
   processOilOrders() {
     if (!G.game.oilOrders) return;
+    const cap = G.fuelCapacity();
+    G.clampFuel();
     G.game.oilPrices.forEach(op => {
       const order = G.game.oilOrders[op.airport];
       if (!order || !order.days) return;
       const lastBought = G.game.lastOilBought[op.airport] || 0;
       if (G.game.week - lastBought >= order.days) {
-        const cost = order.amount * op.currentPrice * 1000;
+        const roomLeft = Math.max(0, cap - G.game.fuel);
+        const purchaseAmount = Math.min(Math.max(0, Number(order.amount || 0)), roomLeft);
+        if (purchaseAmount <= 0) {
+          G.game.lastOilBought[op.airport] = G.game.week;
+          return;
+        }
+        const cost = purchaseAmount * op.currentPrice * 1000;
         if (G.game.balance >= cost) {
           G.game.balance -= cost;
-          G.game.fuel = Math.min(100, G.game.fuel + order.amount);
+          G.game.fuel += purchaseAmount;
+          G.clampFuel();
           G.game.lastOilBought[op.airport] = G.game.week;
           G.game.transactions.unshift({week:G.game.week,type:'연료 구매',desc:`${op.country} 자동 구매`,amount:-cost});
           G.game.totalCost += cost;
@@ -3011,39 +3041,48 @@ const G = {
 
   processRoutes() {
     G.game.ticketMarketIndex = Math.max(0.82, Math.min(1.25, (G.game.ticketMarketIndex || 1) + (Math.random()-0.5)*0.05));
-    const fuelOk = G.game.fuel > 10;
+    const fuelCapacity = G.fuelCapacity();
+    G.clampFuel();
+    let anySuspendedForFuel = false;
     G.game.routes.forEach(r => {
-      if (!fuelOk) {
-        r.active = false;
+      const resetRouteWeekly = () => {
         r.weeklyRevenue = 0;
         r.weeklyCost = 0;
         r.weeklyPax = 0;
         r.weeklyCargo = 0;
         r.weeklyCargoRevenue = 0;
         r.weeklyProfit = 0;
-        return;
-      }
-      r.active = true;
+      };
+
       const depAp = AIRPORTS.find(a => a.code === r.dep);
       const arrAp = AIRPORTS.find(a => a.code === r.arr);
-      if (!depAp || !arrAp) return;
       const ac = AIRCRAFT_DATA.find(a => a.id === r.aircraftId);
-      if (!ac) return;
+      if (!depAp || !arrAp || !ac) {
+        r.active = false;
+        resetRouteWeekly();
+        return;
+      }
 
       const d = dist(depAp, arrAp);
       if (d > ac.range) {
         r.active = false;
-        r.weeklyRevenue = 0;
-        r.weeklyCost = 0;
-        r.weeklyPax = 0;
-        r.weeklyCargo = 0;
-        r.weeklyCargoRevenue = 0;
-        r.weeklyProfit = 0;
+        resetRouteWeekly();
         return;
       }
-      const flightHours = d / ac.speed;
 
-      // Demand factor
+      const flightHours = d / ac.speed;
+      const weeklyFlights = routeFlightsPerWeek(flightHours);
+      const routeFuelUse = ac.fuelPerHour * flightHours * weeklyFlights / 50000;
+      const currentFuelPct = fuelCapacity > 0 ? ((G.game.fuel || 0) / fuelCapacity) * 100 : 0;
+      if (currentFuelPct <= 10 || (G.game.fuel || 0) < routeFuelUse) {
+        r.active = false;
+        resetRouteWeekly();
+        anySuspendedForFuel = true;
+        return;
+      }
+
+      r.active = true;
+
       const avgDemand = ((depAp.demand + arrAp.demand) / 200) * G.demandMultiplier;
       const upgrService = G.game.upgrades['service'] || 0;
       const upgrMileage = G.game.upgrades['mileage'] || 0;
@@ -3056,7 +3095,6 @@ const G = {
       const fareElasticity = Math.max(0.7, 1.12 - (G.game.ticketMarketIndex - 1) * 1.6);
       r.loadFactor = Math.min(0.98, avgDemand * loadBonus * fareElasticity);
 
-      const weeklyFlights = routeFlightsPerWeek(flightHours);
       const cargoUpgrade = G.game.upgrades['cargo'] || 0;
       const cargoHubLinked = depAp.type === 'cargo_hub' || arrAp.type === 'cargo_hub';
       const cargoHubBonus = cargoHubLinked ? (1.15 + cargoUpgrade * 0.05) : 1;
@@ -3096,12 +3134,11 @@ const G = {
       r.weeklyProfit = r.weeklyRevenue - r.weeklyCost;
       G.weeklyRevenue += r.weeklyRevenue;
       G.weeklyCost += r.weeklyCost;
-
-      // Consume fuel
-      G.game.fuel = Math.max(0, G.game.fuel - ac.fuelPerHour * flightHours * weeklyFlights / 50000);
+      G.game.fuel = Math.max(0, G.game.fuel - routeFuelUse);
     });
 
-    if (G.game.fuel < 15) {
+    const fuelPct = G.fuelPercent();
+    if (fuelPct < 15 || anySuspendedForFuel) {
       document.getElementById('fuel-warn-map').style.display = 'block';
       document.getElementById('fuel-warn-routes').classList.add('visible');
     } else {
@@ -3541,7 +3578,7 @@ const G = {
     document.getElementById('tb-week') && (document.getElementById('tb-week').textContent = `${g.week}주차 | 운임지수 ${Math.round((g.ticketMarketIndex||1)*100)}%`);
     const mapWeek = document.getElementById('map-week-display');
     if (mapWeek) mapWeek.textContent = `${g.week}주차 | 운임지수 ${Math.round((g.ticketMarketIndex||1)*100)}%`;
-    document.getElementById('tb-fuel').textContent = Math.round(g.fuel) + '%';
+    document.getElementById('tb-fuel').textContent = Math.round(G.fuelPercent()) + '%';
     document.getElementById('tb-airline-name').textContent = g.airlineName;
     document.getElementById('tb-airline-name').style.color = g.brandColor || 'var(--sky)';
     document.getElementById('tb-logo').src = g.logoData || defaultAirlineLogo(g.brandColor);
@@ -4060,14 +4097,15 @@ const G = {
   renderOil() {
     const grid = document.getElementById('oil-grid');
     grid.innerHTML = '';
-    const fuelPct = Math.round(G.game.fuel);
-    document.getElementById('oil-level-text').textContent = fuelPct + '%';
+    const cap = G.fuelCapacity();
+    const fuelPct = Math.round(G.fuelPercent());
+    document.getElementById('oil-level-text').textContent = `${fuelPct}% (${Math.round(G.game.fuel).toLocaleString()} / ${cap.toLocaleString()})`;
     document.getElementById('fuel-gauge-fill').style.width = fuelPct + '%';
     document.getElementById('tb-fuel').textContent = fuelPct + '%';
 
     if (!G.game.oilPrices) G.game.oilPrices = OIL_COUNTRIES.map(o=>({...o}));
     G.game.oilPrices.forEach((op, idx) => {
-      const order = (G.game.oilOrders||{})[op.airport] || {amount:10,days:4};
+      const order = (G.game.oilOrders||{})[op.airport] || {amount:25,days:4};
       const hasAutoOrder = !!((G.game.oilOrders||{})[op.airport]);
       const div = document.createElement('div');
       div.className = 'oil-card';
@@ -4077,7 +4115,7 @@ const G = {
         <div class="oil-price" style="color:${op.trend>0?'var(--red)':'var(--green)'}">$${op.currentPrice.toFixed(3)}/L</div>
         <div class="oil-trend ${op.trend>0?'trend-up':'trend-down'}">${op.trend>0?'▲ 상승':'▼ 하락'}</div>
         <div class="oil-settings">
-          <input class="oil-input" type="number" min="1" max="100" value="${order.amount}" id="oil-amount-${idx}" placeholder="수량">
+          <input class="oil-input" type="number" min="1" max="1000" value="${order.amount}" id="oil-amount-${idx}" placeholder="수량">
           <span class="oil-auto-label">단위 매</span>
           <input class="oil-input" type="number" min="1" max="52" value="${order.days}" id="oil-days-${idx}" placeholder="주">
           <span class="oil-auto-label">주마다</span>
@@ -4091,11 +4129,15 @@ const G = {
 
   buyOilManual(idx) {
     const op = G.game.oilPrices[idx];
-    const amount = parseInt(document.getElementById(`oil-amount-${idx}`).value) || 10;
+    const requestedAmount = parseInt(document.getElementById(`oil-amount-${idx}`).value) || 10;
+    const cap = G.fuelCapacity();
+    const amount = Math.min(requestedAmount, Math.max(0, cap - G.game.fuel));
+    if (amount <= 0) { G.notify('연료 저장량이 이미 가득 찼습니다', 'warning'); return; }
     const cost = amount * op.currentPrice * 1000;
     if (G.game.balance < cost) { G.notify('잔고 부족', 'error'); return; }
     G.game.balance -= cost;
-    G.game.fuel = Math.min(100, G.game.fuel + amount);
+    G.game.fuel += amount;
+    G.clampFuel();
     G.game.totalCost += cost;
     G.game.transactions.unshift({week:G.game.week,type:'연료 구매',desc:`${op.country} 수동`,amount:-cost});
     G.renderOil();
@@ -4174,7 +4216,7 @@ const G = {
     // 부정 포스트
     if (rep < 3) posts.push({user:USERS[3], text:`${airline} 오늘 또 연착... 제발 정시 운항 좀 해주세요. 벌써 세 번째예요.`, likes:Math.floor(Math.random()*80+10), comments:Math.floor(Math.random()*20+5), time:`${week}주차`, positive:false});
     if (routes < 5) posts.push({user:USERS[4], text:`${airline} 노선이 아직 적네요. 국제선 확장이 기대됩니다.`, likes:Math.floor(Math.random()*60+10), comments:Math.floor(Math.random()*10+2), time:`${Math.max(1,week-2)}주차`, positive:false});
-    if (G.game.fuel < 30) posts.push({user:USERS[7], text:`${airline} 연료 관리 문제로 일부 노선 운항 중단 소식. 경영진의 빠른 조치가 필요해 보입니다.`, likes:Math.floor(Math.random()*120+30), comments:Math.floor(Math.random()*25+8), time:`${week}주차`, positive:false});
+    if (G.fuelPercent() < 30) posts.push({user:USERS[7], text:`${airline} 연료 관리 문제로 일부 노선 운항 중단 소식. 경영진의 빠른 조치가 필요해 보입니다.`, likes:Math.floor(Math.random()*120+30), comments:Math.floor(Math.random()*25+8), time:`${week}주차`, positive:false});
 
     // 중립/정보
     posts.push({user:USERS[5], text:`${airline} ${week}주차 운항 현황: 노선 ${routes}개, 총 탑승객 ${Math.floor(pax).toLocaleString()}명. 지속적인 성장세를 보이고 있습니다.`, likes:Math.floor(Math.random()*200+50), comments:Math.floor(Math.random()*20+5), time:`${week}주차`, positive:null});
