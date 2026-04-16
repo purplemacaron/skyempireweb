@@ -158,42 +158,26 @@
     z-index: 1;
   }
 
-  /* Cities:Skylines 풍 버튼 */
-  .btn-primary {
-    background: rgba(79,195,247,0.15);
-    color: #ffffff;
-    border: 1px solid rgba(79,195,247,0.5);
-    border-radius: 4px;
-    padding: 14px 24px;
-    font-family: 'Noto Sans KR', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 1px;
-    text-align: left;
-    position: relative;
-    backdrop-filter: blur(6px);
+  /* 메인 메뉴 버튼도 공통 스타일(파란 배경/흰 텍스트/둥근 모서리)로 통일 */
+  .menu-buttons .btn-primary {
+    background: var(--sky);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px 32px;
+    text-align: center;
+    letter-spacing: 0.5px;
   }
 
-  .btn-primary::before {
-    content: '▶';
-    font-size: 9px;
-    margin-right: 10px;
-    color: #4FC3F7;
-    opacity: 0;
-    transition: opacity 0.2s;
+  .menu-buttons .btn-primary::before { display: none; }
+
+  .menu-buttons .btn-primary:hover {
+    background: var(--sky-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
   }
 
-  .btn-primary:hover {
-    background: rgba(79,195,247,0.28);
-    border-color: #4FC3F7;
-    transform: translateX(4px);
-    box-shadow: 0 0 20px rgba(79,195,247,0.2);
-  }
-
-  .btn-primary:hover::before { opacity: 1; }
-  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+  .menu-buttons .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
 
   .btn-primary {
     background: var(--sky);
@@ -201,31 +185,41 @@
     border: none;
     border-radius: var(--radius);
     padding: 16px 32px;
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Noto Sans KR', sans-serif;
     font-weight: 700;
     font-size: 15px;
     cursor: pointer;
     transition: all 0.2s;
     letter-spacing: 0.5px;
+    white-space: nowrap;
   }
 
   .btn-primary:hover { background: var(--sky-light); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
   .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 
   .btn-secondary {
-    background: white;
-    color: var(--sky);
-    border: 2px solid var(--sky);
+    background: var(--sky);
+    color: white;
+    border: none;
     border-radius: var(--radius);
     padding: 14px 32px;
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Noto Sans KR', sans-serif;
     font-weight: 700;
     font-size: 15px;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
   }
 
-  .btn-secondary:hover { background: var(--sky-pale); }
+  .btn-secondary:hover { background: var(--sky-light); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
 
   .btn-ghost {
     background: transparent;
@@ -697,8 +691,10 @@
   .profit-negative { color: var(--red); }
 
   .route-actions { display: flex; flex-direction: column; gap: 6px; }
-  .route-close-btn { padding: 7px 14px; border: 1.5px solid var(--red); border-radius: var(--radius-sm); color: var(--red); background: none; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+  .route-close-btn { padding: 7px 14px; border: 1.5px solid var(--red); border-radius: var(--radius-sm); color: var(--red); background: none; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; white-space: nowrap; }
   .route-close-btn:hover { background: #FCE4EC; }
+
+  .speed-btn, .ap-route-btn, .ac-buy-btn, .upgrade-btn, .oil-buy-btn { white-space: nowrap; }
 
   /* UPGRADES */
   .upgrades-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
@@ -1299,7 +1295,7 @@
       <div class="menu-buttons">
         <button class="btn-primary" onclick="G.showNewGame()">새 게임 시작</button>
         <button class="btn-primary" onclick="G.showLoadGame()">게임 불러오기</button>
-        <button class="btn-secondary" onclick="G.startTutorialFromMenu()">튜토리얼 플레이</button>
+        <button class="btn-primary" onclick="G.startTutorialFromMenu()">튜토리얼 플레이</button>
         <button class="btn-ghost" style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;text-decoration:none;letter-spacing:0.5px" onclick="showScreen('screen-privacy')">개인정보 처리방침</button>
       </div>
     </div>
@@ -1936,7 +1932,7 @@
       <div class="route-modal-ap">
         <div class="form-label">공항 A</div>
         <div class="arr-search-wrap">
-          <input type="text" id="route-dep-input" placeholder="공항명 또는 코드 검색..." autocomplete="off"
+          <input type="text" id="route-dep-input" placeholder="공항명 / IATA / ICAO 검색..." autocomplete="off"
             oninput="G.filterAirportDropdown('dep', this.value)"
             onfocus="G.openAirportDropdown('dep')"
             onkeydown="G.airportDropdownKeydown('dep', event)">
@@ -1948,7 +1944,7 @@
       <div class="route-modal-ap">
         <div class="form-label">공항 B</div>
         <div class="arr-search-wrap">
-          <input type="text" id="route-arr-input" placeholder="공항명 또는 코드 검색..." autocomplete="off"
+          <input type="text" id="route-arr-input" placeholder="공항명 / IATA / ICAO 검색..." autocomplete="off"
             oninput="G.filterAirportDropdown('arr', this.value)"
             onfocus="G.openAirportDropdown('arr')"
             onkeydown="G.airportDropdownKeydown('arr', event)">
@@ -2015,6 +2011,7 @@
       <button id="op-event-choice-a" class="btn-secondary" style="flex:1"></button>
       <button id="op-event-choice-b" class="btn-primary" style="flex:1"></button>
     </div>
+    <div id="op-event-choice-help" style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:10px"></div>
   </div>
 </div>
 
@@ -2265,6 +2262,54 @@ const EXPANDED_AIRPORTS = [
 EXPANDED_AIRPORTS.forEach((a, i) => {
   if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:58 + (i % 18)});
 });
+
+const AIRPORT_ICAO_MAP = {
+  // Korea
+  ICN:'RKSI', GMP:'RKSS', PUS:'RKPK', CJU:'RKPC', CJJ:'RKTU', TAE:'RKTN', MWX:'RKJB', YNY:'RKNY', KUV:'RKJK', RSU:'RKJY',
+  // Japan
+  NRT:'RJAA', HND:'RJTT', KIX:'RJBB', NGO:'RJGG', CTS:'RJCC', FUK:'RJFF', OKA:'ROAH',
+  // China / Taiwan / Hong Kong
+  PEK:'ZBAA', PKX:'ZBAD', PVG:'ZSPD', SHA:'ZSSS', CAN:'ZGGG', SZX:'ZGSZ', HKG:'VHHH', TPE:'RCTP',
+  // Southeast Asia
+  BKK:'VTBS', SIN:'WSSS', KUL:'WMKK', MNL:'RPLL', HAN:'VVNB', SGN:'VVTS', CGK:'WIII',
+  // Middle East
+  DXB:'OMDB', DOH:'OTHH', AUH:'OMAA', RUH:'OERK', JED:'OEJN', IST:'LTFM',
+  // Europe
+  LHR:'EGLL', CDG:'LFPG', FRA:'EDDF', AMS:'EHAM', MAD:'LEMD', BCN:'LEBL', FCO:'LIRF', MUC:'EDDM', ZRH:'LSZH',
+  // North America
+  JFK:'KJFK', LAX:'KLAX', SFO:'KSFO', SEA:'KSEA', ORD:'KORD', ATL:'KATL', DFW:'KDFW', DEN:'KDEN', LAS:'KLAS', MIA:'KMIA', BOS:'KBOS', IAH:'KIAH', YYZ:'CYYZ', YVR:'CYVR',
+  // Oceania
+  SYD:'YSSY', MEL:'YMML', BNE:'YBBN', AKL:'NZAA'
+};
+
+AIRPORTS.forEach((ap) => {
+  const mapped = AIRPORT_ICAO_MAP[ap.code];
+  if (mapped && !ap.icao) ap.icao = mapped;
+});
+
+// 실제 공항 이용객(연간 여객, 백만명 단위) 기반 수요 보정
+const AIRPORT_ANNUAL_PAX_M = {
+  ATL:104, DXB:92, HND:85, LHR:79, DFW:82, DEN:78, LAX:76, ORD:74, IST:80,
+  DEL:73, CDG:67, AMS:66, FRA:61, MAD:60, BKK:63, SIN:68, JFK:62, ICN:56,
+  CAN:63, PVG:70, PEK:67, HKG:53, SZX:52, MNL:48, CGK:57, KUL:47, FCO:49,
+  BCN:52, MUC:43, NRT:39, SEA:52, SFO:57, MIA:52, EWR:49, BOS:42, IAH:46,
+  YVR:26, YYZ:45, SYD:43, MEL:35, BNE:24, AKL:19, DOH:45, AUH:25, RUH:34
+};
+
+function recalibrateAirportDemandByTraffic() {
+  const minPax = 8;
+  const maxPax = 95;
+  const minRoot = Math.sqrt(minPax);
+  const maxRoot = Math.sqrt(maxPax);
+  AIRPORTS.forEach((ap) => {
+    const paxM = AIRPORT_ANNUAL_PAX_M[ap.code];
+    if (!paxM) return;
+    const ratio = (Math.sqrt(paxM) - minRoot) / (maxRoot - minRoot);
+    const normalized = Math.max(0, Math.min(1, ratio));
+    ap.demand = Math.round(38 + normalized * 58);
+  });
+}
+recalibrateAirportDemandByTraffic();
 
 const AIRCRAFT_DATA = [
   // Small
@@ -2701,8 +2746,8 @@ function routeDemandDistanceFactor(distanceKm, depDemand, arrDemand) {
   const d = Math.max(0, Number(distanceKm || 0));
   const dep = Number(depDemand || 0);
   const arr = Number(arrDemand || 0);
-  // 수요 비중 상향: 공항 수요 영향력을 더 키우고, 거리는 완만한 보정만 적용
-  const marketDemand = Math.max(0.45, Math.min(1.58, Math.pow((dep + arr) / 168, 1.36)));
+  // 공항 규모 반영은 유지하되 과도한 고수요 폭증을 억제
+  const marketDemand = Math.max(0.42, Math.min(1.45, Math.pow((dep + arr) / 198, 1.22)));
 
   let distanceFactor = 1;
   if (d < 350) distanceFactor = 0.94;
@@ -2712,7 +2757,7 @@ function routeDemandDistanceFactor(distanceKm, depDemand, arrDemand) {
   else if (d < 9000) distanceFactor = 1.06;
   else distanceFactor = 1.09;
 
-  return Math.max(0.35, Math.min(1.65, marketDemand * distanceFactor));
+  return Math.max(0.33, Math.min(1.5, marketDemand * distanceFactor));
 }
 
 function routeRevenueProfile(distanceKm, depDemand, arrDemand) {
@@ -3435,7 +3480,7 @@ const G = {
 
       const routeDemandFit = routeDemandDistanceFactor(d, depAp.demand, arrAp.demand);
       const revenueProfile = routeRevenueProfile(d, depAp.demand, arrAp.demand);
-      const avgDemand = ((depAp.demand + arrAp.demand) / 200) * G.demandMultiplier * routeDemandFit;
+      const avgDemand = ((depAp.demand + arrAp.demand) / 240) * G.demandMultiplier * routeDemandFit;
       const upgrService = G.game.upgrades['service'] || 0;
       const upgrMileage = G.game.upgrades['mileage'] || 0;
       const upgrDigital = G.game.upgrades['digital'] || 0;
@@ -3560,7 +3605,6 @@ const G = {
   getReputationGoals() {
     const g = G.game;
     const routes = (g.routes || []).length;
-    const fleet = (g.fleet || []).length;
     const weeklyPax = (g.routes || []).reduce((s, r) => s + (r.weeklyPax || 0), 0);
     const service = (g.upgrades || {}).service || 0;
     const maintenance = (g.upgrades || {}).maintenance || 0;
@@ -3568,10 +3612,10 @@ const G = {
     const lounge = (g.upgrades || {}).lounge || 0;
     return [
       {star: 1, name: '1성', met: true, summary: '항공사 설립'},
-      {star: 2, name: '2성', met: routes >= 3 && weeklyPax >= 800 && service >= 1, summary: '노선 3 / 주간 800명 / 기내 서비스 Lv.1'},
-      {star: 3, name: '3성', met: routes >= 8 && weeklyPax >= 4000 && fleet >= 4 && service >= 2 && mileage >= 1, summary: '노선 8 / 주간 4,000명 / 보유 4대 / 서비스 Lv.2 / 마일리지 Lv.1'},
-      {star: 4, name: '4성', met: routes >= 16 && weeklyPax >= 15000 && fleet >= 8 && service >= 3 && maintenance >= 2 && mileage >= 2 && lounge >= 1, summary: '노선 16 / 주간 15,000명 / 보유 8대 / 서비스 Lv.3 / 정비 Lv.2 / 마일리지 Lv.2 / 라운지 Lv.1'},
-      {star: 5, name: '5성', met: routes >= 28 && weeklyPax >= 40000 && fleet >= 14 && service >= 5 && maintenance >= 3 && mileage >= 4 && lounge >= 2, summary: '노선 28 / 주간 40,000명 / 보유 14대 / 서비스 Lv.5 / 정비 Lv.3 / 마일리지 Lv.4 / 라운지 Lv.2'}
+      {star: 2, name: '2성', met: routes >= 4 && weeklyPax >= 2500 && service >= 1, summary: '노선 4 / 주간 2,500명 / 기내 서비스 Lv.1'},
+      {star: 3, name: '3성', met: routes >= 10 && weeklyPax >= 9000 && service >= 2 && mileage >= 1, summary: '노선 10 / 주간 9,000명 / 서비스 Lv.2 / 마일리지 Lv.1'},
+      {star: 4, name: '4성', met: routes >= 18 && weeklyPax >= 22000 && service >= 3 && maintenance >= 2 && mileage >= 2 && lounge >= 1, summary: '노선 18 / 주간 22,000명 / 서비스 Lv.3 / 정비 Lv.2 / 마일리지 Lv.2 / 라운지 Lv.1'},
+      {star: 5, name: '5성', met: routes >= 30 && weeklyPax >= 55000 && service >= 5 && maintenance >= 3 && mileage >= 4 && lounge >= 2, summary: '노선 30 / 주간 55,000명 / 서비스 Lv.5 / 정비 Lv.3 / 마일리지 Lv.4 / 라운지 Lv.2'}
     ];
   },
 
@@ -3859,6 +3903,7 @@ const G = {
     const filtered = q
       ? list.filter(a =>
           a.code.toLowerCase().includes(q) ||
+          (a.icao || '').toLowerCase().includes(q) ||
           a.name.toLowerCase().includes(q) ||
           (a.city || '').toLowerCase().includes(q) ||
           (a.country || '').toLowerCase().includes(q)
@@ -3873,7 +3918,7 @@ const G = {
         `<div class="arr-dropdown-item" data-code="${a.code}" data-idx="${i}"
           onmousedown="G.selectAirport('${kind}','${a.code}','${a.name.replace(/'/g,"\\'")}')">
           <span class="arr-code">${a.code}</span>
-          <span class="arr-info">${a.name}${a.city ? ' · ' + a.city : ''}${a.country ? ' · ' + a.country : ''}</span>
+          <span class="arr-info">${a.name}${a.icao ? ' · ' + a.icao : ''}${a.city ? ' · ' + a.city : ''}${a.country ? ' · ' + a.country : ''}</span>
         </div>`
       ).join('');
     }
@@ -3977,7 +4022,7 @@ const G = {
     const upgrFuel = G.game.upgrades['fuel'] || 0;
     const routeDemandFit = routeDemandDistanceFactor(d, dep.demand, arrAp.demand);
     const revenueProfile = routeRevenueProfile(d, dep.demand, arrAp.demand);
-    const avgDemand = ((dep.demand + arrAp.demand) / 200) * G.demandMultiplier * routeDemandFit;
+    const avgDemand = ((dep.demand + arrAp.demand) / 240) * G.demandMultiplier * routeDemandFit;
     const loadBonus = 1 + upgrService*0.03 + upgrMileage*0.05 + upgrDigital*0.03 + alliancePaxBonus;
     const fareElasticity = Math.max(0.7, 1.12 - ((G.game.ticketMarketIndex || 1) - 1) * 1.6);
     const loadCap = d < 300 ? 0.82 : d < 600 ? 0.87 : d < 1000 ? 0.91 : 0.96;
@@ -4268,12 +4313,14 @@ const G = {
     document.getElementById('op-event-title').textContent = ev.title;
     document.getElementById('op-event-body').textContent = ev.body;
     document.getElementById('op-event-effect').textContent = '실무 이벤트는 실제 운영 판단 상황을 요약한 미니 시나리오입니다. 선택 시 비용·수요·평판에 즉시 영향이 반영됩니다.';
+    const help = document.getElementById('op-event-choice-help');
     const btnA = document.getElementById('op-event-choice-a');
     const btnB = document.getElementById('op-event-choice-b');
-    btnA.innerHTML = `<strong>${ev.choices[0].label}</strong><br><span style="font-size:11px;font-weight:400;opacity:0.85">${ev.choices[0].desc}</span>`;
-    btnB.innerHTML = `<strong>${ev.choices[1].label}</strong><br><span style="font-size:11px;font-weight:400;opacity:0.85">${ev.choices[1].desc}</span>`;
-    btnA.style.cssText = 'line-height:1.4; padding:14px 18px; text-align:left; white-space:normal;';
-    btnB.style.cssText = 'line-height:1.4; padding:14px 18px; text-align:left; white-space:normal;';
+    btnA.textContent = ev.choices[0].label;
+    btnB.textContent = ev.choices[1].label;
+    btnA.style.cssText = 'line-height:1; padding:12px 14px; text-align:center; white-space:nowrap;';
+    btnB.style.cssText = 'line-height:1; padding:12px 14px; text-align:center; white-space:nowrap;';
+    if (help) help.innerHTML = `① <strong>${ev.choices[0].label}</strong>: ${ev.choices[0].desc}<br>② <strong>${ev.choices[1].label}</strong>: ${ev.choices[1].desc}`;
     btnA.onclick = () => G.applyOperationalChoice(ev, 0);
     btnB.onclick = () => G.applyOperationalChoice(ev, 1);
     openModal('modal-op-event');
