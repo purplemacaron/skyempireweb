@@ -2462,7 +2462,7 @@ const OPERATION_EVENTS = [
     title:'중고 항공기 긴급 매각 기회',
     body:'경쟁사가 파산하면서 고품질 중고 항공기가 시장에 나왔습니다. 즉시 구매 여부를 결정해야 합니다.',
     choices:[
-      {label:'즉시 매입 (1,500만원)',desc:'중고 항공기 1대가 즉시 기단에 추가됩니다. 수요도 소폭 증가합니다.',apply:(g)=>{ if((g.balance||0)>=15000000){ const usedPool = AIRCRAFT_DATA.filter(a => a.category !== 'cargo' && a.price <= 45000000); const ac = usedPool[Math.floor(Math.random() * usedPool.length)] || AIRCRAFT_DATA.find(a => a.id === 'CRJ200') || AIRCRAFT_DATA[0]; g.balance -= 15000000; g.demandMultiplier *= 1.05; if (!Array.isArray(g.transactions)) g.transactions = []; if (ac) { g.fleet.push({ id: Date.now() + Math.random(), aircraftId: ac.id, purchasedWeek: g.week, nickname: `[중고] ${ac.name}`, reg: `US${Math.floor(Math.random()*9000+1000)}` }); g.transactions.unshift({week:g.week,type:'중고 항공기 매입',desc:ac.name,amount:-15000000}); if (g.transactions.length > 100) g.transactions.pop(); G.notify(`중고 항공기 매입 완료: ${ac.name}`,'success'); } else { g.transactions.unshift({week:g.week,type:'중고 항공기 매입',desc:'중고 항공기',amount:-15000000}); if (g.transactions.length > 100) g.transactions.pop(); G.notify('중고 항공기 매입 완료','success'); } }else{ G.notify('자금이 부족해 매입에 실패했습니다','error'); } }},
+      {label:'즉시 매입 (3,000만원)',desc:'중고 항공기 1대가 즉시 기단에 추가됩니다. 비교적 비싼 기종 중 하나가 랜덤 지급되며 수요도 소폭 증가합니다.',apply:(g)=>{ if((g.balance||0)>=30000000){ const usedPool = AIRCRAFT_DATA.filter(a => a.category !== 'cargo' && a.category !== 'small' && a.price >= 60000000); const ac = usedPool[Math.floor(Math.random() * usedPool.length)] || AIRCRAFT_DATA.filter(a => a.category !== 'cargo' && a.price >= 30000000).sort((a,b)=>b.price-a.price)[0] || AIRCRAFT_DATA.find(a => a.id === 'A321neo') || AIRCRAFT_DATA[0]; g.balance -= 30000000; g.demandMultiplier *= 1.05; if (!Array.isArray(g.transactions)) g.transactions = []; if (ac) { g.fleet.push({ id: Date.now() + Math.random(), aircraftId: ac.id, purchasedWeek: g.week, nickname: `[중고] ${ac.name}`, reg: `US${Math.floor(Math.random()*9000+1000)}` }); g.transactions.unshift({week:g.week,type:'중고 항공기 매입',desc:ac.name,amount:-30000000}); if (g.transactions.length > 100) g.transactions.pop(); G.notify(`중고 항공기 매입 완료: ${ac.name}`,'success'); } else { g.transactions.unshift({week:g.week,type:'중고 항공기 매입',desc:'중고 항공기',amount:-30000000}); if (g.transactions.length > 100) g.transactions.pop(); G.notify('중고 항공기 매입 완료','success'); } }else{ G.notify('자금이 부족해 매입에 실패했습니다','error'); } }},
       {label:'관망',desc:'현금 보존, 기회 포기. 재정 안정성 유지.',apply:(g)=>{ g.costMultiplier*=0.98; }}
     ]
   },
@@ -3414,9 +3414,8 @@ const G = {
   },
 
   checkReputation() {
-    const prev = Math.max(1, Math.min(5, Math.round(Number(G.game.reputation || 1))));
     const tier = G.getReputationGoals().filter(goal => goal.met).slice(-1)[0]?.star || 1;
-    G.game.reputation = Math.max(prev, tier);
+    G.game.reputation = tier;
   },
 
   // ============================================================
@@ -4671,6 +4670,7 @@ const G = {
 
       <div class="card" style="margin-bottom:16px">
         <div class="section-title" style="font-size:15px;margin-bottom:14px">별점 기준</div>
+        <div style="font-size:12px;color:var(--text3);margin:-4px 0 12px 0">각 별점은 해당 기준을 전부 동시에 충족해야 달성됩니다.</div>
         ${goals.filter(goal => goal.star > 1).map(goal => `
           <div class="rep-factor">
             <span>${goal.name} 기준</span>
