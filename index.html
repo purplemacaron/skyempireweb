@@ -158,8 +158,8 @@
     z-index: 1;
   }
 
-  /* Cities:Skylines 풍 버튼 */
-  .btn-primary {
+  /* Cities:Skylines 풍 버튼 (메인 메뉴 전용) */
+  .menu-buttons .btn-primary {
     background: rgba(79,195,247,0.15);
     color: #ffffff;
     border: 1px solid rgba(79,195,247,0.5);
@@ -176,7 +176,7 @@
     backdrop-filter: blur(6px);
   }
 
-  .btn-primary::before {
+  .menu-buttons .btn-primary::before {
     content: '▶';
     font-size: 9px;
     margin-right: 10px;
@@ -185,15 +185,15 @@
     transition: opacity 0.2s;
   }
 
-  .btn-primary:hover {
+  .menu-buttons .btn-primary:hover {
     background: rgba(79,195,247,0.28);
     border-color: #4FC3F7;
     transform: translateX(4px);
     box-shadow: 0 0 20px rgba(79,195,247,0.2);
   }
 
-  .btn-primary:hover::before { opacity: 1; }
-  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+  .menu-buttons .btn-primary:hover::before { opacity: 1; }
+  .menu-buttons .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
 
   .btn-primary {
     background: var(--sky);
@@ -201,12 +201,17 @@
     border: none;
     border-radius: var(--radius);
     padding: 16px 32px;
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Noto Sans KR', sans-serif;
     font-weight: 700;
     font-size: 15px;
     cursor: pointer;
     transition: all 0.2s;
     letter-spacing: 0.5px;
+    white-space: nowrap;
   }
 
   .btn-primary:hover { background: var(--sky-light); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
@@ -1936,7 +1941,7 @@
       <div class="route-modal-ap">
         <div class="form-label">공항 A</div>
         <div class="arr-search-wrap">
-          <input type="text" id="route-dep-input" placeholder="공항명 또는 코드 검색..." autocomplete="off"
+          <input type="text" id="route-dep-input" placeholder="공항명 / IATA / ICAO 검색..." autocomplete="off"
             oninput="G.filterAirportDropdown('dep', this.value)"
             onfocus="G.openAirportDropdown('dep')"
             onkeydown="G.airportDropdownKeydown('dep', event)">
@@ -1948,7 +1953,7 @@
       <div class="route-modal-ap">
         <div class="form-label">공항 B</div>
         <div class="arr-search-wrap">
-          <input type="text" id="route-arr-input" placeholder="공항명 또는 코드 검색..." autocomplete="off"
+          <input type="text" id="route-arr-input" placeholder="공항명 / IATA / ICAO 검색..." autocomplete="off"
             oninput="G.filterAirportDropdown('arr', this.value)"
             onfocus="G.openAirportDropdown('arr')"
             onkeydown="G.airportDropdownKeydown('arr', event)">
@@ -2264,6 +2269,30 @@ const EXPANDED_AIRPORTS = [
 ];
 EXPANDED_AIRPORTS.forEach((a, i) => {
   if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:58 + (i % 18)});
+});
+
+const AIRPORT_ICAO_MAP = {
+  // Korea
+  ICN:'RKSI', GMP:'RKSS', PUS:'RKPK', CJU:'RKPC', CJJ:'RKTU', TAE:'RKTN', MWX:'RKJB', YNY:'RKNY', KUV:'RKJK', RSU:'RKJY',
+  // Japan
+  NRT:'RJAA', HND:'RJTT', KIX:'RJBB', NGO:'RJGG', CTS:'RJCC', FUK:'RJFF', OKA:'ROAH',
+  // China / Taiwan / Hong Kong
+  PEK:'ZBAA', PKX:'ZBAD', PVG:'ZSPD', SHA:'ZSSS', CAN:'ZGGG', SZX:'ZGSZ', HKG:'VHHH', TPE:'RCTP',
+  // Southeast Asia
+  BKK:'VTBS', SIN:'WSSS', KUL:'WMKK', MNL:'RPLL', HAN:'VVNB', SGN:'VVTS', CGK:'WIII',
+  // Middle East
+  DXB:'OMDB', DOH:'OTHH', AUH:'OMAA', RUH:'OERK', JED:'OEJN', IST:'LTFM',
+  // Europe
+  LHR:'EGLL', CDG:'LFPG', FRA:'EDDF', AMS:'EHAM', MAD:'LEMD', BCN:'LEBL', FCO:'LIRF', MUC:'EDDM', ZRH:'LSZH',
+  // North America
+  JFK:'KJFK', LAX:'KLAX', SFO:'KSFO', SEA:'KSEA', ORD:'KORD', ATL:'KATL', DFW:'KDFW', DEN:'KDEN', LAS:'KLAS', MIA:'KMIA', BOS:'KBOS', IAH:'KIAH', YYZ:'CYYZ', YVR:'CYVR',
+  // Oceania
+  SYD:'YSSY', MEL:'YMML', BNE:'YBBN', AKL:'NZAA'
+};
+
+AIRPORTS.forEach((ap) => {
+  const mapped = AIRPORT_ICAO_MAP[ap.code];
+  if (mapped && !ap.icao) ap.icao = mapped;
 });
 
 const AIRCRAFT_DATA = [
@@ -3859,6 +3888,7 @@ const G = {
     const filtered = q
       ? list.filter(a =>
           a.code.toLowerCase().includes(q) ||
+          (a.icao || '').toLowerCase().includes(q) ||
           a.name.toLowerCase().includes(q) ||
           (a.city || '').toLowerCase().includes(q) ||
           (a.country || '').toLowerCase().includes(q)
@@ -3873,7 +3903,7 @@ const G = {
         `<div class="arr-dropdown-item" data-code="${a.code}" data-idx="${i}"
           onmousedown="G.selectAirport('${kind}','${a.code}','${a.name.replace(/'/g,"\\'")}')">
           <span class="arr-code">${a.code}</span>
-          <span class="arr-info">${a.name}${a.city ? ' · ' + a.city : ''}${a.country ? ' · ' + a.country : ''}</span>
+          <span class="arr-info">${a.name}${a.icao ? ' · ' + a.icao : ''}${a.city ? ' · ' + a.city : ''}${a.country ? ' · ' + a.country : ''}</span>
         </div>`
       ).join('');
     }
