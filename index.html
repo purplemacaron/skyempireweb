@@ -833,29 +833,40 @@
 
   /* NOTIFICATION */
 
-  .event-choice-wrap { display:flex; gap:10px; }
+  .event-choice-wrap { display:flex; gap:10px; align-items:stretch; }
   .event-choice-btn {
     flex:1;
     min-height: 92px;
+    display:flex;
+    flex-direction:column;
     align-items: flex-start;
     justify-content: flex-start;
     text-align: left;
-    white-space: normal;
+    white-space: normal !important;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
     line-height: 1.5;
     padding: 12px 14px;
   }
 
   .event-choice-btn strong {
-    display: inline-block;
+    display:block;
+    width:100%;
     font-size: 14px;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
   }
 
   .event-choice-btn span {
     display:block;
+    width:100%;
     margin-top: 4px;
     font-size: 11px;
     font-weight: 500;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
     opacity: 0.9;
   }
 
@@ -2260,8 +2271,8 @@ const EXTRA_INTERNATIONAL_AIRPORTS = [
 
   ['CAK','(확장)국제공항','세계','국제',0,0]
 ];
-EXTRA_INTERNATIONAL_AIRPORTS.forEach((a, i) => {
-  if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:52 + (i%22)});
+EXTRA_INTERNATIONAL_AIRPORTS.forEach((a) => {
+  if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:45});
 });
 
 const COUNTRY_MINIMUM_AIRPORTS = [
@@ -2280,8 +2291,8 @@ const COUNTRY_MINIMUM_AIRPORTS = [
   ['BKO','모디보케이타','바마코','말리',12.5335,-7.9499],['KRT','하르툼국제','하르툼','수단',15.5895,32.5532],['JUB','주바국제','주바','남수단',4.8720,31.6011],
   ['GCM','오웬로버츠','조지타운','케이맨제도',19.2928,-81.3577],['VLI','바우어필드','포트빌라','바누아투',-17.6993,168.3200],['APW','파갈리이','아피아','사모아',-13.8299,-171.9984]
 ];
-COUNTRY_MINIMUM_AIRPORTS.forEach((a, i) => {
-  if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:50 + (i%20)});
+COUNTRY_MINIMUM_AIRPORTS.forEach((a) => {
+  if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:38});
 });
 
 const EXPANDED_AIRPORTS = [
@@ -2290,8 +2301,60 @@ const EXPANDED_AIRPORTS = [
   ['RMQ','타이중국제','타이중','대만',24.2647,120.6217],['TNN','타이난국제','타이난','대만',22.9504,120.2059],['FNJ','평양순안국제','평양','북한',39.2241,125.6692],['RJS','라선국제','라선','북한',42.4600,130.6700],['DSO','삼지연','삼지연','북한',41.9074,128.4090],['KIJ','원산갈마국제','원산','북한',39.1668,127.4864],
   ['POM','잭슨국제','포트모르즈비','파푸아뉴기니',-9.4434,147.2201],['HIR','호니아라국제','호니아라','솔로몬제도',-9.4280,160.0550],['TRW','보나리키국제','타라와','키리바시',1.3816,173.1470],['MAJ','아마타카부아국제','마주로','마셜제도',7.0648,171.2720],['SPN','사이판국제','사이판','북마리아나제도',15.1190,145.7294],['ROR','로만트메투클국제','코로르','팔라우',7.3673,134.5443],['TBU','푸아모투국제','누쿠알로파','통가',-21.2412,-175.1496],['SUV','나우소리국제','수바','피지',-18.0433,178.5594],['WLS','발레포포국제','왈리스섬','왈리스퓌튀나',-13.2383,-176.1992],['RAR','라로통가국제','아바루아','쿡제도',-21.2027,-159.8056],['FUN','푸나푸티국제','푸나푸티','투발루',-8.5243,179.1968],['INU','나우루국제','야렌','나우루',-0.5477,166.9191],['PPG','파고파고국제','파고파고','아메리칸사모아',-14.3310,-170.7104],['NOU','라톤투타국제','누메아','뉴칼레도니아',-22.0146,166.2120],['IPC','마타베리국제','이스터섬','칠레(이스터섬)',-27.1648,-109.4218]
 ];
-EXPANDED_AIRPORTS.forEach((a, i) => {
-  if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:58 + (i % 18)});
+EXPANDED_AIRPORTS.forEach((a) => {
+  if (!AIRPORTS.some(ap => ap.code === a[0])) AIRPORTS.push({code:a[0],name:a[1],city:a[2],country:a[3],lat:a[4],lng:a[5],type:'regular',demand:40});
+});
+
+function clampAirportDemand(value, min = 20, max = 98) {
+  return Math.max(min, Math.min(max, Math.round(Number(value || 0))));
+}
+
+function estimateAirportDemand(ap) {
+  if (!ap) return 40;
+  const code = String(ap.code || '').toUpperCase();
+  const city = String(ap.city || '');
+  const name = String(ap.name || '');
+  const country = String(ap.country || '');
+
+  let score = ap.type === 'cargo_hub' ? 74 : ap.type === 'hub' ? 72 : ap.type === 'oil' ? 34 : 42;
+
+  const megaCodes = new Set(['ICN','HND','NRT','KIX','JFK','LHR','CDG','DXB','LAX','SIN','HKG','PEK','PVG','FRA','AMS','ORD','ATL','BKK','IST','DEL','BOM']);
+  const majorCodes = new Set(['PUS','CJU','FUK','NGO','CTS','TPE','MNL','CGK','SYD','MEL','AKL','SFO','SEA','MIA','MAD','BCN','FCO','MUC','DOH','KUL','CAN','SZX','RUH','AUH','HNL','GUM','CMB','DPS']);
+  const midCodes = new Set(['HAN','SGN','CEB','PER','BNE','CHC','KHH','MFM','WAW','PRG','LIS','DUB','CAI','TLV','AMM','BLR','CCU','MAA','MRU','SEZ','NAS','SJU','HAV','POS','MLE']);
+  const smallCodes = new Set(['MYJ','OIT','KMJ','KMQ','AOJ','AKJ','HKD','HIJ','KOJ','KMJ','HAK','ADD','TUN','ALG','UFA','KZN','ABJ','APW','VLI','TRW','MAJ','ROR','TBU','WLS','RAR','FUN','INU','PPG','HIR','POM','IPC']);
+
+  if (megaCodes.has(code)) score += 20;
+  else if (majorCodes.has(code)) score += 13;
+  else if (midCodes.has(code)) score += 7;
+  else if (smallCodes.has(code)) score -= 10;
+
+  const highMarketCountries = ['한국','일본','미국','영국','프랑스','독일','중국','UAE','싱가포르'];
+  const midMarketCountries = ['스페인','이탈리아','캐나다','호주','대만','홍콩','태국','인도','터키','말레이시아','인도네시아','베트남','필리핀'];
+  const microIslandCountries = ['키리바시','마셜제도','나우루','투발루','통가','사모아','바누아투','쿡제도','왈리스퓌튀나','솔로몬제도','팔라우','북마리아나제도','아메리칸사모아','프랑스령폴리네시아'];
+  const islandTourismCountries = ['괌','미국(하와이)','세이셸','모리셔스','몰디브','피지'];
+
+  if (highMarketCountries.some(v => country.includes(v))) score += 6;
+  else if (midMarketCountries.some(v => country.includes(v))) score += 3;
+
+  if (microIslandCountries.some(v => country.includes(v))) score -= 16;
+  else if (islandTourismCountries.some(v => country.includes(v))) score -= 5;
+
+  const megaCityKeywords = ['서울','도쿄','오사카','뉴욕','런던','파리','상하이','베이징','로스앤젤레스','싱가포르','홍콩','방콕','두바이'];
+  const regionalCityKeywords = ['마쓰야마','마츠야마','오이타','고마쓰','아오모리','아사히카와','하코다테','히로시마','가고시마','구마모토','타라와','마주로','푸나푸티','누쿠알로파','아피아','포트빌라','코로르','누메아','라로통가','왈리스섬'];
+  const tourismKeywords = ['제주','오키나와','발리','호놀룰루','괌','몰디브','세이셸','모리셔스','피지'];
+
+  if (megaCityKeywords.some(v => city.includes(v) || name.includes(v))) score += 8;
+  if (regionalCityKeywords.some(v => city.includes(v) || name.includes(v))) score -= 8;
+  if (tourismKeywords.some(v => city.includes(v) || name.includes(v) || country.includes(v))) score += 4;
+
+  if (ap.type === 'cargo_hub') score += 4;
+  if (ap.type === 'oil') score -= 4;
+
+  return clampAirportDemand(score);
+}
+
+AIRPORTS.forEach(ap => {
+  if (!ap.custom) ap.demand = estimateAirportDemand(ap);
 });
 
 const AIRPORT_ICAO_MAP = {
@@ -2751,40 +2814,42 @@ function routeFlightsPerWeek(hours, ac, distanceKm = 0) {
 
 function routeDemandDistanceFactor(distanceKm, depDemand, arrDemand) {
   const d = Math.max(0, Number(distanceKm || 0));
-  const dep = Math.max(35, Number(depDemand || 0));
-  const arr = Math.max(35, Number(arrDemand || 0));
+  const dep = Math.max(20, Number(depDemand || 0));
+  const arr = Math.max(20, Number(arrDemand || 0));
 
-  // 실제 공항 이용객 격차를 더 반영: 평균 수요 + 허브 불균형 완화
+  // 평균값만 보지 않고, 양 끝 공항이 모두 강해야 높은 수요가 나오도록 조정
   const avgDemand = (dep + arr) / 2;
-  const baseDemand = Math.max(0.42, Math.min(1.62, Math.pow(avgDemand / 82, 1.48)));
-  const pairingBalance = 1 - Math.min(0.13, Math.abs(dep - arr) / 220);
+  const marketStrength = Math.sqrt(dep * arr);
+  const baseDemand = Math.pow(marketStrength / 70, 1.55) * Math.pow(avgDemand / 80, 0.35);
+  const pairingBalance = 1 - Math.min(0.18, Math.abs(dep - arr) / 180);
 
   let distanceFactor = 1;
   if (d < 350) distanceFactor = 0.82;
-  else if (d < 900) distanceFactor = 0.90;
+  else if (d < 900) distanceFactor = 0.94;
   else if (d < 2200) distanceFactor = 1.00;
-  else if (d < 5000) distanceFactor = 1.08;
-  else if (d < 9000) distanceFactor = 1.15;
-  else distanceFactor = 1.22;
+  else if (d < 5000) distanceFactor = 1.05;
+  else if (d < 9000) distanceFactor = 1.10;
+  else distanceFactor = 1.12;
 
-  return Math.max(0.32, Math.min(1.75, baseDemand * pairingBalance * distanceFactor));
+  return Math.max(0.24, Math.min(1.95, baseDemand * pairingBalance * distanceFactor));
 }
 
 function routeRevenueProfile(distanceKm, depDemand, arrDemand) {
   const d = Math.max(0, Number(distanceKm || 0));
-  const dep = Number(depDemand || 0);
-  const arr = Number(arrDemand || 0);
-  const demandIndex = Math.max(0.4, Math.min(1.6, (dep + arr) / 180));
-  const demandImpact = Math.max(0.72, Math.min(1.85, Math.pow(demandIndex, 1.45) * 1.08));
+  const dep = Math.max(20, Number(depDemand || 0));
+  const arr = Math.max(20, Number(arrDemand || 0));
+  const marketStrength = Math.sqrt(dep * arr);
+  const avgDemand = (dep + arr) / 2;
+  const demandImpact = Math.max(0.58, Math.min(2.05, Math.pow(marketStrength / 72, 1.42) * Math.pow(avgDemand / 82, 0.28)));
 
   let longHaulPremium = 1;
-  if (d < 800) longHaulPremium = 0.90;
-  else if (d < 1600) longHaulPremium = 0.96;
+  if (d < 800) longHaulPremium = 0.92;
+  else if (d < 1600) longHaulPremium = 0.98;
   else if (d < 3500) longHaulPremium = 1.03;
-  else if (d < 7000) longHaulPremium = 1.12;
-  else longHaulPremium = 1.22;
+  else if (d < 7000) longHaulPremium = 1.09;
+  else longHaulPremium = 1.15;
 
-  const shortHaulDrag = d < 450 ? 0.84 : d < 900 ? 0.92 : 1;
+  const shortHaulDrag = d < 450 ? 0.82 : d < 900 ? 0.90 : 1;
   return { demandImpact, longHaulPremium, shortHaulDrag };
 }
 
@@ -4320,7 +4385,11 @@ const G = {
     const code = (prompt('공항 약칭(3~4자)을 입력하세요','NEW') || 'NEW').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
     if (!code || AIRPORTS.some(a => a.code === code)) { G.notify('약칭이 비어있거나 이미 존재합니다', 'error'); return; }
     const country = prompt('국가명을 입력하세요','Custom');
-    const demand = Math.max(45, Math.min(99, Math.round(55 + Math.abs(latlng.lat)/2)));
+    const nearest = AIRPORTS.filter(a => !a.custom && a.code !== 'CAK').reduce((best, ap) => {
+      const km = Math.hypot((ap.lat || 0) - latlng.lat, (ap.lng || 0) - latlng.lng);
+      return !best || km < best.km ? { ap, km } : best;
+    }, null);
+    const demand = nearest?.ap ? clampAirportDemand(nearest.ap.demand * 0.92, 22, 95) : 42;
     const ap = {code,name,city:name,country:country||'Custom',lat:latlng.lat,lng:latlng.lng,type:'regular',demand,custom:true};
     AIRPORTS.push(ap);
     G.game.customAirports.push(ap);
