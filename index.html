@@ -942,6 +942,58 @@
     transform: translateY(-1px);
   }
 
+  .auth-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 13px 18px;
+    border-radius: var(--radius);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .auth-btn-google {
+    background: white;
+    color: var(--text);
+    border: 2px solid var(--border);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  }
+
+  .auth-btn-google:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.13); }
+
+  .auth-btn-anon {
+    background: var(--sky-pale);
+    color: var(--sky);
+    border: 2px solid var(--sky-mid);
+  }
+
+  .auth-btn-anon:hover { background: #d4e9ff; }
+
+  .tutorial-quest-box {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 1200;
+    width: 320px;
+    background: rgba(255,255,255,0.97);
+    border: 1px solid var(--sky-mid);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    padding: 14px;
+  }
+
+  .tutorial-quest-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--sky);
+    margin-bottom: 6px;
+  }
+
   .user-info { display: flex; align-items: center; gap: 10px; justify-content: center; margin-top: 12px; }
   .user-avatar { width: 36px; height: 36px; border-radius: 50%; }
   .user-name { font-weight: 600; font-size: 14px; color: var(--text); }
@@ -1224,10 +1276,14 @@
     <!-- 비로그인 -->
     <div id="menu-guest-area">
       <p style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:20px;letter-spacing:0.3px;line-height:1.7">게임을 시작하려면<br>Google 또는 익명으로 로그인하세요.</p>
-      <button class="btn-primary" onclick="G.showPrivacyConsent('google')">
-        <svg width="15" height="15" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:8px"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>Google 로그인
+      <button class="auth-btn auth-btn-google" onclick="G.showPrivacyConsent('google')">
+        <svg width="15" height="15" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Google 로그인
       </button>
-      <button class="btn-secondary" style="margin-top:10px;width:100%" onclick="G.showPrivacyConsent('anonymous')">익명으로 시작</button>
+      <button class="auth-btn auth-btn-anon" style="margin-top:10px" onclick="G.showPrivacyConsent('anonymous')">
+        익명으로 시작
+      </button>
+      <button class="auth-btn auth-btn-anon" style="margin-top:10px" onclick="G.startTutorialFromMenu()">튜토리얼 플레이</button>
       <button class="btn-ghost" style="margin-top:10px;font-size:11px;color:rgba(255,255,255,0.3);text-decoration:none;letter-spacing:0.5px" onclick="showScreen('screen-privacy')">개인정보 처리방침</button>
     </div>
 
@@ -1243,6 +1299,7 @@
       <div class="menu-buttons">
         <button class="btn-primary" onclick="G.showNewGame()">새 게임 시작</button>
         <button class="btn-primary" onclick="G.showLoadGame()">게임 불러오기</button>
+        <button class="btn-secondary" onclick="G.startTutorialFromMenu()">튜토리얼 플레이</button>
         <button class="btn-ghost" style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;text-decoration:none;letter-spacing:0.5px" onclick="showScreen('screen-privacy')">개인정보 처리방침</button>
       </div>
     </div>
@@ -1722,11 +1779,11 @@
             <div class="login-section">
               <div id="settings-user-area">
                 <p style="font-size:13px;color:var(--text2)">로그인하면 클라우드에 자동 저장됩니다.</p>
-                <button class="google-btn" onclick="G.googleLogin()">
+                <button class="auth-btn auth-btn-google" onclick="G.googleLogin()">
                   <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
                   Google로 로그인
                 </button>
-                <button class="btn-secondary" style="margin-top:10px;width:100%" onclick="G.anonymousLogin()">익명으로 시작</button>
+                <button class="auth-btn auth-btn-anon" style="margin-top:10px" onclick="G.anonymousLogin()">익명으로 시작</button>
               </div>
               <div id="settings-logged-in" style="display:none">
                 <div class="user-info">
@@ -1764,6 +1821,16 @@
 
     </div><!-- end content-area -->
   </div><!-- end game-body -->
+
+  <div id="tutorial-quest-box" class="tutorial-quest-box" style="display:none">
+    <div class="tutorial-quest-title">튜토리얼 퀘스트</div>
+    <div id="tutorial-quest-body" style="font-size:12px;line-height:1.6;color:var(--text2);margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-secondary" style="flex:1;padding:8px 10px" onclick="G.exitTutorial()">튜토리얼 종료</button>
+      <button id="tutorial-quest-next" class="btn-primary" style="flex:1;padding:8px 10px" onclick="G.advanceTutorial()" disabled>다음</button>
+    </div>
+  </div>
+
 </div><!-- end screen-game -->
 
 <!-- ===== PRIVACY POLICY ===== -->
@@ -1845,6 +1912,17 @@
     <div style="display:flex;gap:12px">
       <button class="btn-secondary" style="flex:1" onclick="closeModal('modal-privacy-consent')">취소</button>
       <button class="btn-primary" style="flex:2;opacity:0.5;cursor:not-allowed;transition:opacity 0.2s" id="privacy-consent-confirm" onclick="G.confirmPrivacyAndLogin()" disabled>동의 후 계속</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-tutorial-first">
+  <div class="modal-box" style="width:420px">
+    <div class="modal-title">처음이신가요?</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px">2~3분짜리 퀘스트형 튜토리얼로 기본 흐름을 빠르게 익힐 수 있습니다. 튜토리얼 진행 내용은 저장되지 않습니다.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn-secondary" style="flex:1" onclick="closeModal('modal-tutorial-first')">나중에</button>
+      <button class="btn-primary" style="flex:1" onclick="closeModal('modal-tutorial-first');G.startTutorialFromMenu();">튜토리얼 시작</button>
     </div>
   </div>
 </div>
@@ -2249,7 +2327,7 @@ const EXPANDED_AIRCRAFT_DATA = [
   {id:'A340600',name:'A340-600',maker:'에어버스',category:'widebody',seats:380,range:14450,speed:881,fuelPerHour:8600,price:280000000,opCostPerHour:14600,svg:'widebody'},
   {id:'B767300F',name:'767-300F',maker:'보잉',category:'cargo',seats:0,range:6025,speed:851,fuelPerHour:6100,price:220000000,opCostPerHour:9800,cargo:58000,svg:'cargo'},
   {id:'A321P2F',name:'A321P2F',maker:'에어버스',category:'cargo',seats:0,range:3700,speed:833,fuelPerHour:3100,price:98000000,opCostPerHour:6100,cargo:27200,svg:'cargo'},
-  {id:'IL76TD',name:'Il-76TD',maker:'일류신',category:'cargo',seats:0,range:4000,speed:780,fuelPerHour:9000,price:75000000,opCostPerHour:13000,cargo:50000,svg:'cargo'},
+  {id:'IL76TD',name:'Il-76TD',maker:'일루신',category:'cargo',seats:0,range:4000,speed:780,fuelPerHour:9000,price:75000000,opCostPerHour:13000,cargo:50000,svg:'cargo'},
   {id:'A330P2F',name:'A330-300P2F',maker:'에어버스',category:'cargo',seats:0,range:7400,speed:871,fuelPerHour:7000,price:245000000,opCostPerHour:11600,cargo:62000,svg:'cargo'},
   {id:'AN225',name:'An-225 Mriya',maker:'안토노프',category:'cargo',seats:0,range:4000,speed:800,fuelPerHour:18000,price:180000000,opCostPerHour:32000,cargo:250000,svg:'cargo'}
 ];
@@ -2525,6 +2603,10 @@ function showScreen(id) {
     el.style.opacity = '1';
     el.style.zIndex = '1';
   }
+  if (id === 'screen-menu' && !localStorage.getItem('skyempire_tutorial_prompt_shown_v1')) {
+    localStorage.setItem('skyempire_tutorial_prompt_shown_v1', '1');
+    openModal('modal-tutorial-first');
+  }
 }
 
 function closeModal(id) {
@@ -2759,6 +2841,7 @@ function renderAircraftSVG(type, color = '#1565C0', w=80, h=50) {
 // ============================================================
 const G = {
   game: null,
+  tutorial: { active: false, step: 0 },
   gameInterval: null,
   mapAnimInterval: null,
   paused: false,
@@ -3017,6 +3100,7 @@ const G = {
     G.costMultiplier = 1;
     G.fuelEfficiency = 1;
     G.currentSlot = 0;
+    G.tutorial = { active: false, step: 0 };
     G.initGame();
   },
 
@@ -3031,8 +3115,68 @@ const G = {
     G.demandMultiplier = 1;
     G.costMultiplier = 1;
     G.fuelEfficiency = 1;
+    G.tutorial = { active: false, step: 0 };
     closeModal('modal-load');
     G.initGame();
+  },
+
+  startTutorialFromMenu() {
+    G.game = G.defaultGame();
+    G.game.airlineName = 'SkyEmpire Tutorial Air';
+    G.game.slogan = '연습 비행 진행 중';
+    G.game.mode = 'normal';
+    G.game.balance = 120000000;
+    G.game.fuel = G.game.fuelCapacity;
+    G.tutorial = { active: true, step: 0 };
+    G.currentSlot = 0;
+    G.oilPriceMultiplier = 1;
+    G.demandMultiplier = 1;
+    G.costMultiplier = 1;
+    G.fuelEfficiency = 1;
+    G.initGame();
+    G.notify('튜토리얼이 시작되었습니다. 진행 내용은 저장되지 않습니다.', 'warning');
+  },
+
+  refreshTutorialQuest() {
+    const box = document.getElementById('tutorial-quest-box');
+    const body = document.getElementById('tutorial-quest-body');
+    const nextBtn = document.getElementById('tutorial-quest-next');
+    if (!box || !body || !nextBtn) return;
+    if (!G.tutorial?.active) {
+      box.style.display = 'none';
+      return;
+    }
+    box.style.display = 'block';
+    const quests = [
+      { title: '1) 항공기 1대 구매', desc: '항공기 구매 탭에서 항공기를 한 대 구매해 보세요.', done: (G.game.fleet || []).length >= 1 },
+      { title: '2) 노선 1개 개설', desc: '노선 관리 탭에서 왕복 노선을 하나 만들어 보세요.', done: (G.game.routes || []).length >= 1 },
+      { title: '3) 1주 운영 진행', desc: '일시정지를 해제해 1주 이상 진행하세요.', done: (G.game.week || 0) >= 2 },
+      { title: '완료!', desc: '튜토리얼을 마쳤습니다. 이제 새 게임을 시작해 보세요.', done: true }
+    ];
+    const q = quests[Math.min(G.tutorial.step, quests.length - 1)];
+    body.innerHTML = `<div style="font-weight:700;color:var(--text);margin-bottom:4px">${q.title}</div><div>${q.desc}</div><div style="margin-top:8px;color:${q.done ? 'var(--green)' : 'var(--text3)'}">${q.done ? '달성 완료' : '진행 중'}</div>`;
+    nextBtn.disabled = !q.done;
+    nextBtn.textContent = G.tutorial.step >= 3 ? '메뉴로 돌아가기' : '다음';
+  },
+
+  advanceTutorial() {
+    if (!G.tutorial?.active) return;
+    G.tutorial.step = Math.min(3, (G.tutorial.step || 0) + 1);
+    if (G.tutorial.step >= 3) {
+      G.exitTutorial();
+      return;
+    }
+    G.refreshTutorialQuest();
+  },
+
+  exitTutorial() {
+    G.tutorial = { active: false, step: 0 };
+    const box = document.getElementById('tutorial-quest-box');
+    if (box) box.style.display = 'none';
+    if (G.gameInterval) clearInterval(G.gameInterval);
+    if (G.mapAnimInterval) clearInterval(G.mapAnimInterval);
+    showScreen('screen-menu');
+    G.notify('튜토리얼을 종료했습니다. 새 게임에서 본편을 시작하세요.', 'success');
   },
 
   initGame() {
@@ -3075,6 +3219,7 @@ const G = {
     if (newsNavItem) newsNavItem.style.display = G.game.mode === 'free' ? 'none' : '';
 
     G.notify(`${G.game.airlineName} 운항 시작!`, 'success');
+    G.refreshTutorialQuest();
   },
 
   normalizeGameData() {
@@ -3170,6 +3315,7 @@ const G = {
     G.renderFinance();
     G.renderOil();
     G.updateMapPlanes();
+    G.refreshTutorialQuest();
     G.autoSave();
   },
 
@@ -3923,6 +4069,7 @@ const G = {
     G.renderRoutes();
     G.updateTopbar();
     G.notify(`${dep} ↔ ${arr} 왕복 노선 개설!`, 'success');
+    G.refreshTutorialQuest();
   },
 
   closeRoute(id) {
@@ -4004,6 +4151,7 @@ const G = {
     if (document.getElementById('modal-route')?.classList.contains('open')) G.refreshRouteAircraftGrid();
     G.updateTopbar();
     G.notify(`${ac.name} 구매 완료! 잔고: ${fmt(G.game.balance)}`, 'success');
+    G.refreshTutorialQuest();
   },
 
   renderFleet() {
@@ -4119,7 +4267,7 @@ const G = {
     document.getElementById('speed-btn').textContent = '이벤트 대기중';
     document.getElementById('op-event-title').textContent = ev.title;
     document.getElementById('op-event-body').textContent = ev.body;
-    document.getElementById('op-event-effect').textContent = '선택에 따라 비용과 수요에 즉시 영향이 발생합니다.';
+    document.getElementById('op-event-effect').textContent = '실무 이벤트는 실제 운영 판단 상황을 요약한 미니 시나리오입니다. 선택 시 비용·수요·평판에 즉시 영향이 반영됩니다.';
     const btnA = document.getElementById('op-event-choice-a');
     const btnB = document.getElementById('op-event-choice-b');
     btnA.innerHTML = `<strong>${ev.choices[0].label}</strong><br><span style="font-size:11px;font-weight:400;opacity:0.85">${ev.choices[0].desc}</span>`;
@@ -4591,11 +4739,13 @@ const G = {
     if (pax > 500) posts.push({user:USERS[2], text:`${airline} 노선이 이제 ${routes}개나 됐네요. 제가 가고 싶은 곳도 생겼으면 좋겠어요!`, likes:Math.floor(Math.random()*100+20), comments:Math.floor(Math.random()*10+2), time:`${Math.max(1,week-1)}주차`, positive:true});
     if (rep >= 3) posts.push({user:USERS[5], text:`항공사 분석: ${airline}의 최근 성장세가 인상적입니다. 탑승객 수 ${Math.floor(pax).toLocaleString()}명 달성. 업계 주목 중.`, likes:Math.floor(Math.random()*300+100), comments:Math.floor(Math.random()*30+10), time:`${week}주차`, positive:true});
     if (rep >= 4) posts.push({user:USERS[6], text:`${airline} 비즈니스 클래스 후기 올립니다. 솔직히 대형 항공사 부럽지 않은 수준이에요. 강추!`, likes:Math.floor(Math.random()*500+200), comments:Math.floor(Math.random()*50+20), time:`${week}주차`, positive:true});
+    if (routes >= 2) posts.push({user:USERS[0], text:`${airline} 체크인 동선이 빠르고 안내도 깔끔해서 좋았습니다. 가족 여행에 편했어요.`, likes:Math.floor(Math.random()*110+40), comments:Math.floor(Math.random()*16+4), time:`${week}주차`, positive:true});
 
     // 부정 포스트
     if (rep < 3) posts.push({user:USERS[3], text:`${airline} 오늘 또 연착... 제발 정시 운항 좀 해주세요. 벌써 세 번째예요.`, likes:Math.floor(Math.random()*80+10), comments:Math.floor(Math.random()*20+5), time:`${week}주차`, positive:false});
     if (routes < 5) posts.push({user:USERS[4], text:`${airline} 노선이 아직 적네요. 국제선 확장이 기대됩니다.`, likes:Math.floor(Math.random()*60+10), comments:Math.floor(Math.random()*10+2), time:`${Math.max(1,week-2)}주차`, positive:false});
     if (G.fuelPercent() < 30) posts.push({user:USERS[7], text:`${airline} 연료 관리 문제로 일부 노선 운항 중단 소식. 경영진의 빠른 조치가 필요해 보입니다.`, likes:Math.floor(Math.random()*120+30), comments:Math.floor(Math.random()*25+8), time:`${week}주차`, positive:false});
+    if (pax > 200) posts.push({user:USERS[4], text:`${airline} 기내 서비스는 좋았는데 탑승 게이트 안내가 조금 헷갈렸어요. 앱 안내가 보강되면 더 좋을 듯!`, likes:Math.floor(Math.random()*90+20), comments:Math.floor(Math.random()*14+4), time:`${week}주차`, positive:false});
 
     // 중립/정보
     posts.push({user:USERS[5], text:`${airline} ${week}주차 운항 현황: 노선 ${routes}개, 총 탑승객 ${Math.floor(pax).toLocaleString()}명. 지속적인 성장세를 보이고 있습니다.`, likes:Math.floor(Math.random()*200+50), comments:Math.floor(Math.random()*20+5), time:`${week}주차`, positive:null});
@@ -4604,7 +4754,8 @@ const G = {
     posts.sort(() => Math.random() - 0.5);
 
     container.innerHTML = `
-      <div class="section-title" style="margin-bottom:16px">SkySocial</div>
+      <div class="section-title" style="margin-bottom:6px">SkySocial</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">좋았던 점과 부족했던 점을 함께 보여주는 승객 피드입니다.</div>
       <div class="sns-tabs">
         <div class="sns-tab active" onclick="G.setSnsTab(this,'all')">전체</div>
         <div class="sns-tab" onclick="G.setSnsTab(this,'positive')">긍정</div>
@@ -4820,6 +4971,7 @@ const G = {
   // SAVE/LOAD
   // ============================================================
   async saveGame(slot) {
+    if (G.tutorial?.active) { G.notify('튜토리얼은 저장되지 않습니다.', 'warning'); return; }
     G.syncBrandFromInputs();
     const targetSlot = (slot !== undefined) ? slot : G.currentSlot;
     const saveData = G.cloneSaveData(G.game);
@@ -4859,6 +5011,7 @@ const G = {
 
 
   autoSave() {
+    if (G.tutorial?.active) return;
     G.syncBrandFromInputs();
     const saveData = G.cloneSaveData(G.game);
     const target = G.game.autoSaveSlot ?? 'auto';
@@ -5016,6 +5169,10 @@ window.addEventListener('load', () => {
     const unsub = fbAuth.onAuthStateChanged(() => { unsub(); hideLoad(); });
   } else {
     setTimeout(hideLoad, 1200);
+  }
+  if (!localStorage.getItem('skyempire_tutorial_prompt_shown_v1')) {
+    localStorage.setItem('skyempire_tutorial_prompt_shown_v1', '1');
+    setTimeout(() => openModal('modal-tutorial-first'), 300);
   }
 });
 </script>
