@@ -159,41 +159,36 @@
   }
 
   /* Cities:Skylines 풍 버튼 (메인 메뉴 전용) */
-  .menu-buttons .btn-primary {
-    background: rgba(79,195,247,0.15);
+  .menu-buttons .btn-primary,
+  .menu-buttons .btn-secondary,
+  #menu-guest-area .auth-btn {
+    background: var(--sky);
     color: #ffffff;
-    border: 1px solid rgba(79,195,247,0.5);
-    border-radius: 4px;
-    padding: 14px 24px;
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px 20px;
     font-family: 'Noto Sans KR', sans-serif;
     font-weight: 700;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
-    letter-spacing: 1px;
-    text-align: left;
-    position: relative;
-    backdrop-filter: blur(6px);
+    letter-spacing: 0.3px;
+    text-align: center;
+    width: 100%;
+    justify-content: center;
   }
 
-  .menu-buttons .btn-primary::before {
-    content: '▶';
-    font-size: 9px;
-    margin-right: 10px;
-    color: #4FC3F7;
-    opacity: 0;
-    transition: opacity 0.2s;
+  .menu-buttons .btn-primary:hover,
+  .menu-buttons .btn-secondary:hover,
+  #menu-guest-area .auth-btn:hover {
+    background: var(--sky-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
   }
 
-  .menu-buttons .btn-primary:hover {
-    background: rgba(79,195,247,0.28);
-    border-color: #4FC3F7;
-    transform: translateX(4px);
-    box-shadow: 0 0 20px rgba(79,195,247,0.2);
-  }
-
-  .menu-buttons .btn-primary:hover::before { opacity: 1; }
-  .menu-buttons .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+  .menu-buttons .btn-primary:disabled,
+  .menu-buttons .btn-secondary:disabled,
+  #menu-guest-area .auth-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 
   .btn-primary {
     background: var(--sky);
@@ -582,6 +577,7 @@
     color: var(--text2);
     transition: all 0.2s;
     font-family: 'Noto Sans KR', sans-serif;
+    white-space: nowrap;
   }
 
   .tab-btn.active { background: var(--sky); color: white; border-color: var(--sky); }
@@ -836,6 +832,33 @@
   .modal-close { float: right; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text3); line-height: 1; }
 
   /* NOTIFICATION */
+
+  .event-choice-wrap { display:flex; gap:10px; }
+  .event-choice-btn {
+    flex:1;
+    min-height: 92px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    white-space: normal;
+    line-height: 1.5;
+    padding: 12px 14px;
+  }
+
+  .event-choice-btn strong {
+    display: inline-block;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .event-choice-btn span {
+    display:block;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.9;
+  }
+
   .notification-container {
     position: fixed;
     top: 72px;
@@ -1304,7 +1327,7 @@
       <div class="menu-buttons">
         <button class="btn-primary" onclick="G.showNewGame()">새 게임 시작</button>
         <button class="btn-primary" onclick="G.showLoadGame()">게임 불러오기</button>
-        <button class="btn-secondary" onclick="G.startTutorialFromMenu()">튜토리얼 플레이</button>
+        <button class="btn-primary" onclick="G.startTutorialFromMenu()">튜토리얼 플레이</button>
         <button class="btn-ghost" style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;text-decoration:none;letter-spacing:0.5px" onclick="showScreen('screen-privacy')">개인정보 처리방침</button>
       </div>
     </div>
@@ -2016,9 +2039,9 @@
     <div id="op-event-title" style="font-weight:800;font-size:18px;margin-bottom:8px"></div>
     <div id="op-event-body" style="font-size:14px;line-height:1.7;color:var(--text2);margin-bottom:16px"></div>
     <div id="op-event-effect" style="font-size:12px;color:var(--text3);margin-bottom:14px"></div>
-    <div style="display:flex;gap:10px">
-      <button id="op-event-choice-a" class="btn-secondary" style="flex:1"></button>
-      <button id="op-event-choice-b" class="btn-primary" style="flex:1"></button>
+    <div class="event-choice-wrap">
+      <button id="op-event-choice-a" class="btn-secondary event-choice-btn"></button>
+      <button id="op-event-choice-b" class="btn-primary event-choice-btn"></button>
     </div>
   </div>
 </div>
@@ -2102,15 +2125,15 @@ function updateAuthUI(user) {
 // ============================================================
 const AIRPORTS = [
   // Hub airports
-  {code:'ICN',name:'인천국제',city:'서울',country:'한국',lat:37.4602,lng:126.4407,type:'hub',demand:95},
+  {code:'ICN',name:'인천국제',city:'서울',country:'한국',lat:37.4602,lng:126.4407,type:'hub',demand:84},
   {code:'ANCF',name:'테드스티븐스 화물허브',city:'앵커리지',country:'미국',lat:61.1743,lng:-149.9985,type:'cargo_hub',demand:88},
-  {code:'JFK',name:'존F케네디',city:'뉴욕',country:'미국',lat:40.6413,lng:-73.7781,type:'hub',demand:90},
-  {code:'LHR',name:'히드로',city:'런던',country:'영국',lat:51.4700,lng:-0.4543,type:'hub',demand:92},
+  {code:'JFK',name:'존F케네디',city:'뉴욕',country:'미국',lat:40.6413,lng:-73.7781,type:'hub',demand:94},
+  {code:'LHR',name:'히드로',city:'런던',country:'영국',lat:51.4700,lng:-0.4543,type:'hub',demand:93},
   {code:'CDG',name:'샤를드골',city:'파리',country:'프랑스',lat:49.0097,lng:2.5479,type:'hub',demand:88},
-  {code:'DXB',name:'두바이',city:'두바이',country:'UAE',lat:25.2532,lng:55.3657,type:'hub',demand:93},
-  {code:'HND',name:'하네다',city:'도쿄',country:'일본',lat:35.5494,lng:139.7798,type:'hub',demand:91},
-  {code:'SIN',name:'창이',city:'싱가포르',country:'싱가포르',lat:1.3644,lng:103.9915,type:'hub',demand:89},
-  {code:'LAX',name:'로스앤젤레스',city:'LA',country:'미국',lat:33.9425,lng:-118.4081,type:'hub',demand:87},
+  {code:'DXB',name:'두바이',city:'두바이',country:'UAE',lat:25.2532,lng:55.3657,type:'hub',demand:90},
+  {code:'HND',name:'하네다',city:'도쿄',country:'일본',lat:35.5494,lng:139.7798,type:'hub',demand:96},
+  {code:'SIN',name:'창이',city:'싱가포르',country:'싱가포르',lat:1.3644,lng:103.9915,type:'hub',demand:86},
+  {code:'LAX',name:'로스앤젤레스',city:'LA',country:'미국',lat:33.9425,lng:-118.4081,type:'hub',demand:91},
   {code:'FRA',name:'프랑크푸르트',city:'프랑크푸르트',country:'독일',lat:50.0379,lng:8.5622,type:'hub',demand:85},
   {code:'AMS',name:'스히폴',city:'암스테르담',country:'네덜란드',lat:52.3105,lng:4.7683,type:'hub',demand:84},
   {code:'PEK',name:'베이징',city:'베이징',country:'중국',lat:40.0799,lng:116.6031,type:'hub',demand:88},
@@ -2136,8 +2159,8 @@ const AIRPORTS = [
   // Regular airports
   {code:'PUS',name:'김해',city:'부산',country:'한국',lat:35.1795,lng:128.9382,type:'regular',demand:55},
   {code:'CJU',name:'제주',city:'제주',country:'한국',lat:33.5113,lng:126.4930,type:'regular',demand:60},
-  {code:'ORD',name:'오헤어',city:'시카고',country:'미국',lat:41.9742,lng:-87.9073,type:'regular',demand:72},
-  {code:'ATL',name:'하츠필드잭슨',city:'애틀랜타',country:'미국',lat:33.6407,lng:-84.4277,type:'regular',demand:70},
+  {code:'ORD',name:'오헤어',city:'시카고',country:'미국',lat:41.9742,lng:-87.9073,type:'regular',demand:85},
+  {code:'ATL',name:'하츠필드잭슨',city:'애틀랜타',country:'미국',lat:33.6407,lng:-84.4277,type:'regular',demand:89},
   {code:'SFO',name:'샌프란시스코',city:'샌프란시스코',country:'미국',lat:37.6213,lng:-122.3790,type:'regular',demand:68},
   {code:'SEA',name:'시애틀타코마',city:'시애틀',country:'미국',lat:47.4502,lng:-122.3088,type:'regular',demand:62},
   {code:'MIA',name:'마이애미',city:'마이애미',country:'미국',lat:25.7959,lng:-80.2870,type:'regular',demand:65},
@@ -2538,7 +2561,7 @@ const OPERATION_EVENTS = [
   {
     id:'pilot_shortage',
     title:'조종사 인력 부족',
-    body:'업계 전반의 조종사 부족으로 인건비가 급등했습니다. 노선 일부 축소 또는 임금 인상 중 선택해야 합니다.',
+    body:'업계 전반의 조종사 수급이 급격히 악화되어 핵심 기장·부기장 이탈이 늘고 있습니다. 성수기 스케줄을 유지하려면 즉시 임금 테이블을 조정해야 하며, 이를 미루면 일부 노선을 임시 감편해 운항 안정성을 지켜야 합니다.',
     choices:[
       {label:'임금 인상 수용',desc:'비용 +10%. 장기 운항 안정성을 확보합니다.',apply:(g)=>{ g.costMultiplier*=1.10; }},
       {label:'일부 노선 임시 중단',desc:'단기 수익 -15%, 비용 절감.',apply:(g)=>{ g.demandMultiplier*=0.85; g.costMultiplier*=0.93; }}
@@ -2657,7 +2680,7 @@ function setPanel(name) {
   });
 
   if (typeof G !== 'undefined') {
-    if (name === 'market' && G.renderMarket) G.renderMarket('all');
+    if (name === 'market' && G.renderMarket) G.renderMarket(G.marketFilter || 'all');
     if (name === 'fleet' && G.renderFleet) G.renderFleet();
     if (name === 'routes' && G.renderRoutes) G.renderRoutes();
     if (name === 'finance' && G.renderFinance) G.renderFinance();
@@ -2728,20 +2751,23 @@ function routeFlightsPerWeek(hours, ac, distanceKm = 0) {
 
 function routeDemandDistanceFactor(distanceKm, depDemand, arrDemand) {
   const d = Math.max(0, Number(distanceKm || 0));
-  const dep = Number(depDemand || 0);
-  const arr = Number(arrDemand || 0);
-  // 수요 비중 상향: 공항 수요 영향력을 더 키우고, 거리는 완만한 보정만 적용
-  const marketDemand = Math.max(0.45, Math.min(1.58, Math.pow((dep + arr) / 168, 1.36)));
+  const dep = Math.max(35, Number(depDemand || 0));
+  const arr = Math.max(35, Number(arrDemand || 0));
+
+  // 실제 공항 이용객 격차를 더 반영: 평균 수요 + 허브 불균형 완화
+  const avgDemand = (dep + arr) / 2;
+  const baseDemand = Math.max(0.42, Math.min(1.62, Math.pow(avgDemand / 82, 1.48)));
+  const pairingBalance = 1 - Math.min(0.13, Math.abs(dep - arr) / 220);
 
   let distanceFactor = 1;
-  if (d < 350) distanceFactor = 0.94;
-  else if (d < 900) distanceFactor = 0.97;
+  if (d < 350) distanceFactor = 0.82;
+  else if (d < 900) distanceFactor = 0.90;
   else if (d < 2200) distanceFactor = 1.00;
-  else if (d < 5000) distanceFactor = 1.03;
-  else if (d < 9000) distanceFactor = 1.06;
-  else distanceFactor = 1.09;
+  else if (d < 5000) distanceFactor = 1.08;
+  else if (d < 9000) distanceFactor = 1.15;
+  else distanceFactor = 1.22;
 
-  return Math.max(0.35, Math.min(1.65, marketDemand * distanceFactor));
+  return Math.max(0.32, Math.min(1.75, baseDemand * pairingBalance * distanceFactor));
 }
 
 function routeRevenueProfile(distanceKm, depDemand, arrDemand) {
@@ -2851,9 +2877,15 @@ function loadAircraftPhoto(input) {
 }
 
 function filterAC(cat, btn) {
+  const category = cat || 'all';
+  G.marketFilter = category;
   document.querySelectorAll('#ac-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  G.renderMarket(cat);
+  if (btn) btn.classList.add('active');
+  else {
+    const target = document.querySelector(`#ac-tabs .tab-btn[onclick*="filterAC('${category}'"]`);
+    if (target) target.classList.add('active');
+  }
+  G.renderMarket(category);
 }
 
 function acCategoryIcon(category='passenger') {
@@ -2885,6 +2917,7 @@ const G = {
   cloudSlotsLoadedForUid: null,
   cloudSyncPromise: null,
   _setupLogoData: null,
+  marketFilter: 'all',
 
   // Multipliers
   oilPriceMultiplier: 1,
@@ -3224,7 +3257,7 @@ const G = {
       gameScreen.classList.add('active');
     }
     G.updateTopbar();
-    G.renderMarket('all');
+    G.renderMarket(G.marketFilter || 'all');
     G.renderUpgrades();
     G.renderOil();
     G.renderFleet();
@@ -3589,7 +3622,6 @@ const G = {
   getReputationGoals() {
     const g = G.game;
     const routes = (g.routes || []).length;
-    const fleet = (g.fleet || []).length;
     const weeklyPax = (g.routes || []).reduce((s, r) => s + (r.weeklyPax || 0), 0);
     const service = (g.upgrades || {}).service || 0;
     const maintenance = (g.upgrades || {}).maintenance || 0;
@@ -3597,10 +3629,10 @@ const G = {
     const lounge = (g.upgrades || {}).lounge || 0;
     return [
       {star: 1, name: '1성', met: true, summary: '항공사 설립'},
-      {star: 2, name: '2성', met: routes >= 3 && weeklyPax >= 800 && service >= 1, summary: '노선 3 / 주간 800명 / 기내 서비스 Lv.1'},
-      {star: 3, name: '3성', met: routes >= 8 && weeklyPax >= 4000 && fleet >= 4 && service >= 2 && mileage >= 1, summary: '노선 8 / 주간 4,000명 / 보유 4대 / 서비스 Lv.2 / 마일리지 Lv.1'},
-      {star: 4, name: '4성', met: routes >= 16 && weeklyPax >= 15000 && fleet >= 8 && service >= 3 && maintenance >= 2 && mileage >= 2 && lounge >= 1, summary: '노선 16 / 주간 15,000명 / 보유 8대 / 서비스 Lv.3 / 정비 Lv.2 / 마일리지 Lv.2 / 라운지 Lv.1'},
-      {star: 5, name: '5성', met: routes >= 28 && weeklyPax >= 40000 && fleet >= 14 && service >= 5 && maintenance >= 3 && mileage >= 4 && lounge >= 2, summary: '노선 28 / 주간 40,000명 / 보유 14대 / 서비스 Lv.5 / 정비 Lv.3 / 마일리지 Lv.4 / 라운지 Lv.2'}
+      {star: 2, name: '2성', met: routes >= 4 && weeklyPax >= 2200 && service >= 1, summary: '노선 4 / 주간 2,200명 / 기내 서비스 Lv.1'},
+      {star: 3, name: '3성', met: routes >= 10 && weeklyPax >= 8000 && service >= 2 && mileage >= 1, summary: '노선 10 / 주간 8,000명 / 서비스 Lv.2 / 마일리지 Lv.1'},
+      {star: 4, name: '4성', met: routes >= 20 && weeklyPax >= 22000 && service >= 3 && maintenance >= 2 && mileage >= 2 && lounge >= 1, summary: '노선 20 / 주간 22,000명 / 서비스 Lv.3 / 정비 Lv.2 / 마일리지 Lv.2 / 라운지 Lv.1'},
+      {star: 5, name: '5성', met: routes >= 34 && weeklyPax >= 52000 && service >= 5 && maintenance >= 3 && mileage >= 4 && lounge >= 2, summary: '노선 34 / 주간 52,000명 / 서비스 Lv.5 / 정비 Lv.3 / 마일리지 Lv.4 / 라운지 Lv.2'}
     ];
   },
 
@@ -4137,9 +4169,15 @@ const G = {
   },
 
   renderMarket(cat) {
+    const selectedCat = cat || G.marketFilter || 'all';
+    G.marketFilter = selectedCat;
     const grid = document.getElementById('aircraft-grid');
     grid.innerHTML = '';
-    const list = cat === 'all' ? AIRCRAFT_DATA : AIRCRAFT_DATA.filter(a => a.category === cat);
+    const list = selectedCat === 'all' ? AIRCRAFT_DATA : AIRCRAFT_DATA.filter(a => a.category === selectedCat);
+    document.querySelectorAll('#ac-tabs .tab-btn').forEach(b => {
+      const isActive = b.getAttribute('onclick')?.includes(`filterAC('${selectedCat}'`);
+      b.classList.toggle('active', !!isActive);
+    });
     list.forEach(ac => {
       const canBuy = G.game.balance >= ac.price;
       const div = document.createElement('div');
@@ -4176,7 +4214,7 @@ const G = {
     };
     G.game.fleet.push(fleetEntry);
     G.game.transactions.unshift({week:G.game.week,type:'항공기 구매',desc:ac.name,amount:-ac.price});
-    G.renderMarket('all');
+    G.renderMarket(G.marketFilter || 'all');
     G.renderFleet();
     if (document.getElementById('modal-route')?.classList.contains('open')) G.refreshRouteAircraftGrid();
     G.updateTopbar();
@@ -4297,11 +4335,11 @@ const G = {
     document.getElementById('speed-btn').textContent = '이벤트 대기중';
     document.getElementById('op-event-title').textContent = ev.title;
     document.getElementById('op-event-body').textContent = ev.body;
-    document.getElementById('op-event-effect').textContent = '실무 이벤트는 실제 운영 판단 상황을 요약한 미니 시나리오입니다. 선택 시 비용·수요·평판에 즉시 영향이 반영됩니다.';
+    document.getElementById('op-event-effect').textContent = '상황 브리핑: 이번 주 운영환경 변화로 발생한 실제 의사결정 이슈입니다. 선택에 따라 비용·수요·브랜드 신뢰가 즉시 반영됩니다.';
     const btnA = document.getElementById('op-event-choice-a');
     const btnB = document.getElementById('op-event-choice-b');
-    btnA.innerHTML = `<strong>${ev.choices[0].label}</strong><br><span style="font-size:11px;font-weight:400;opacity:0.85">${ev.choices[0].desc}</span>`;
-    btnB.innerHTML = `<strong>${ev.choices[1].label}</strong><br><span style="font-size:11px;font-weight:400;opacity:0.85">${ev.choices[1].desc}</span>`;
+    btnA.innerHTML = `<strong>${ev.choices[0].label}</strong><span>${ev.choices[0].desc}</span>`;
+    btnB.innerHTML = `<strong>${ev.choices[1].label}</strong><span>${ev.choices[1].desc}</span>`;
     btnA.style.cssText = 'line-height:1.4; padding:14px 18px; text-align:left; white-space:normal;';
     btnB.style.cssText = 'line-height:1.4; padding:14px 18px; text-align:left; white-space:normal;';
     btnA.onclick = () => G.applyOperationalChoice(ev, 0);
