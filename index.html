@@ -2568,10 +2568,35 @@ function dist(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
 }
 
-function routeFlightsPerWeek(hours) {
+function routeTurnaroundHours(ac, distanceKm = 0) {
+  const category = String(ac?.category || 'medium');
+  const d = Math.max(0, Number(distanceKm || 0));
+  let baseHours = 0.75;
+
+  if (category === 'small') baseHours = 0.55;
+  else if (category === 'medium') baseHours = 0.75;
+  else if (category === 'large') baseHours = 1.0;
+  else if (category === 'widebody') baseHours = 1.35;
+  else if (category === 'cargo') {
+    const cargo = Number(ac?.cargo || 0);
+    if (cargo >= 100000) baseHours = 1.45;
+    else if (cargo >= 50000) baseHours = 1.2;
+    else baseHours = 0.95;
+  }
+
+  const distanceAdj = d >= 9000 ? 0.25 : d >= 4500 ? 0.15 : d >= 1800 ? 0.08 : 0;
+  return Math.max(0.45, Math.min(2.4, baseHours + distanceAdj));
+}
+
+function routeCycleHours(hours, ac, distanceKm = 0) {
   const oneWayHours = Math.max(0.5, Number(hours || 0));
-  const roundTripHours = oneWayHours * 2 + 2;
-  return Math.max(1, Math.min(7, Math.floor(84 / Math.max(4.5, roundTripHours))));
+  const turnaroundHours = routeTurnaroundHours(ac, distanceKm);
+  return oneWayHours * 2 + turnaroundHours * 2;
+}
+
+function routeFlightsPerWeek(hours, ac, distanceKm = 0) {
+  const cycleHours = routeCycleHours(hours, ac, distanceKm);
+  return Math.max(1, Math.min(7, Math.floor(84 / Math.max(4.5, cycleHours))));
 }
 
 function routeDemandDistanceFactor(distanceKm, depDemand, arrDemand) {
@@ -3027,7 +3052,7 @@ const G = {
     G.paused = false;
     document.getElementById('speed-btn').textContent = '일시정지';
     G.gameInterval = setInterval(() => { if (!G.paused) G.tick(); }, 7000);
-    G.mapAnimInterval = setInterval(() => { if (!G.paused) G.updateMapPlanes(); }, 80);
+    G.mapAnimInterval = setInterval(() => { if (!G.paused) G.updateMapPlanes(); }, 50);
 
     // 프리 모드: 뉴스 탭 숨기기
     const newsNavItem = document.getElementById('nav-news-item');
@@ -3171,7 +3196,7 @@ const G = {
       const d = dist(depAp, arrAp);
       if (d > ac.range) return sum;
       const flightHours = d / ac.speed;
-      const weeklyRoundTrips = routeFlightsPerWeek(flightHours);
+      const weeklyRoundTrips = routeFlightsPerWeek(flightHours, ac, d);
       const weeklySectors = weeklyRoundTrips * 2;
       const routeFuelUse = ac.fuelPerHour * flightHours * weeklySectors / 50000;
       return sum + Math.max(0, routeFuelUse);
@@ -3233,7 +3258,7 @@ const G = {
       }
 
       const flightHours = d / ac.speed;
-      const weeklyRoundTrips = routeFlightsPerWeek(flightHours);
+      const weeklyRoundTrips = routeFlightsPerWeek(flightHours, ac, d);
       const weeklySectors = weeklyRoundTrips * 2;
       const routeFuelUse = ac.fuelPerHour * flightHours * weeklySectors / 50000;
       const currentFuelPct = fuelCapacity > 0 ? ((G.game.fuel || 0) / fuelCapacity) * 100 : 0;
@@ -3405,6 +3430,16 @@ const G = {
       attribution: '© OpenStreetMap',
       maxZoom: 18,
     }).addTo(G.leafletMap);
+
+    const routePane = G.leafletMap.createPane('routePane');
+    routePane.style.zIndex = '430';
+    routePane.style.pointerEvents = 'none';
+    const planePane = G.leafletMap.createPane('planePane');
+    planePane.style.zIndex = '590';
+    planePane.style.pointerEvents = 'none';
+    const airportPane = G.leafletMap.createPane('airportPane');
+    airportPane.style.zIndex = '680';
+
     G.mapMarkers = {};
     G.mapRouteLines = {};
     G.mapPlanes = {};
@@ -3422,11 +3457,12 @@ const G = {
         iconSize: [size, size],
         iconAnchor: [size/2, size/2],
       });
-      const marker = L.marker([ap.lat, ap.lng], {icon}).addTo(G.leafletMap);
+      const marker = L.marker([ap.lat, ap.lng], {icon, pane: 'airportPane', riseOnHover: true, zIndexOffset: 5000}).addTo(G.leafletMap);
       marker.on('click', () => {
         G.leafletMap.closePopup();
         setTimeout(() => G.showAirportPopup(ap, marker), 10);
       });
+      marker.on('add', () => marker.setZIndexOffset(5000));
       G.mapMarkers[ap.code] = marker;
     });
 
@@ -3475,7 +3511,7 @@ const G = {
       ];
 
       const line = L.polyline(straightPoints, {
-        color: '#1565C0', weight: 1.5, opacity: 0.6, dashArray: '6,4'
+        color: '#1565C0', weight: 1.5, opacity: 0.6, dashArray: '6,4', pane: 'routePane'
       }).addTo(G.leafletMap);
       G.mapRouteLines[idx] = line;
 
@@ -3483,11 +3519,13 @@ const G = {
       const routeDistanceKm = dist(dep, arr);
       const cruiseSpeed = Math.max(500, Number(ac?.speed || 820));
       const flightHours = routeDistanceKm / cruiseSpeed;
-      const weeklyRoundTrips = routeFlightsPerWeek(flightHours);
-      const visualWeekSeconds = 42;
-      const roundTripSeconds = Math.max(6, Math.min(90, visualWeekSeconds / Math.max(1, weeklyRoundTrips)));
-      const dwellSeconds = Math.max(0.6, Math.min(2.1, 0.55 + routeDistanceKm / 5500));
-      const oneWaySeconds = Math.max(1.4, (roundTripSeconds - dwellSeconds * 2) / 2);
+      const weeklyRoundTrips = routeFlightsPerWeek(flightHours, ac, routeDistanceKm);
+      const turnaroundHours = routeTurnaroundHours(ac, routeDistanceKm);
+      const cycleHours = routeCycleHours(flightHours, ac, routeDistanceKm);
+      const visualWeekSeconds = 28;
+      const roundTripSeconds = Math.max(3.4, Math.min(36, visualWeekSeconds / Math.max(1, weeklyRoundTrips)));
+      const dwellSeconds = Math.max(0.45, Math.min(1.35, roundTripSeconds * (turnaroundHours / Math.max(1, cycleHours)) * 1.35));
+      const oneWaySeconds = Math.max(0.9, (roundTripSeconds - dwellSeconds * 2) / 2);
       const cycleSeconds = oneWaySeconds + dwellSeconds + oneWaySeconds + dwellSeconds;
 
       // 비행기 애니메이션을 위한 직선 경로 저장
@@ -3510,10 +3548,10 @@ const G = {
       const midLng = (dep.lng + arr.lng) / 2;
       const planeIcon = L.divIcon({
         className: '',
-        html: `<div style="width:20px;height:20px;transform:rotate(${forwardAngle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px'></i></div>`,
+        html: `<div style="width:20px;height:20px;transform:rotate(${forwardAngle}deg);display:flex;align-items:center;justify-content:center;pointer-events:none"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px;pointer-events:none'></i></div>`,
         iconSize: [20,20], iconAnchor: [10,10]
       });
-      const plane = L.marker([midLat, midLng], {icon: planeIcon}).addTo(G.leafletMap);
+      const plane = L.marker([midLat, midLng], {icon: planeIcon, pane: 'planePane', interactive: false, keyboard: false, zIndexOffset: -1000}).addTo(G.leafletMap);
       G.mapPlanes[idx] = plane;
     });
   },
@@ -3557,7 +3595,7 @@ const G = {
 
       const planeIcon = L.divIcon({
         className: '',
-        html: `<div style="width:20px;height:20px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px'></i></div>`,
+        html: `<div style="width:20px;height:20px;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center;pointer-events:none"><i class='fa-solid fa-plane' style='color:#FFFFFF;font-size:15px;pointer-events:none'></i></div>`,
         iconSize: [20,20], iconAnchor: [10,10]
       });
       G.mapPlanes[idx].setIcon(planeIcon);
@@ -3758,8 +3796,10 @@ const G = {
     if (!ac) return;
     const d = dist(dep, arrAp);
     const hours = d / ac.speed;
-    const weeklyRoundTrips = routeFlightsPerWeek(hours);
+    const weeklyRoundTrips = routeFlightsPerWeek(hours, ac, d);
     const weeklySectors = weeklyRoundTrips * 2;
+    const turnaroundHours = routeTurnaroundHours(ac, d);
+    const turnaroundMinutes = Math.round(turnaroundHours * 60);
     const cargoUpgrade = G.game.upgrades['cargo'] || 0;
     const cargoHubLinked = dep.type === 'cargo_hub' || arrAp.type === 'cargo_hub';
     const cargoHubBonus = cargoHubLinked ? (1.15 + cargoUpgrade * 0.05) : 1;
@@ -3793,13 +3833,13 @@ const G = {
     }
 
     let rev = 0;
-    let loadText = `${Math.round(loadFactor*100)}% · 주 ${weeklyRoundTrips}왕복 (${weeklySectors}편)`;
+    let loadText = `${Math.round(loadFactor*100)}% · 주 ${weeklyRoundTrips}왕복 (${weeklySectors}편) · 공항 정차 ${turnaroundMinutes}분/회`;
     if (ac.category === 'cargo') {
       const weeklyCargo = Math.round((ac.cargo || 0) * weeklySectors * Math.max(0.85, G.demandMultiplier * revenueProfile.demandImpact) * cargoHubBonus);
       const cargoYield = (1.8 + Math.min(1.4, d / 7000)) * revenueProfile.longHaulPremium * (0.86 + revenueProfile.demandImpact * 0.42);
       rev = weeklyCargo * cargoYield * cargoRevBonus;
-      if (loadLabel) loadLabel.textContent = '주간 적재량 / 왕복 횟수';
-      loadText = `${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyRoundTrips}왕복`;
+      if (loadLabel) loadLabel.textContent = '주간 적재량 / 왕복 횟수 / 공항 정차';
+      loadText = `${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyRoundTrips}왕복 · 공항 정차 ${turnaroundMinutes}분/회`;
     } else {
       const ticketPrice = (0.105 * d + 95) * (G.game.ticketMarketIndex || 1) * revenueProfile.longHaulPremium * revenueProfile.shortHaulDrag * revenueProfile.demandImpact;
       const weeklyPax = Math.round((ac.seats || 0) * Math.max(0, loadFactor || 0) * weeklySectors);
@@ -3809,8 +3849,8 @@ const G = {
       const cargoRevenue = weeklyCargo * cargoYield * cargoRevBonus;
       const revBonus = 1 + upgrService*0.02 + upgrLounge*0.06 + allianceRevBonus;
       rev = weeklyPax * ticketPrice * revBonus + cargoRevenue;
-      if (loadLabel) loadLabel.textContent = weeklyCargo > 0 ? '탑승률 / 화물 / 왕복 횟수' : '탑승률 / 왕복 횟수';
-      loadText = weeklyCargo > 0 ? `${Math.round(loadFactor*100)}% · ${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyRoundTrips}왕복` : `${Math.round(loadFactor*100)}% · 주 ${weeklyRoundTrips}왕복`;
+      if (loadLabel) loadLabel.textContent = weeklyCargo > 0 ? '탑승률 / 화물 / 왕복 횟수 / 공항 정차' : '탑승률 / 왕복 횟수 / 공항 정차';
+      loadText = weeklyCargo > 0 ? `${Math.round(loadFactor*100)}% · ${fmtN(Math.round(weeklyCargo / 1000))}톤 · 주 ${weeklyRoundTrips}왕복 · 공항 정차 ${turnaroundMinutes}분/회` : `${Math.round(loadFactor*100)}% · 주 ${weeklyRoundTrips}왕복 · 공항 정차 ${turnaroundMinutes}분/회`;
     }
 
     const costMult = G.costMultiplier * (1 - upgrMaint*0.03) * (1 - upgrFuel*0.04);
